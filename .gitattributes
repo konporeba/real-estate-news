@@ -1,0 +1,13 @@
+# Normalize line endings to LF on checkout/commit across platforms.
+# The project's Prettier config enforces LF; without this, Git for Windows
+# re-introduces CRLF on checkout and breaks `npm run lint`.
+* text=auto eol=lf
+
+# Binary assets should never be normalized.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
