@@ -34,7 +34,7 @@ A single real-estate professional serving Polish investors in Spain publishes no
 | F-03 | llm-cost-ceiling-harness   | (foundation) budgeted, retry-safe LLM invocation wrapper         | —                    | FR-016, FR-017, NFR-cost         | ready    |
 | F-04 | outbound-email-notifications | (foundation) system can email the operator                     | —                    | FR-010, FR-019, FR-021           | ready    |
 | F-05 | reliable-scheduler-backbone | (foundation) DST-correct persistent scheduler primitive         | F-01                 | FR-027, FR-022, NFR-time         | proposed |
-| S-01 | weekly-source-collection   | trigger/re-trigger a week's article collection                   | F-01                 | FR-001,002,003,018; US-01→04     | proposed |
+| S-01 | weekly-source-collection   | trigger/re-trigger a week's article collection                   | F-01                 | FR-001,002,003,018; US-01→04     | done     |
 | S-02 | geography-ranking-rubric   | (system) cluster + geography-rank the pool, gated by an eval harness | S-01, F-03       | FR-004→008,026; US-06,07,08,25   | proposed |
 | S-03 | translated-shortlist-view  | view the ranked Polish shortlist on the dashboard ★              | S-02, F-02           | FR-008,009,009a,011; US-05,07,22 | proposed |
 | S-04 | story-selection-gate       | select 2–4 stories, format, and platforms                        | S-03, F-04           | FR-010,012; US-09,10             | proposed |
@@ -152,7 +152,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** — (both resolved 2026-07-24; see Open Roadmap Questions #1 and #7)
 - **Risk:** Per-source tiering (RSS → API → rendered fetch) is the fragile surface — Idealista in particular blocks scrapers. Built with a manual re-trigger first so the whole downstream pipeline is verifiable before F-05 automates the Sunday run.
-- **Status:** proposed
+- **Status:** done
 
 ### S-02: Geography-ranking rubric (with eval harness)
 
@@ -276,7 +276,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 | F-03       | llm-cost-ceiling-harness     | Budgeted, retry-safe LLM invocation harness            | yes                   | Independent; needed by S-02             |
 | F-04       | outbound-email-notifications | Outbound email notification capability                 | yes                   | Independent; needed by S-04/S-07        |
 | F-05       | reliable-scheduler-backbone  | DST-correct persistent scheduler primitive             | yes                   | F-01 shipped; unblocked                 |
-| S-01       | weekly-source-collection     | Weekly source collection (tiered, resilient)           | in progress           | P2-P3 done; P1 blocked on Supabase CLI access |
+| S-01       | weekly-source-collection     | Weekly source collection (tiered, resilient)           | shipped               | Shipped 2026-07-24; 234 articles on first run |
 | S-02       | geography-ranking-rubric     | Geography-ranking rubric + eval harness                | no                    | Needs S-01, F-03                        |
 | S-03       | translated-shortlist-view    | Translated shortlist dashboard view ★                  | no                    | North star; needs S-02, F-02            |
 | S-04       | story-selection-gate         | Story selection gate (human gate 1)                    | no                    | Needs S-03, F-04                        |
@@ -309,4 +309,5 @@ Foundations below assume these are present and do NOT re-scaffold them.
 
 ## Done
 
+- **S-01: operator can trigger (or the scheduler can auto-run) a week's collection, pulling articles from a configured source list — resilient to a blocked source and to a thin news week.** — Archived 2026-07-24 → `context/archive/2026-07-24-weekly-source-collection/`. Lesson: the opt-in live smoke test found a real regression within minutes of existing — a source that verified working in the morning was blocking by the afternoon. Fixtures cannot see that class of failure; every slice depending on third-party feeds should ship one.
 - **F-01: (foundation) the digest state machine (`collecting → ranking → ready_for_selection → generating → ready_for_approval → approved → published`, plus `skipped`/`failed`) is persisted with per-stage checkpoints, and the core `digest`/`article`/`cluster` tables exist — enough for a multi-day run to survive a machine restart.** — Archived 2026-07-24 → `context/archive/2026-07-22-durable-digest-run-state/`. Lesson: —.

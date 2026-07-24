@@ -2,12 +2,12 @@
 change_id: weekly-source-collection
 roadmap_id: S-01
 title: Weekly source collection
-status: implemented
+status: archived
 created: 2026-07-24
 updated: 2026-07-24
 prd_refs: [FR-001, FR-002, FR-003, FR-018, US-01, US-02, US-03, US-04]
 roadmap: context/foundation/roadmap.md
-archived_at: null
+archived_at: 2026-07-24T16:07:45Z
 ---
 
 # S-01: Weekly source collection
