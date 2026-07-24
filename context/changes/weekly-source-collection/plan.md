@@ -481,7 +481,7 @@ Phase 2 changes an exported API that F-01 shipped: run-state functions gain a cl
 
 #### Automated
 
-- [ ] 4.1 Window-resolution unit tests pass (previous checkpoint, fallback, own-checkpoint ignored, upper bound)
+- [x] 4.1 Window-resolution unit tests pass (previous checkpoint, fallback, own-checkpoint ignored, upper bound) — 8187e6d
 - [ ] 4.2 Per-source isolation test: a throwing adapter does not stop the run and is recorded (needs `SUPABASE_TEST_PROJECT=1`)
 - [ ] 4.3 Escalation test: fallbacks run below `MIN_POOL_SIZE`, not above (needs `SUPABASE_TEST_PROJECT=1`)
 - [ ] 4.4 Top-up test: a second pass inserts only new URLs (needs `SUPABASE_TEST_PROJECT=1`)
