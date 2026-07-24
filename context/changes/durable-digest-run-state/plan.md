@@ -327,27 +327,27 @@ First migration in the project; no existing data to migrate. Apply to the cloud 
 
 #### Automated
 
-- [x] 2.1 Type generation writes `src/db/database.types.ts` exporting `Database`
-- [x] 2.2 Type checking passes: `npx astro check`
-- [x] 2.3 Linting passes: `npm run lint`
-- [x] 2.4 Production build succeeds: `npm run build`
+- [x] 2.1 Type generation writes `src/db/database.types.ts` exporting `Database` — 7581599
+- [x] 2.2 Type checking passes: `npx astro check` — 7581599
+- [x] 2.3 Linting passes: `npm run lint` — 7581599
+- [x] 2.4 Production build succeeds: `npm run build` — 7581599
 
 #### Manual
 
-- [x] 2.5 Server-side service client reads `digest` successfully (with real key)
-- [x] 2.6 Anon client read of the same table is denied (RLS boundary end-to-end)
+- [x] 2.5 Server-side service client reads `digest` successfully (with real key) — 7581599
+- [x] 2.6 Anon client read of the same table is denied (RLS boundary end-to-end) — 7581599
 
 ### Phase 3: Run-state orchestration module
 
 #### Automated
 
-- [ ] 3.1 Vitest runs: `npx vitest run`
-- [ ] 3.2 State-machine unit tests pass (transitions, terminal set, map-vs-migration parity)
-- [ ] 3.3 Run-state integration tests pass (collision, transition persist/reject, checkpoint, resume)
-- [ ] 3.4 Type checking passes: `npx astro check`
-- [ ] 3.5 Linting passes: `npm run lint`
+- [x] 3.1 Vitest runs: `npx vitest run`
+- [x] 3.2 State-machine unit tests pass (transitions, terminal set, map-vs-migration parity)
+- [x] 3.3 Run-state integration tests pass (collision, transition persist/reject, checkpoint, resume)
+- [x] 3.4 Type checking passes: `npx astro check`
+- [x] 3.5 Linting passes: `npm run lint`
 
 #### Manual
 
-- [ ] 3.6 Simulated restart: `resumeDigest` returns persisted state + checkpoint after transition
-- [ ] 3.7 TS `TRANSITIONS` map and SQL trigger agree on a spot-check
+- [x] 3.6 Simulated restart: `resumeDigest` returns persisted state + checkpoint after transition
+- [x] 3.7 TS `TRANSITIONS` map and SQL trigger agree on a spot-check
