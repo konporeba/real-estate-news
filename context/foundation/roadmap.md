@@ -29,7 +29,7 @@ A single real-estate professional serving Polish investors in Spain publishes no
 
 | ID   | Change ID                  | Outcome (user can …)                                              | Prerequisites        | PRD refs                         | Status   |
 | ---- | -------------------------- | ---------------------------------------------------------------- | -------------------- | -------------------------------- | -------- |
-| F-01 | durable-digest-run-state   | (foundation) durable digest state machine + core schema in place | —                    | NFR-durability, §Data, §State    | shipped  |
+| F-01 | durable-digest-run-state   | (foundation) durable digest state machine + core schema in place | —                    | NFR-durability, §Data, §State    | done     |
 | F-02 | operator-pin-access-gate   | (foundation) PIN gate + lockout replaces email/password auth     | —                    | US-22, NFR-access, §Access       | ready    |
 | F-03 | llm-cost-ceiling-harness   | (foundation) budgeted, retry-safe LLM invocation wrapper         | —                    | FR-016, FR-017, NFR-cost         | ready    |
 | F-04 | outbound-email-notifications | (foundation) system can email the operator                     | —                    | FR-010, FR-019, FR-021           | ready    |
@@ -82,7 +82,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Sequenced first because nothing in the pipeline can be built or verified without durable run-state. Scope kept minimal — later slices add their own tables (selection, generated_asset, publication, feedback_label); this is the state-machine contract + three core tables, not the whole data layer.
-- **Status:** shipped (2026-07-24, commits `00280d7`…`0deb13f`)
+- **Status:** done (shipped 2026-07-24, commits `00280d7`…`0deb13f`)
 - **Delivered:** `digest`/`article`/`cluster` schema with the `digest_status` enum, transition-guard + `updated_at` triggers, `one_active_digest_per_week` partial unique index, deny-by-default RLS; generated `Database` type wired into the SSR client plus a server-only service-role client; a typed run-state module (`src/lib/digest/run-state.ts`) exposing `createDigest`, `transitionDigest`, `markStageComplete`, `getActiveDigestForWeek`, `resumeDigest`; Vitest with a drift guard that fails when the TS transition map and the SQL trigger diverge.
 - **Carried forward:** the migration was applied to the cloud project via the SQL Editor, so it is **not** recorded in `supabase_migrations.schema_migrations` — repair (`supabase link` + `migration repair --status applied 20260722173032`) is required before the next `db push`. A `check (window_end >= window_start)` constraint is deferred to that same migration. See `context/changes/durable-digest-run-state/reviews/impl-review.md` (F1, F8).
 
@@ -310,4 +310,4 @@ Foundations below assume these are present and do NOT re-scaffold them.
 
 ## Done
 
-(Empty on first generation. `/10x-archive` appends here when a change whose Change ID matches a roadmap item is archived.)
+- **F-01: (foundation) the digest state machine (`collecting → ranking → ready_for_selection → generating → ready_for_approval → approved → published`, plus `skipped`/`failed`) is persisted with per-stage checkpoints, and the core `digest`/`article`/`cluster` tables exist — enough for a multi-day run to survive a machine restart.** — Archived 2026-07-24 → `context/archive/2026-07-22-durable-digest-run-state/`. Lesson: —.

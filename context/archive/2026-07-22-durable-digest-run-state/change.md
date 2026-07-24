@@ -2,9 +2,10 @@
 change_id: durable-digest-run-state
 roadmap_id: F-01
 title: Durable digest run-state & core schema
-status: impl_reviewed
+status: archived
 created: 2026-07-22
 updated: 2026-07-24
+archived_at: 2026-07-24T09:58:00Z
 prd_refs: [NFR-durability, FR-001, FR-004]
 roadmap: context/foundation/roadmap.md
 ---
