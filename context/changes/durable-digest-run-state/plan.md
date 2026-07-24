@@ -313,29 +313,29 @@ First migration in the project; no existing data to migrate. Apply to the cloud 
 
 #### Automated
 
-- [x] 1.1 Migration applies cleanly to a fresh local DB: `npx supabase db reset`
-- [x] 1.2 Enum, three tables, partial unique index, and both triggers exist
-- [x] 1.3 No SQL lint/parse errors during apply
+- [x] 1.1 Migration applies cleanly to a fresh local DB: `npx supabase db reset` — 00280d7
+- [x] 1.2 Enum, three tables, partial unique index, and both triggers exist — 00280d7
+- [x] 1.3 No SQL lint/parse errors during apply — 00280d7
 
 #### Manual
 
-- [x] 1.4 Schema visible and correct in Supabase Studio
-- [x] 1.5 Anon/publishable key read of `digest` returns zero rows / denied (RLS)
-- [x] 1.6 FK cascade removes child `article`/`cluster` rows on digest delete — deferred to Phase 3 (integration test 3.3)
+- [x] 1.4 Schema visible and correct in Supabase Studio — 00280d7
+- [x] 1.5 Anon/publishable key read of `digest` returns zero rows / denied (RLS) — 00280d7
+- [x] 1.6 FK cascade removes child `article`/`cluster` rows on digest delete — deferred to Phase 3 (integration test 3.3) — 00280d7
 
 ### Phase 2: Typed access & service-role client
 
 #### Automated
 
-- [ ] 2.1 Type generation writes `src/db/database.types.ts` exporting `Database`
-- [ ] 2.2 Type checking passes: `npx astro check`
-- [ ] 2.3 Linting passes: `npm run lint`
-- [ ] 2.4 Production build succeeds: `npm run build`
+- [x] 2.1 Type generation writes `src/db/database.types.ts` exporting `Database`
+- [x] 2.2 Type checking passes: `npx astro check`
+- [x] 2.3 Linting passes: `npm run lint`
+- [x] 2.4 Production build succeeds: `npm run build`
 
 #### Manual
 
-- [ ] 2.5 Server-side service client reads `digest` successfully (with real key)
-- [ ] 2.6 Anon client read of the same table is denied (RLS boundary end-to-end)
+- [x] 2.5 Server-side service client reads `digest` successfully (with real key)
+- [x] 2.6 Anon client read of the same table is denied (RLS boundary end-to-end)
 
 ### Phase 3: Run-state orchestration module
 

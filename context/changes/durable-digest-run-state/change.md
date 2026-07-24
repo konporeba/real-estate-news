@@ -4,7 +4,7 @@ roadmap_id: F-01
 title: Durable digest run-state & core schema
 status: implementing
 created: 2026-07-22
-updated: 2026-07-22
+updated: 2026-07-24
 prd_refs: [NFR-durability, FR-001, FR-004]
 roadmap: context/foundation/roadmap.md
 ---
