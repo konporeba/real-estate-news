@@ -5,7 +5,7 @@ title: Durable digest run-state & core schema
 status: archived
 created: 2026-07-22
 updated: 2026-07-24
-archived_at: 2026-07-24T09:58:00Z
+archived_at: 2026-07-24T10:11:52Z
 prd_refs: [NFR-durability, FR-001, FR-004]
 roadmap: context/foundation/roadmap.md
 ---
