@@ -1,6 +1,13 @@
-// SERVER-ONLY. Every function here reaches the domain tables through the service-role
-// client, which bypasses row-level security. Never import this module from a React island
-// or any client-reachable path.
+// SERVER-ONLY. Every function here reaches the domain tables with a service-role client,
+// which bypasses row-level security. Never import this module from a React island or any
+// client-reachable path.
+//
+// RUNTIME-NEUTRAL BY DESIGN: the client is injected rather than constructed here, so this
+// module resolves in the Astro runtime, in Vitest, and in the plain Node worker alike.
+// Do not import astro:env/server (directly or via src/lib/supabase-admin.ts) from this
+// file — that virtual module only exists inside Astro's build and would break the worker.
+// Astro callers pass `createServiceClient()` from src/lib/supabase-admin.ts; the worker
+// passes one built from src/worker/env.ts.
 //
 // This is the run-state contract downstream slices call (S-01 collection, S-02 ranking,
 // S-03 shortlist). All state lives in Postgres: the pipeline spans days and the worker
@@ -12,7 +19,7 @@ import type { PostgrestError } from "@supabase/supabase-js";
 
 import type { Database } from "@/db/database.types";
 import { canTransition, TERMINAL_STATES } from "@/lib/digest/state-machine";
-import { createServiceClient } from "@/lib/supabase-admin";
+import type { ServiceClient } from "@/lib/supabase-service";
 import type { DigestRun, DigestStage, DigestStatus, DigestWindow, RunStateError, RunStateResult } from "@/types";
 
 type DigestUpdate = Database["public"]["Tables"]["digest"]["Update"];
@@ -35,10 +42,6 @@ function fail(reason: RunStateError["reason"], message: string): RunStateError {
   return { ok: false, reason, message };
 }
 
-function notConfigured(): RunStateError {
-  return fail("not_configured", "SUPABASE_SERVICE_ROLE_KEY is not set; domain tables are unreachable");
-}
-
 function databaseError(error: PostgrestError): RunStateError {
   return fail("database_error", `${error.code}: ${error.message}`);
 }
@@ -50,10 +53,7 @@ function databaseError(error: PostgrestError): RunStateError {
  * surfaces as `active_digest_exists` — the expected outcome when the Sunday schedule
  * collides with a manual re-trigger.
  */
-export async function createDigest(window: DigestWindow): Promise<RunStateResult<DigestRun>> {
-  const client = createServiceClient();
-  if (!client) return notConfigured();
-
+export async function createDigest(client: ServiceClient, window: DigestWindow): Promise<RunStateResult<DigestRun>> {
   const { data, error } = await client
     .from("digest")
     .insert({ window_start: window.start, window_end: window.end })
@@ -81,14 +81,12 @@ export async function createDigest(window: DigestWindow): Promise<RunStateResult
  * diagnostic a previous caller recorded.
  */
 export async function transitionDigest(
+  client: ServiceClient,
   id: string,
   to: DigestStatus,
   options: { lastError?: string | null } = {},
 ): Promise<RunStateResult<DigestRun>> {
-  const client = createServiceClient();
-  if (!client) return notConfigured();
-
-  const current = await resumeDigest(id);
+  const current = await resumeDigest(client, id);
   if (!current.ok) return current;
 
   const from = current.data.status;
@@ -121,13 +119,11 @@ export async function transitionDigest(
  * passes this through — checkpoints are how a restarted worker knows what it can skip.
  */
 export async function markStageComplete(
+  client: ServiceClient,
   id: string,
   stage: DigestStage,
   completedAt: Date = new Date(),
 ): Promise<RunStateResult<DigestRun>> {
-  const client = createServiceClient();
-  if (!client) return notConfigured();
-
   const { data, error } = await client
     .from("digest")
     .update(STAGE_CHECKPOINT[stage](completedAt.toISOString()))
@@ -147,11 +143,9 @@ export async function markStageComplete(
  * scheduler calls this before creating a run.
  */
 export async function getActiveDigestForWeek(
+  client: ServiceClient,
   window: Pick<DigestWindow, "start">,
 ): Promise<RunStateResult<DigestRun | null>> {
-  const client = createServiceClient();
-  if (!client) return notConfigured();
-
   const { data, error } = await client
     .from("digest")
     .select("*")
@@ -167,10 +161,7 @@ export async function getActiveDigestForWeek(
  * Read a digest's full persisted state — status, checkpoints, cost, last error. This is
  * the worker's boot path: everything needed to resume comes from this one row.
  */
-export async function resumeDigest(id: string): Promise<RunStateResult<DigestRun>> {
-  const client = createServiceClient();
-  if (!client) return notConfigured();
-
+export async function resumeDigest(client: ServiceClient, id: string): Promise<RunStateResult<DigestRun>> {
   const { data, error } = await client.from("digest").select("*").eq("id", id).maybeSingle();
 
   if (error) return databaseError(error);

@@ -20,7 +20,7 @@ import {
   resumeDigest,
   transitionDigest,
 } from "@/lib/digest/run-state";
-import { createServiceClient } from "@/lib/supabase-admin";
+import { createServiceClient, type ServiceClient } from "@/lib/supabase-service";
 import type { DigestWindow, RunStateResult } from "@/types";
 
 const configured = Boolean(
@@ -53,10 +53,10 @@ function requireEnv(name: string): string {
   return value;
 }
 
+// The client is built here and injected, exactly as the worker does — which is the point
+// of the run-state module taking it as a parameter rather than reaching for astro:env.
 function serviceClient() {
-  const client = createServiceClient();
-  if (!client) throw new Error("service-role client is unavailable");
-  return client;
+  return createServiceClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
 }
 
 /** Asserts a run-state call succeeded and returns its payload. */
@@ -74,16 +74,22 @@ async function purgeTestDigests(): Promise<void> {
   if (error) throw new Error(`failed to purge test digests: ${error.message}`);
 }
 
+/** Assigned in beforeAll so an unconfigured run never tries to build a client. */
+let db: ServiceClient;
+
 describe.skipIf(!configured)("run-state (integration)", () => {
   // A previous aborted run could leave a live 1970 digest behind, which the partial
   // unique index would then reject — purge on both ends.
-  beforeAll(purgeTestDigests);
+  beforeAll(async () => {
+    db = serviceClient();
+    await purgeTestDigests();
+  });
   afterAll(purgeTestDigests);
 
   describe("createDigest", () => {
     it("inserts a collecting digest with zero cost and no checkpoints", async () => {
       const window = nextWindow();
-      const digest = unwrap(await createDigest(window));
+      const digest = unwrap(await createDigest(db, window));
 
       expect(digest.status).toBe("collecting");
       expect(digest.window_start).toBe(window.start);
@@ -97,9 +103,9 @@ describe.skipIf(!configured)("run-state (integration)", () => {
 
     it("rejects a second live digest for the same week", async () => {
       const window = nextWindow();
-      unwrap(await createDigest(window));
+      unwrap(await createDigest(db, window));
 
-      const collision = await createDigest(window);
+      const collision = await createDigest(db, window);
 
       expect(collision.ok).toBe(false);
       if (collision.ok) return;
@@ -108,71 +114,71 @@ describe.skipIf(!configured)("run-state (integration)", () => {
 
     it("frees the week once the digest reaches a terminal state", async () => {
       const window = nextWindow();
-      const first = unwrap(await createDigest(window));
+      const first = unwrap(await createDigest(db, window));
 
-      expect(unwrap(await getActiveDigestForWeek(window))?.id).toBe(first.id);
+      expect(unwrap(await getActiveDigestForWeek(db, window))?.id).toBe(first.id);
 
-      unwrap(await transitionDigest(first.id, "failed", { lastError: "collection timed out" }));
+      unwrap(await transitionDigest(db, first.id, "failed", { lastError: "collection timed out" }));
 
-      expect(unwrap(await getActiveDigestForWeek(window))).toBeNull();
-      const retriggered = unwrap(await createDigest(window));
+      expect(unwrap(await getActiveDigestForWeek(db, window))).toBeNull();
+      const retriggered = unwrap(await createDigest(db, window));
       expect(retriggered.id).not.toBe(first.id);
     });
   });
 
   describe("transitionDigest", () => {
     it("persists a legal transition", async () => {
-      const digest = unwrap(await createDigest(nextWindow()));
+      const digest = unwrap(await createDigest(db, nextWindow()));
 
-      const moved = unwrap(await transitionDigest(digest.id, "ranking"));
+      const moved = unwrap(await transitionDigest(db, digest.id, "ranking"));
 
       expect(moved.status).toBe("ranking");
-      expect(unwrap(await resumeDigest(digest.id)).status).toBe("ranking");
+      expect(unwrap(await resumeDigest(db, digest.id)).status).toBe("ranking");
     });
 
     it("records last_error on failure and clears it on re-trigger", async () => {
-      const digest = unwrap(await createDigest(nextWindow()));
+      const digest = unwrap(await createDigest(db, nextWindow()));
 
-      const failed = unwrap(await transitionDigest(digest.id, "failed", { lastError: "feed unreachable" }));
+      const failed = unwrap(await transitionDigest(db, digest.id, "failed", { lastError: "feed unreachable" }));
       expect(failed.last_error).toBe("feed unreachable");
 
-      const retried = unwrap(await transitionDigest(digest.id, "collecting"));
+      const retried = unwrap(await transitionDigest(db, digest.id, "collecting"));
       expect(retried.status).toBe("collecting");
       expect(retried.last_error).toBeNull();
     });
 
     it("leaves an existing last_error alone when the caller supplies none", async () => {
-      const digest = unwrap(await createDigest(nextWindow()));
-      await serviceClient().from("digest").update({ last_error: "earlier failure detail" }).eq("id", digest.id);
+      const digest = unwrap(await createDigest(db, nextWindow()));
+      await db.from("digest").update({ last_error: "earlier failure detail" }).eq("id", digest.id);
 
-      const failed = unwrap(await transitionDigest(digest.id, "failed"));
+      const failed = unwrap(await transitionDigest(db, digest.id, "failed"));
 
       expect(failed.last_error).toBe("earlier failure detail");
     });
 
     it("rejects an illegal transition and leaves the row untouched", async () => {
-      const digest = unwrap(await createDigest(nextWindow()));
+      const digest = unwrap(await createDigest(db, nextWindow()));
 
-      const result = await transitionDigest(digest.id, "published");
+      const result = await transitionDigest(db, digest.id, "published");
 
       expect(result.ok).toBe(false);
       if (result.ok) return;
       expect(result.reason).toBe("illegal_transition");
-      expect(unwrap(await resumeDigest(digest.id)).status).toBe("collecting");
+      expect(unwrap(await resumeDigest(db, digest.id)).status).toBe("collecting");
     });
 
     it("is rejected by the database trigger even when the app guard is bypassed", async () => {
-      const digest = unwrap(await createDigest(nextWindow()));
+      const digest = unwrap(await createDigest(db, nextWindow()));
 
-      const { error } = await serviceClient().from("digest").update({ status: "published" }).eq("id", digest.id);
+      const { error } = await db.from("digest").update({ status: "published" }).eq("id", digest.id);
 
       expect(error).not.toBeNull();
       expect(error?.message).toContain("illegal digest transition");
-      expect(unwrap(await resumeDigest(digest.id)).status).toBe("collecting");
+      expect(unwrap(await resumeDigest(db, digest.id)).status).toBe("collecting");
     });
 
     it("reports not_found for an unknown id", async () => {
-      const result = await transitionDigest("00000000-0000-0000-0000-000000000000", "ranking");
+      const result = await transitionDigest(db, "00000000-0000-0000-0000-000000000000", "ranking");
 
       expect(result.ok).toBe(false);
       if (result.ok) return;
@@ -182,10 +188,10 @@ describe.skipIf(!configured)("run-state (integration)", () => {
 
   describe("markStageComplete", () => {
     it("writes a checkpoint without tripping the transition guard", async () => {
-      const digest = unwrap(await createDigest(nextWindow()));
+      const digest = unwrap(await createDigest(db, nextWindow()));
       const completedAt = new Date("1970-01-08T12:00:00.000Z");
 
-      const checkpointed = unwrap(await markStageComplete(digest.id, "collection", completedAt));
+      const checkpointed = unwrap(await markStageComplete(db, digest.id, "collection", completedAt));
 
       expect(checkpointed.status).toBe("collecting");
       expect(checkpointed.collection_completed_at).not.toBeNull();
@@ -195,12 +201,12 @@ describe.skipIf(!configured)("run-state (integration)", () => {
 
   describe("resumeDigest", () => {
     it("returns the persisted state and checkpoints a restarted worker would resume from", async () => {
-      const digest = unwrap(await createDigest(nextWindow()));
-      await markStageComplete(digest.id, "collection");
-      unwrap(await transitionDigest(digest.id, "ranking"));
+      const digest = unwrap(await createDigest(db, nextWindow()));
+      await markStageComplete(db, digest.id, "collection");
+      unwrap(await transitionDigest(db, digest.id, "ranking"));
 
       // Nothing is held in memory: this is exactly what a worker sees on boot.
-      const resumed = unwrap(await resumeDigest(digest.id));
+      const resumed = unwrap(await resumeDigest(db, digest.id));
 
       expect(resumed.status).toBe("ranking");
       expect(resumed.collection_completed_at).not.toBeNull();
@@ -210,8 +216,8 @@ describe.skipIf(!configured)("run-state (integration)", () => {
 
   describe("schema guarantees", () => {
     it("cascades a digest delete to its cluster and article rows", async () => {
-      const client = serviceClient();
-      const digest = unwrap(await createDigest(nextWindow()));
+      const client = db;
+      const digest = unwrap(await createDigest(db, nextWindow()));
 
       const { data: cluster, error: clusterError } = await client
         .from("cluster")
@@ -238,7 +244,7 @@ describe.skipIf(!configured)("run-state (integration)", () => {
     });
 
     it("denies the anon/publishable key (RLS deny-by-default)", async () => {
-      unwrap(await createDigest(nextWindow()));
+      unwrap(await createDigest(db, nextWindow()));
 
       const anon = createClient<Database>(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_KEY"));
       const { data, error } = await anon.from("digest").select("id");

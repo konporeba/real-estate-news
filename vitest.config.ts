@@ -5,14 +5,12 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   resolve: {
     alias: [
-      // `astro:env/server` is an Astro build-pipeline virtual module; outside of it the
-      // import is unresolvable, so tests get a process.env-backed shim instead.
-      {
-        find: "astro:env/server",
-        replacement: fileURLToPath(new URL("./test/shims/astro-env-server.ts", import.meta.url)),
-      },
       // Mirrors the `@/*` path alias in tsconfig.json. Anchored to `@/` so scoped npm
       // packages (`@supabase/...`) are left alone.
+      //
+      // No `astro:env/server` shim is needed: modules under test take their Supabase
+      // client as a parameter rather than reading Astro's virtual env module. If a suite
+      // ever imports Astro-side code directly it will need one again.
       { find: /^@\//, replacement: fileURLToPath(new URL("./src/", import.meta.url)) },
     ],
   },

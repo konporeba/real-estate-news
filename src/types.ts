@@ -21,7 +21,6 @@ export interface DigestWindow {
  * Why a run-state operation failed. Every reason is expected and handled by callers —
  * these are results, not exceptions.
  *
- * - `not_configured` — no service-role key is set, so domain tables are unreachable
  * - `active_digest_exists` — the partial unique index rejected a second live digest for the week
  * - `illegal_transition` — the transition is not in the state machine (app guard or DB trigger)
  * - `concurrent_modification` — the row's status changed between read and write
@@ -29,7 +28,6 @@ export interface DigestWindow {
  * - `database_error` — anything else Postgres reported
  */
 export type RunStateErrorReason =
-  | "not_configured"
   | "active_digest_exists"
   | "illegal_transition"
   | "concurrent_modification"

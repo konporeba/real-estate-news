@@ -452,15 +452,15 @@ Phase 2 changes an exported API that F-01 shipped: run-state functions gain a cl
 
 #### Automated
 
-- [ ] 2.1 Existing suite green against the injected API: `npm test`
-- [ ] 2.2 Plain Node import of run-state resolves with no Astro build
-- [ ] 2.3 Type checking passes: `npx astro check`
-- [ ] 2.4 Linting passes: `npm run lint`
-- [ ] 2.5 Production build succeeds: `npm run build`
+- [x] 2.1 Existing suite green against the injected API: `npm test`
+- [x] 2.2 Plain Node import of run-state resolves with no Astro build
+- [x] 2.3 Type checking passes: `npx astro check`
+- [x] 2.4 Linting passes: `npm run lint`
+- [x] 2.5 Production build succeeds: `npm run build`
 
 #### Manual
 
-- [ ] 2.6 Astro app still reads a digest server-side through `supabase-admin.ts`
+- [x] 2.6 Astro app still reads a digest server-side through `supabase-admin.ts`
 
 ### Phase 3: Source configuration & tier abstraction
 
