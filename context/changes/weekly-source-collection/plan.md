@@ -448,13 +448,13 @@ Phase 2 changes an exported API that F-01 shipped: run-state functions gain a cl
 
 - [x] 1.1 ~~`migration list`~~ → history rows for `20260722173032` and `20260724150000` inserted via SQL Editor (**operator-run; select output not captured — unverified by me**)
 - [x] 1.2 ~~`db push`~~ → n/a while 5432 is unreachable; correctness of the recorded history is what 1.1 covers
-- [x] 1.3 Regenerated types include `collection_report`; `npx astro check` passes (0 errors) — d3f9c31
-- [x] 1.4 Existing suite still green: `npm test` (82 passing) — d3f9c31
+- [x] 1.3 Regenerated types include `collection_report`; `npx astro check` passes (0 errors) — 6c97540
+- [x] 1.4 Existing suite still green: `npm test` (82 passing) — 6c97540
 
 #### Manual
 
-- [x] 1.5 ~~visible in Studio~~ → verified over PostgREST instead: `digest.collection_report` selectable, `digest_window_order` present — d3f9c31
-- [x] 1.6 Digest with `window_end` before `window_start` is rejected by the database (Postgres `23514`, constraint `digest_window_order`); a valid window still inserts, so the check is not over-tight — d3f9c31
+- [x] 1.5 ~~visible in Studio~~ → verified over PostgREST instead: `digest.collection_report` selectable, `digest_window_order` present — 6c97540
+- [x] 1.6 Digest with `window_end` before `window_start` is rejected by the database (Postgres `23514`, constraint `digest_window_order`); a valid window still inserts, so the check is not over-tight — 6c97540
 
 ### Phase 2: Runtime-agnostic data access
 
