@@ -341,13 +341,13 @@ First migration in the project; no existing data to migrate. Apply to the cloud 
 
 #### Automated
 
-- [x] 3.1 Vitest runs: `npx vitest run`
-- [x] 3.2 State-machine unit tests pass (transitions, terminal set, map-vs-migration parity)
-- [x] 3.3 Run-state integration tests pass (collision, transition persist/reject, checkpoint, resume)
-- [x] 3.4 Type checking passes: `npx astro check`
-- [x] 3.5 Linting passes: `npm run lint`
+- [x] 3.1 Vitest runs: `npx vitest run` — 26654f9
+- [x] 3.2 State-machine unit tests pass (transitions, terminal set, map-vs-migration parity) — 26654f9
+- [x] 3.3 Run-state integration tests pass (collision, transition persist/reject, checkpoint, resume) — 26654f9
+- [x] 3.4 Type checking passes: `npx astro check` — 26654f9
+- [x] 3.5 Linting passes: `npm run lint` — 26654f9
 
 #### Manual
 
-- [x] 3.6 Simulated restart: `resumeDigest` returns persisted state + checkpoint after transition
-- [x] 3.7 TS `TRANSITIONS` map and SQL trigger agree on a spot-check
+- [x] 3.6 Simulated restart: `resumeDigest` returns persisted state + checkpoint after transition — 26654f9
+- [x] 3.7 TS `TRANSITIONS` map and SQL trigger agree on a spot-check — 26654f9
