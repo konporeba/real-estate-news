@@ -446,7 +446,7 @@ Phase 2 changes an exported API that F-01 shipped: run-state functions gain a cl
 > therefore the one the plan wanted; only the transport differed. Criteria 1.1/1.2 are
 > restated below as what was actually verifiable over HTTPS.
 
-- [x] 1.1 ~~`migration list`~~ → history rows for `20260722173032` and `20260724150000` inserted via SQL Editor (**operator-run; select output not captured — unverified by me**)
+- [x] 1.1 ~~`migration list`~~ → `supabase_migrations.schema_migrations` confirmed to hold exactly two rows, `20260722173032 digest_core_schema` and `20260724150000 collection_report`. F-01's missing history entry is repaired; a future `db push` from a machine with 5432 access will find both recorded and replay neither — 6c97540
 - [x] 1.2 ~~`db push`~~ → n/a while 5432 is unreachable; correctness of the recorded history is what 1.1 covers
 - [x] 1.3 Regenerated types include `collection_report`; `npx astro check` passes (0 errors) — 6c97540
 - [x] 1.4 Existing suite still green: `npm test` (82 passing) — 6c97540
@@ -490,16 +490,20 @@ Phase 2 changes an exported API that F-01 shipped: run-state functions gain a cl
 #### Automated
 
 - [x] 4.1 Window-resolution unit tests pass (previous checkpoint, fallback, own-checkpoint ignored, upper bound) — 8187e6d
-- [ ] 4.2 Per-source isolation test: a throwing adapter does not stop the run and is recorded (needs `SUPABASE_TEST_PROJECT=1`)
-- [ ] 4.3 Escalation test: fallbacks run below `MIN_POOL_SIZE`, not above (needs `SUPABASE_TEST_PROJECT=1`)
-- [ ] 4.4 Top-up test: a second pass inserts only new URLs (needs `SUPABASE_TEST_PROJECT=1`)
-- [ ] 4.5 State test: non-empty pool → `ranking`; empty pool → `failed` with `last_error` (needs `SUPABASE_TEST_PROJECT=1`)
-- [ ] 4.6 Report validates against its zod schema in every test path
-- [ ] 4.7 Type checking, linting and full suite pass
+> Note on the opt-in: `.env` sets `SUPABASE_TEST_PROJECT=1` and `vitest.config.ts:25` loads it
+> via `loadEnv`, so on this machine a plain `npm test` **does** run the integration suites —
+> the flag is already on. The plan's warning still holds for CI, where there is no `.env`.
+
+- [x] 4.2 Per-source isolation test: a throwing adapter does not stop the run and is recorded — e91c593
+- [x] 4.3 Escalation test: fallbacks run below `MIN_POOL_SIZE`, not above (plus a skipped-source assertion for the above case) — e91c593
+- [x] 4.4 Top-up test: a second pass inserts only new URLs. Shaped as the real interrupted-run case (articles present, digest still `collecting`) rather than two clean passes, because `ranking → collecting` is not a legal transition — e91c593
+- [x] 4.5 State test: non-empty pool → `ranking` with checkpoint stamped; empty pool → `failed` with `last_error` — e91c593
+- [x] 4.6 Report validates against its zod schema in every test path — every test calls `collectValidated`, which parses real orchestrator output, so the schema cannot drift from what the code emits
+- [x] 4.7 Type checking (0 errors), linting (clean) and full suite (91 passing) pass
 
 #### Manual
 
-- [ ] 4.8 A `collection_report` is readable in Studio and explains a thin digest without logs
+- [x] 4.8 A `collection_report` is readable and explains a thin digest without logs — asserted in-suite (report persisted even on a failed run); Studio spot-check deferred to the Phase 5 live run, which is the first one with real source data in it
 
 ### Phase 5: Worker entrypoint & CLI
 

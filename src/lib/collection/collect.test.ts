@@ -13,6 +13,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Candidate } from "@/lib/collection/adapters/types";
+import { collectionReportSchema } from "@/lib/collection/report";
 import { MIN_POOL_SIZE, type SourceDefinition } from "@/lib/collection/sources";
 import { createDigest } from "@/lib/digest/run-state";
 import { createServiceClient, type ServiceClient } from "@/lib/supabase-service";
@@ -34,6 +35,26 @@ vi.mock("@/lib/collection/adapters", () => ({
 
 // Imported after the mock declaration for clarity; vi.mock is hoisted above it regardless.
 const { collect } = await import("@/lib/collection/collect");
+type CollectArgs = Parameters<typeof collect>;
+type CollectResult = Awaited<ReturnType<typeof collect>>;
+
+/**
+ * `collect()` with the report it produced asserted against its own zod schema.
+ *
+ * Every test goes through this rather than calling collect() directly, so the schema is
+ * exercised on real orchestrator output on every path — not just on the hand-written
+ * fixtures in report.test.ts, which can drift from what the code actually emits.
+ */
+async function collectValidated(...args: CollectArgs): Promise<CollectResult> {
+  const result = await collect(...args);
+  if (result.ok) {
+    const parsed = collectionReportSchema.safeParse(result.data.report);
+    if (!parsed.success) {
+      throw new Error(`collection report failed schema validation: ${parsed.error.message}`);
+    }
+  }
+  return result;
+}
 
 const configured = Boolean(
   process.env.SUPABASE_TEST_PROJECT === "1" && process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -138,7 +159,7 @@ describe.skipIf(!configured)("collect (integration)", () => {
     };
 
     const { report, digest: after } = unwrap(
-      await collect(db, digest, { sources: [source("good"), source("blocked")] }),
+      await collectValidated(db, digest, { sources: [source("good"), source("blocked")] }),
     );
 
     // The run did not abort.
@@ -157,7 +178,9 @@ describe.skipIf(!configured)("collect (integration)", () => {
     const digest = await freshDigest(db);
     plan.current = { thin: candidates("thin", 3), backup: candidates("backup", 4) };
 
-    const { report } = unwrap(await collect(db, digest, { sources: [source("thin"), source("backup", "fallback")] }));
+    const { report } = unwrap(
+      await collectValidated(db, digest, { sources: [source("thin"), source("backup", "fallback")] }),
+    );
 
     expect(report.fallbacksRan).toBe(true);
     expect(report.sources.find((s) => s.slug === "backup")?.status).toBe("ok");
@@ -169,7 +192,9 @@ describe.skipIf(!configured)("collect (integration)", () => {
     const digest = await freshDigest(db);
     plan.current = { plenty: candidates("plenty", MIN_POOL_SIZE + 1), backup: candidates("backup", 9) };
 
-    const { report } = unwrap(await collect(db, digest, { sources: [source("plenty"), source("backup", "fallback")] }));
+    const { report } = unwrap(
+      await collectValidated(db, digest, { sources: [source("plenty"), source("backup", "fallback")] }),
+    );
 
     expect(report.fallbacksRan).toBe(false);
     expect(report.thresholdMet).toBe(true);
@@ -197,7 +222,7 @@ describe.skipIf(!configured)("collect (integration)", () => {
     expect(error).toBeNull();
 
     plan.current = { topup: candidates("topup", 7) };
-    const { report } = unwrap(await collect(db, digest, { sources: [source("topup")] }));
+    const { report } = unwrap(await collectValidated(db, digest, { sources: [source("topup")] }));
 
     expect(await articleCount(db, digest.id)).toBe(7);
     expect(report.sources.find((s) => s.slug === "topup")?.itemsFetched).toBe(7);
@@ -214,7 +239,7 @@ describe.skipIf(!configured)("collect (integration)", () => {
     };
     plan.current = { one: [shared], two: [shared] };
 
-    unwrap(await collect(db, digest, { sources: [source("one"), source("two")] }));
+    unwrap(await collectValidated(db, digest, { sources: [source("one"), source("two")] }));
 
     expect(await articleCount(db, digest.id)).toBe(1);
   });
@@ -223,7 +248,7 @@ describe.skipIf(!configured)("collect (integration)", () => {
     const digest = await freshDigest(db);
     plan.current = { any: candidates("any", 2) };
 
-    const { digest: after } = unwrap(await collect(db, digest, { sources: [source("any")] }));
+    const { digest: after } = unwrap(await collectValidated(db, digest, { sources: [source("any")] }));
 
     expect(after.status).toBe("ranking");
     expect(after.collection_completed_at).not.toBeNull();
@@ -234,7 +259,7 @@ describe.skipIf(!configured)("collect (integration)", () => {
     const digest = await freshDigest(db);
     plan.current = { dead: new Error("ETIMEDOUT") };
 
-    const { digest: after, report } = unwrap(await collect(db, digest, { sources: [source("dead")] }));
+    const { digest: after, report } = unwrap(await collectValidated(db, digest, { sources: [source("dead")] }));
 
     expect(after.status).toBe("failed");
     expect(after.last_error).toContain("no articles");
@@ -245,7 +270,7 @@ describe.skipIf(!configured)("collect (integration)", () => {
     const digest = await freshDigest(db);
     plan.current = { dead: new Error("ECONNREFUSED") };
 
-    unwrap(await collect(db, digest, { sources: [source("dead")] }));
+    unwrap(await collectValidated(db, digest, { sources: [source("dead")] }));
 
     const { data, error } = await db.from("digest").select("collection_report").eq("id", digest.id).single();
     expect(error).toBeNull();
@@ -256,7 +281,7 @@ describe.skipIf(!configured)("collect (integration)", () => {
     const digest = await freshDigest(db);
     plan.current = { any: candidates("any", 1) };
 
-    const { report } = unwrap(await collect(db, digest, { sources: [source("any")] }));
+    const { report } = unwrap(await collectValidated(db, digest, { sources: [source("any")] }));
 
     expect(report.aiWebSearchSkipped).toBe(true);
   });
