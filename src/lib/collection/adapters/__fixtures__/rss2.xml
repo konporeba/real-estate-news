@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Expansión — Inmobiliario</title>
+    <link>https://www.expansion.com/inmobiliario.html</link>
+    <description>Noticias inmobiliarias</description>
+    <item>
+      <title>El precio del alquiler en Barcelona sube un 8,2% interanual</title>
+      <link>https://www.expansion.com/inmobiliario/2026/07/20/alquiler-barcelona.html</link>
+      <description>&lt;p&gt;El precio medio del &lt;strong&gt;alquiler&lt;/strong&gt; en Barcelona alcanza los 1.180 euros mensuales.&lt;/p&gt;</description>
+      <pubDate>Mon, 20 Jul 2026 08:15:00 +0200</pubDate>
+    </item>
+    <item>
+      <title>El Banco de España revisa los requisitos hipotecarios</title>
+      <link>https://www.expansion.com/economia/2026/07/21/hipotecas.html</link>
+      <description>Nuevas exigencias de solvencia para la concesi&#243;n de pr&#233;stamos.</description>
+      <pubDate>Tue, 21 Jul 2026 11:00:00 +0200</pubDate>
+    </item>
+    <item>
+      <title>Artículo sin fecha de publicación</title>
+      <link>https://www.expansion.com/inmobiliario/sin-fecha.html</link>
+      <description>Este item no declara pubDate.</description>
+    </item>
+    <item>
+      <title>Fecha malformada</title>
+      <link>https://www.expansion.com/inmobiliario/fecha-mala.html</link>
+      <description>Fecha imposible de interpretar.</description>
+      <pubDate>not a date at all</pubDate>
+    </item>
+    <item>
+      <description>Item sin título ni enlace, debe descartarse.</description>
+    </item>
+  </channel>
+</rss>

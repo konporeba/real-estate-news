@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>La Vanguardia — Economía</title>
+  <link href="https://www.lavanguardia.com/economia"/>
+  <updated>2026-07-22T09:00:00Z</updated>
+  <entry>
+    <title>Catalunya lidera la construcción de obra nueva</title>
+    <link href="https://www.lavanguardia.com/economia/20260722/obra-nueva.html"/>
+    <id>tag:lavanguardia.com,2026:obra-nueva</id>
+    <updated>2026-07-22T09:00:00Z</updated>
+    <summary type="html">&lt;p&gt;Los visados de obra nueva crecen un &lt;em&gt;12%&lt;/em&gt; en Catalunya.&lt;/p&gt;</summary>
+  </entry>
+  <entry>
+    <title>El BCE mantiene los tipos de interés</title>
+    <link href="https://www.lavanguardia.com/economia/20260723/bce-tipos.html"/>
+    <id>tag:lavanguardia.com,2026:bce-tipos</id>
+    <updated>2026-07-23T14:30:00Z</updated>
+    <summary>Sin cambios en la reunión de julio.</summary>
+  </entry>
+</feed>
