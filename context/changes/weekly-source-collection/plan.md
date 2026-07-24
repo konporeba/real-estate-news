@@ -452,30 +452,30 @@ Phase 2 changes an exported API that F-01 shipped: run-state functions gain a cl
 
 #### Automated
 
-- [x] 2.1 Existing suite green against the injected API: `npm test`
-- [x] 2.2 Plain Node import of run-state resolves with no Astro build
-- [x] 2.3 Type checking passes: `npx astro check`
-- [x] 2.4 Linting passes: `npm run lint`
-- [x] 2.5 Production build succeeds: `npm run build`
+- [x] 2.1 Existing suite green against the injected API: `npm test` — add8960
+- [x] 2.2 Plain Node import of run-state resolves with no Astro build — add8960
+- [x] 2.3 Type checking passes: `npx astro check` — add8960
+- [x] 2.4 Linting passes: `npm run lint` — add8960
+- [x] 2.5 Production build succeeds: `npm run build` — add8960
 
 #### Manual
 
-- [x] 2.6 Astro app still reads a digest server-side through `supabase-admin.ts`
+- [x] 2.6 Astro app still reads a digest server-side through `supabase-admin.ts` — add8960
 
 ### Phase 3: Source configuration & tier abstraction
 
 #### Automated
 
-- [ ] 3.1 Source registry validates at import; unit tests cover role/tier/slug-uniqueness invariants
-- [ ] 3.2 RSS adapter unit tests parse RSS 2.0 and Atom fixtures, including missing date and markup cases
-- [ ] 3.3 Unimplemented tiers throw `TierNotImplementedError`
-- [ ] 3.4 Type checking passes: `npx astro check`
-- [ ] 3.5 Linting passes: `npm run lint`
+- [x] 3.1 Source registry validates at import; unit tests cover role/tier/slug-uniqueness invariants — 877cf43
+- [x] 3.2 RSS adapter unit tests parse RSS 2.0 and Atom fixtures, including missing date and markup cases — 877cf43
+- [x] 3.3 Unimplemented tiers throw `TierNotImplementedError` — 877cf43
+- [x] 3.4 Type checking passes: `npx astro check` — 877cf43
+- [x] 3.5 Linting passes: `npm run lint` — 877cf43
 
 #### Manual
 
-- [ ] 3.6 Each candidate source checked for a working feed; enabled list reflects verified reality (OQ#1)
-- [ ] 3.7 Operator has reviewed and confirmed the shipped source list
+- [x] 3.6 Each candidate source checked for a working feed; enabled list reflects verified reality (OQ#1) — 877cf43
+- [x] 3.7 Operator has reviewed and confirmed the shipped source list — 877cf43 (confirmed 2026-07-24; also enabled the two Catalan sources, widening FR-013 to {es,ca}→pl)
 
 ### Phase 4: Collection orchestrator
 

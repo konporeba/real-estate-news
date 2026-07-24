@@ -150,9 +150,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Prerequisites:** F-01
 - **Parallel with:** F-02, F-03, F-04, F-05
 - **Blockers:** —
-- **Unknowns:**
-  - Exact source list, and which sources expose a structured feed (RSS) vs need API vs rendered fetch — Owner: operator. Block: no. (PRD Open Question #1.)
-  - Late-Sunday window: shrink the declared window to Sun 17:00, or roll late items into next week — Owner: operator. Block: no. (PRD Open Question #7.)
+- **Unknowns:** — (both resolved 2026-07-24; see Open Roadmap Questions #1 and #7)
 - **Risk:** Per-source tiering (RSS → API → rendered fetch) is the fragile surface — Idealista in particular blocks scrapers. Built with a manual re-trigger first so the whole downstream pipeline is verifiable before F-05 automates the Sunday run.
 - **Status:** proposed
 
@@ -177,6 +175,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Parallel with:** F-04, F-05
 - **Blockers:** —
 - **Unknowns:** —
+- **Scope note (2026-07-24):** the source list resolved under OQ#1 ships two Catalan-language feeds, so the translation stage is `{es,ca}→pl`, not the `es→pl` FR-013 declares. Each article carries its source `language`; the "original alongside" requirement (FR-009a) means a Catalan original is displayed as Catalan.
 - **Risk:** The validation milestone — first point where the editorial brain is visible to the operator. Batch translation (FR-009) is idempotent and runs once here via the F-03 harness; retaining both languages (FR-009a) is a hard requirement, not a nicety, so an odd translation can be checked against the source.
 - **Status:** proposed
 
@@ -277,7 +276,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 | F-03       | llm-cost-ceiling-harness     | Budgeted, retry-safe LLM invocation harness            | yes                   | Independent; needed by S-02             |
 | F-04       | outbound-email-notifications | Outbound email notification capability                 | yes                   | Independent; needed by S-04/S-07        |
 | F-05       | reliable-scheduler-backbone  | DST-correct persistent scheduler primitive             | yes                   | F-01 shipped; unblocked                 |
-| S-01       | weekly-source-collection     | Weekly source collection (tiered, resilient)           | yes                   | F-01 shipped; confirm source list (OQ#1) |
+| S-01       | weekly-source-collection     | Weekly source collection (tiered, resilient)           | in progress           | P2-P3 done; P1 blocked on Supabase CLI access |
 | S-02       | geography-ranking-rubric     | Geography-ranking rubric + eval harness                | no                    | Needs S-01, F-03                        |
 | S-03       | translated-shortlist-view    | Translated shortlist dashboard view ★                  | no                    | North star; needs S-02, F-02            |
 | S-04       | story-selection-gate         | Story selection gate (human gate 1)                    | no                    | Needs S-03, F-04                        |
@@ -290,13 +289,13 @@ Foundations below assume these are present and do NOT re-scaffold them.
 
 ## Open Roadmap Questions
 
-1. **Exact source list, and which sources expose a structured feed (RSS).** — Owner: operator. Block: S-01 (informs FR-002 per-source tiering; non-blocking — start with known sources).
+1. ~~**Exact source list, and which sources expose a structured feed (RSS).**~~ — **Resolved 2026-07-24.** 13 candidates verified against live feeds; 9 ship enabled on the RSS tier (La Vanguardia Economía, El Periódico Economía, Expansión Inmobiliario, Expansión Economía, El País Economía, Ara, Nació Digital as primary; 20 Minutos Vivienda, Fotocasa Life as fallback). Idealista has no feed and needs the rendered tier; Cinco Días and El Economista return 403 and need the api tier — all three ship disabled with the failure recorded. Registry lives in `src/lib/collection/sources.ts`. **Consequence:** the operator enabled the two Catalan-language sources, widening FR-013's translation scope from `es→pl` to `{es,ca}→pl` — S-02 and S-03 must handle `ca` source material.
 2. **Visual-template (Canva) API access — paid tier, possible access application with external lead time.** — Owner: operator. Block: S-06 (non-blocking to the roadmap, but file the request early).
 3. **Carousel length — fixed, or driven by story count?** — Owner: operator. Block: S-06.
 4. **Selection granularity — pick the cluster or a specific article within it?** — Owner: operator. Block: S-04.
 5. **Retention policy for full-fidelity archive material on local disk.** — Owner: operator. Block: S-09.
 6. **Second notification channel for the time-critical Monday reminder?** — Owner: operator. Block: F-04 / S-07.
-7. **Late-Sunday news window — shrink to Sun 17:00, or roll into next week?** — Owner: operator. Block: S-01.
+7. ~~**Late-Sunday news window — shrink to Sun 17:00, or roll into next week?**~~ — **Resolved 2026-07-24: roll into next week.** Windows tile from the previous digest's `collection_completed_at` checkpoint to the current run's start time, so the calendar is covered exactly once and a late-Sunday story is never dropped — it lands in the following run. No declared cutoff to maintain. Implemented in S-01 Phase 4 (`src/lib/collection/window.ts`).
 8. **Delivery timeline soft target.** — Owner: operator. Block: roadmap-wide. Resolved stance: `main_goal: quality`, `mvp_weeks` intentionally unbounded; sequence by dependency, not by calendar. Set a soft milestone only if downstream coordination needs one.
 
 ## Parked
