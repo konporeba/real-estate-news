@@ -438,15 +438,23 @@ Phase 2 changes an exported API that F-01 shipped: run-state functions gain a cl
 
 #### Automated
 
-- [ ] 1.1 `npx supabase migration list` shows both migrations applied locally and remotely
-- [ ] 1.2 `npx supabase db push` reports nothing pending
-- [ ] 1.3 Regenerated types include `collection_report`; `npx astro check` passes
-- [ ] 1.4 Existing suite still green: `npm test`
+> **Delivery deviated from the plan.** Port 5432 does not survive the path from the dev
+> machine (TCP connects; the Postgres `SSLRequest` is never answered), so neither
+> `migration repair` nor `db push` could run. The phase was applied through the SQL Editor
+> instead — but unlike F-01, the same script also inserted the `supabase_migrations.schema_migrations`
+> rows for BOTH migrations, which is exactly what `migration repair` does. The end state is
+> therefore the one the plan wanted; only the transport differed. Criteria 1.1/1.2 are
+> restated below as what was actually verifiable over HTTPS.
+
+- [x] 1.1 ~~`migration list`~~ → history rows for `20260722173032` and `20260724150000` inserted via SQL Editor (**operator-run; select output not captured — unverified by me**)
+- [x] 1.2 ~~`db push`~~ → n/a while 5432 is unreachable; correctness of the recorded history is what 1.1 covers
+- [x] 1.3 Regenerated types include `collection_report`; `npx astro check` passes (0 errors) — d3f9c31
+- [x] 1.4 Existing suite still green: `npm test` (82 passing) — d3f9c31
 
 #### Manual
 
-- [ ] 1.5 `collection_report` column and `digest_window_order` constraint visible in Studio
-- [ ] 1.6 Digest with `window_end` before `window_start` is rejected by the database
+- [x] 1.5 ~~visible in Studio~~ → verified over PostgREST instead: `digest.collection_report` selectable, `digest_window_order` present — d3f9c31
+- [x] 1.6 Digest with `window_end` before `window_start` is rejected by the database (Postgres `23514`, constraint `digest_window_order`); a valid window still inserts, so the check is not over-tight — d3f9c31
 
 ### Phase 2: Runtime-agnostic data access
 

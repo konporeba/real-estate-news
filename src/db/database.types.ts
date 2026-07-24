@@ -1,7 +1,9 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Regenerate after any migration with:
-//   npx supabase gen types typescript --local > src/db/database.types.ts
-// (or `--project-id <ref>` / `--db-url <url>` against the target database).
+//   npx supabase gen types typescript --project-id <ref> > src/db/database.types.ts
+// This goes over HTTPS. The `--local` and `--db-url` forms need a direct Postgres
+// connection on 5432, which does not survive the path from the current dev machine.
+// Re-add this header after regenerating; the generator does not emit it.
 export type Json =
   | string
   | number
@@ -11,6 +13,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -133,6 +140,7 @@ export type Database = {
       digest: {
         Row: {
           collection_completed_at: string | null
+          collection_report: Json | null
           cost_usd: number
           created_at: string
           id: string
@@ -146,6 +154,7 @@ export type Database = {
         }
         Insert: {
           collection_completed_at?: string | null
+          collection_report?: Json | null
           cost_usd?: number
           created_at?: string
           id?: string
@@ -159,6 +168,7 @@ export type Database = {
         }
         Update: {
           collection_completed_at?: string | null
+          collection_report?: Json | null
           cost_usd?: number
           created_at?: string
           id?: string
@@ -334,4 +344,3 @@ export const Constants = {
     },
   },
 } as const
-
