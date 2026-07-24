@@ -59,6 +59,67 @@ const reactConfig = tseslint.config({
   },
 });
 
+// ---------------------------------------------------------------------------
+// Runtime boundary (S-01)
+// ---------------------------------------------------------------------------
+// This project builds for TWO runtimes. The Astro app targets Cloudflare workerd; the
+// pipeline worker (`npm run collect`) is plain Node and uses Node-oriented dependencies
+// such as rss-parser. An import crossing the boundary breaks a build — and would break it
+// in whichever slice happens to add the import, far from where the rule was understood.
+// These rules make the split structural rather than remembered.
+const runtimeBoundaryConfig = tseslint.config(
+  {
+    // App -> worker: pulling collection code into a page or island drags Node built-ins
+    // into the workerd bundle.
+    files: ["src/pages/**", "src/components/**", "src/layouts/**", "src/middleware.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/lib/collection/*", "@/lib/collection", "@/worker/*", "@/worker"],
+              message:
+                "Worker-side code runs in plain Node and must not enter the Astro/workerd bundle. " +
+                "If a page needs collection data, read it from the database instead.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // Worker -> app: `astro:env/server` is a Vite virtual module that exists only inside
+    // Astro's build and fails to resolve under Node.
+    files: ["src/worker/**", "src/lib/collection/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "astro:env/server",
+              message:
+                "astro:env/server is an Astro build-time virtual module and does not resolve in Node. " +
+                "Worker code reads configuration through src/worker/env.ts.",
+            },
+          ],
+          patterns: [
+            {
+              group: ["@/lib/supabase-admin", "@/lib/supabase"],
+              message:
+                "These modules import astro:env/server, which does not resolve in Node. " +
+                "Build the client with createServiceClient() from @/lib/supabase-service instead.",
+            },
+          ],
+        },
+      ],
+      // The worker is a CLI: printing what it did is its interface, not a debug leftover.
+      "no-console": "off",
+    },
+  },
+);
+
 const astroConfig = tseslint.config({
   files: ["**/*.astro"],
   rules: {
@@ -75,6 +136,7 @@ export default tseslint.config(
   { ignores: ["src/db/database.types.ts"] },
   baseConfig,
   reactConfig,
+  runtimeBoundaryConfig,
   eslintPluginAstro.configs["flat/recommended"],
   ...eslintPluginAstro.configs["flat/jsx-a11y-recommended"],
   astroConfig,

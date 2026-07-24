@@ -7,12 +7,27 @@ This file provides guidance to AI Agent when working with code in this repositor
 - `npm run dev` — start dev server (Cloudflare workerd runtime)
 - `npm run build` — production build (SSR via `@astrojs/cloudflare`)
 - `npm run preview` — preview production build
-- `npm test` — Vitest (`vitest run`); integration suites write to the Supabase project in `.env` with RLS bypassed and run only when `SUPABASE_TEST_PROJECT=1` is set alongside `SUPABASE_SERVICE_ROLE_KEY` — otherwise they skip
+- `npm test` — Vitest (`vitest run`); integration suites write to the Supabase project in `.env` with RLS bypassed and run only when `SUPABASE_TEST_PROJECT=1` is set alongside `SUPABASE_SERVICE_ROLE_KEY` — otherwise they skip. Test files run serially (`fileParallelism: false`): the integration suites share the `digest` table and some assert on its global state.
+- `npm run collect` — run the weekly source collection worker (plain Node via `tsx`). Targets, in order: `--week=YYYY-MM-DD` if given, else the newest recoverable digest (non-terminal or `failed`), else a new digest for the current Monday–Sunday. Exits 2 when it refuses a digest already past collection.
+- `COLLECTION_LIVE_SMOKE=1 npx vitest run src/lib/collection/adapters/rss.live.test.ts` — fetch every enabled RSS source for real. Opt-in; catches a source changing its feed format or starting to block us, which fixtures cannot.
 - `npm run lint` — ESLint with type-checked rules
 - `npm run lint:fix` — auto-fix lint issues
 - `npm run format` — Prettier (includes prettier-plugin-astro + prettier-plugin-tailwindcss)
 
 Pre-commit hooks: husky + lint-staged runs `eslint --fix` on `*.{ts,tsx,astro}` and `prettier --write` on `*.{json,css,md}`.
+
+## Two runtimes — do not cross the boundary
+
+This repo builds for **two** runtimes, and an import crossing between them breaks a build.
+
+- **Astro app** → Cloudflare workerd. `src/pages/`, `src/components/`, `src/layouts/`, `src/middleware.ts`.
+- **Pipeline worker** → plain Node, launched by `npm run collect`. `src/worker/`, `src/lib/collection/`. Uses Node-oriented dependencies (`rss-parser`) and long-running work the edge runtime is wrong for.
+
+Rules, enforced by `no-restricted-imports` in `eslint.config.js` (both directions):
+
+- App code must **not** import `@/lib/collection/*` or `@/worker/*` — it drags Node built-ins into the workerd bundle. If a page needs collection results, read them from the database.
+- Worker code must **not** import `astro:env/server`, `@/lib/supabase-admin`, or `@/lib/supabase` — `astro:env/server` is an Astro build-time virtual module that does not resolve in Node. Worker config comes from `src/worker/env.ts`; build the privileged client with `createServiceClient()` from `@/lib/supabase-service`.
+- Shared code (`src/lib/digest/`, `src/lib/supabase-service.ts`) takes its Supabase client as a **parameter** rather than constructing one, which is what lets both runtimes use it.
 
 ## Architecture
 

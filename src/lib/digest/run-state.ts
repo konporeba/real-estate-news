@@ -158,6 +158,29 @@ export async function getActiveDigestForWeek(
 }
 
 /**
+ * The newest digest still worth working on — the greatest `window_start` whose status is
+ * neither `published` nor `skipped`. That is every non-terminal digest plus `failed` ones,
+ * which FR-018 makes re-triggerable.
+ *
+ * Deliberately not keyed on a week, unlike `getActiveDigestForWeek`. The worker's default
+ * target must be "the run that still needs finishing", not "this calendar week": an
+ * operator who notices Sunday's failure on Tuesday would otherwise create a fresh digest
+ * for the current week and leave the failed one stranded.
+ */
+export async function getLatestRecoverableDigest(client: ServiceClient): Promise<RunStateResult<DigestRun | null>> {
+  const { data, error } = await client
+    .from("digest")
+    .select("*")
+    .not("status", "in", "(published,skipped)")
+    .order("window_start", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) return databaseError(error);
+  return { ok: true, data };
+}
+
+/**
  * Read a digest's full persisted state — status, checkpoints, cost, last error. This is
  * the worker's boot path: everything needed to resume comes from this one row.
  */

@@ -509,15 +509,23 @@ Phase 2 changes an exported API that F-01 shipped: run-state functions gain a cl
 
 #### Automated
 
-- [ ] 5.1 `npm run collect` completes end-to-end and exits 0
-- [ ] 5.2 Week-resolution tests pass (`--week` wins; failed digest beats current week; else create current)
-- [ ] 5.3 Live smoke test passes with its opt-in flag and skips without it
-- [ ] 5.4 Runtime-boundary lint rules reject a deliberate cross-runtime import in both directions
-- [ ] 5.5 Full suite, type check, lint and build pass
+- [x] 5.1 `npm run collect` completes end-to-end and exits 0 — 234 articles from 7 primary sources, digest → `ranking`
+- [x] 5.2 Week-resolution tests pass (`--week` wins; failed digest beats current week; else create current) — plus `parseWeekFlag` unit tests and the `prepareForCollection` refusal path
+- [x] 5.3 Live smoke test passes with its opt-in flag and skips without it — 8/8 enabled RSS sources; **it caught a real regression on its first run**, see 5.7 note
+- [x] 5.4 Runtime-boundary lint rules reject a deliberate cross-runtime import in both directions — verified with throwaway probe files (`src/pages/_probe.astro` importing collection code; `src/worker/_probe.ts` importing `astro:env/server`), both rejected with their intended messages, both deleted
+- [x] 5.5 Full suite (102 passing, 9 live-smoke skipped), type check (0 errors), lint (clean) and build all pass
 
 #### Manual
 
-- [ ] 5.6 Real run leaves a digest in `ranking` with a plausible, spot-checked article pool
-- [ ] 5.7 A deliberately broken source is recorded as failed without failing the run
-- [ ] 5.8 Re-running tops up without duplicating; a digest past `ranking` is refused
-- [ ] 5.9 Worker killed mid-run recovers the week on re-run with no lost articles
+- [x] 5.6 Real run leaves a digest in `ranking` with a plausible, spot-checked article pool — 234 articles, real Spanish/Catalan economy and housing stories with sensible titles, ledes and dates; 13 missing a lede, 0 missing a date. One spot-checked headline ("El Govern y los Comunes quieren limitar también los usos de las nuevas viviendas") is exactly the Catalonia-housing story the S-02 rubric should rank highest
+- [x] 5.7 A deliberately broken source is recorded as failed without failing the run — El País pointed at a 404 URL: recorded `failed` / "Error: Status code 404", other six sources unaffected, run exited 0
+- [x] 5.8 Re-running tops up without duplicating; a digest past `ranking` is refused — re-run inserted 0 new across all sources; a `ranking` digest is refused with exit 2 and a message naming the status
+- [x] 5.9 Worker killed mid-run recovers the week on re-run with no lost articles — simulated by failing the digest and deleting 40 articles; the re-run **recovered the failed week rather than creating the current one**, re-inserted exactly the 40 missing and 0 duplicates, pool back to 234
+
+> **Live-smoke found a real regression on its first run.** `fotocasa-blog` verified fine on the
+> morning of 2026-07-24 during Phase 3 and was blocking by that afternoon. `/blog/feed/` now 301s
+> to `/fotocasa-life/feed/`, which serves 200 to a browser User-Agent and 403 to ours. The URL was
+> corrected and the source retiered to `rendered` and disabled — deliberately **not** worked around
+> by spoofing a browser UA, since that is the same bot protection FR-002 names Idealista for, and
+> the registry's existing convention is to record a block rather than evade it. This is precisely
+> the failure fixtures cannot see, found within minutes of the suite existing.

@@ -135,12 +135,17 @@ export const SOURCES: SourceDefinition[] = sourceListSchema.parse([
   {
     slug: "fotocasa-blog",
     name: "Fotocasa Life",
-    tier: "rss",
+    tier: "rendered",
     role: "fallback",
     language: "es",
-    url: "https://www.fotocasa.es/blog/feed/",
-    enabled: true,
-    note: "Verified 2026-07-24: 20 items. Portal blog — commercial angle, hence fallback.",
+    url: "https://www.fotocasa.es/fotocasa-life/feed/",
+    enabled: false,
+    note:
+      "Worked 2026-07-24 morning at /blog/feed/, then began blocking the same day — caught by the live " +
+      "smoke test. /blog/feed/ now 301s to /fotocasa-life/feed/ (URL updated above), which serves 200 to a " +
+      "browser User-Agent and 403 to ours. Deliberately NOT worked around by spoofing a browser: this is the " +
+      "same bot protection Idealista uses, and FR-002 treats that as a tier problem, not something to evade. " +
+      "Retiered to `rendered` accordingly.",
   },
 
   // --- Catalan-language: the closest coverage to the target audience's geography.
