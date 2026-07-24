@@ -125,7 +125,15 @@ Decouple F-01's run-state module from `astro:env/server` so a plain Node process
 
 **Intent**: Remove the static import of the Astro-coupled client factory. Each exported function takes the Supabase client it should use, so the module works identically under Astro, Vitest and Node.
 
-**Contract**: every export (`createDigest`, `transitionDigest`, `markStageComplete`, `getActiveDigestForWeek`, `resumeDigest`) takes a typed service client as its first parameter; the `not_configured` result and the `createServiceClient` import are removed, since obtaining a client becomes the caller's responsibility. `RunStateResult` and the remaining failure reasons are unchanged.
+**Contract**: every export (`createDigest`, `transitionDigest`, `markStageComplete`, `getActiveDigestForWeek`, `resumeDigest`) takes a typed service client as its first parameter; the `not_configured` result and the `createServiceClient` import are removed, since obtaining a client becomes the caller's responsibility. The `RunStateResult` shape and every remaining failure reason are unchanged.
+
+#### 1a. Failure-reason type
+
+**File**: `src/types.ts`
+
+**Intent**: `not_configured` becomes unreachable once the client is injected, so the union that declares it must lose it too — otherwise the type advertises a result no code can produce.
+
+**Contract**: drop `"not_configured"` from `RunStateErrorReason` (`src/types.ts:32`) and its explanatory line from the doc comment above the union (`src/types.ts:24`). Every other reason is untouched.
 
 #### 2. Runtime-neutral client factory
 
@@ -280,6 +288,8 @@ Compose the pieces: resolve the window, fetch every source under isolation, esca
 
 #### Automated Verification:
 
+> The four database-backed criteria below (isolation, escalation, top-up, state) only execute under `SUPABASE_TEST_PROJECT=1 npm test`. Without the flag they **skip rather than fail**, so a plain `npm test` reporting green does not verify them — run them with the flag before ticking their Progress rows.
+
 - Window-resolution unit tests: previous checkpoint used as lower bound; fallback to `window_start` when no previous digest; own checkpoint ignored on re-trigger; upper bound is run time
 - Per-source isolation test: one adapter throws, the remaining sources are still collected and the report records the failure against the failing slug
 - Escalation test: fallbacks run when the primary pool is below `MIN_POOL_SIZE` and do not run when it is above
@@ -310,7 +320,17 @@ Make it runnable: a Node entrypoint that creates or resumes the week's digest an
 
 **Intent**: The FR-018 manual trigger and the process F-05 will later schedule.
 
-**Contract**: loads env via `src/worker/env.ts`, builds the service client, resolves the target week (defaulting to the current Monday–Sunday, overridable by a `--week=YYYY-MM-DD` flag naming the window start), then: looks for an active digest for that week; creates one if absent; if the existing digest is `failed`, transitions it back to `collecting` per FR-018; refuses with a clear message if the digest is past `ranking`. Invokes the orchestrator, prints a per-source summary, and exits non-zero when the run ends in `failed`.
+**Contract**: loads env via `src/worker/env.ts`, builds the service client, then resolves the target digest in this order: (a) the week named by an explicit `--week=YYYY-MM-DD` flag, if given; (b) otherwise the newest *recoverable* digest — the greatest `window_start` whose status is non-terminal or `failed`; (c) otherwise a new digest for the current Monday–Sunday. The resolved week is always printed before work starts. Having resolved it, the digest's status decides what happens next: absent → create it; `failed` → transition back to `collecting` per FR-018; already `collecting` → proceed straight to the orchestrator with no transition (this is the state a worker killed mid-run leaves behind, and the orchestrator's top-up insert is exactly the right recovery — a self-transition would be rejected by `canTransition` anyway); past `ranking` → refuse with a clear message. Invokes the orchestrator, prints a per-source summary, and exits non-zero when the run ends in `failed`.
+
+Resolution order (b) before (c) is what makes FR-018 work by default: the operator notices a failed Sunday run on Monday or later, by which time "the current week" is the *wrong* week — defaulting to the calendar would create a fresh, near-empty digest and leave the failed one stranded.
+
+#### 1a. Recoverable-digest lookup
+
+**File**: `src/lib/digest/run-state.ts`
+
+**Intent**: Support resolution step (b) — the entrypoint needs to find the newest digest still worth working on, which `getActiveDigestForWeek` (keyed on a specific week) cannot express.
+
+**Contract**: export `getLatestRecoverableDigest(client)` returning `RunStateResult<DigestRun | null>` — the row with the greatest `window_start` whose status is not in `('published', 'skipped')`, i.e. non-terminal digests plus `failed` ones, which FR-018 makes re-triggerable.
 
 #### 2. Scripts and runner
 
@@ -326,18 +346,28 @@ Make it runnable: a Node entrypoint that creates or resumes the week's digest an
 
 **Contract**: env-gated on an explicit opt-in flag (mirroring `SUPABASE_TEST_PROJECT`), fetches each enabled RSS source and asserts at least one item parses into a valid candidate. Skips by default so CI stays hermetic.
 
-#### 4. Documentation
+#### 4. Runtime-boundary enforcement
+
+**File**: `eslint.config.js`
+
+**Intent**: Make the two-runtime split structural rather than remembered. The app builds for workerd while collection code is Node-oriented (`rss-parser`), so an import crossing the boundary in either direction breaks a build — and would do so in whichever slice happens to add the import, far from this plan.
+
+**Contract**: `no-restricted-imports` (or `no-restricted-paths`) rules expressing both directions — `src/pages/**` and `src/components/**` may not import `src/lib/collection/**` or `src/worker/**`; `src/worker/**` and `src/lib/collection/**` may not import `astro:env/server` or `src/lib/supabase-admin`. Each rule carries a message naming the runtime that would break.
+
+#### 5. Documentation
 
 **File**: `CLAUDE.md`
 
-**Contract**: document `npm run collect` and the worker/Astro runtime split — that anything under `src/worker/` runs in plain Node and must not import `astro:env/server`.
+**Contract**: document `npm run collect` and the worker/Astro runtime split in both directions — anything under `src/worker/` or `src/lib/collection/` runs in plain Node, must not import `astro:env/server`, and must not be imported from a page or island, because the app bundle targets workerd. Point at the ESLint rules as the enforcement.
 
 ### Success Criteria:
 
 #### Automated Verification:
 
 - `npm run collect` completes end-to-end and exits 0 against the configured sources
+- Week-resolution tests: an explicit `--week` wins; with a `failed` digest from an earlier week present, the default targets that digest rather than the current week; with no recoverable digest, the current Monday–Sunday is created
 - The live smoke test passes when its opt-in flag is set, and skips without it
+- The runtime-boundary lint rules fire: a deliberate import of `src/lib/collection/` from a page, and of `astro:env/server` from `src/worker/`, are each rejected by `npm run lint` (revert both after verifying)
 - Full suite, type check, lint and build pass: `npm test`, `npx astro check`, `npm run lint`, `npm run build`
 
 #### Manual Verification:
@@ -452,10 +482,10 @@ Phase 2 changes an exported API that F-01 shipped: run-state functions gain a cl
 #### Automated
 
 - [ ] 4.1 Window-resolution unit tests pass (previous checkpoint, fallback, own-checkpoint ignored, upper bound)
-- [ ] 4.2 Per-source isolation test: a throwing adapter does not stop the run and is recorded
-- [ ] 4.3 Escalation test: fallbacks run below `MIN_POOL_SIZE`, not above
-- [ ] 4.4 Top-up test: a second pass inserts only new URLs
-- [ ] 4.5 State test: non-empty pool → `ranking`; empty pool → `failed` with `last_error`
+- [ ] 4.2 Per-source isolation test: a throwing adapter does not stop the run and is recorded (needs `SUPABASE_TEST_PROJECT=1`)
+- [ ] 4.3 Escalation test: fallbacks run below `MIN_POOL_SIZE`, not above (needs `SUPABASE_TEST_PROJECT=1`)
+- [ ] 4.4 Top-up test: a second pass inserts only new URLs (needs `SUPABASE_TEST_PROJECT=1`)
+- [ ] 4.5 State test: non-empty pool → `ranking`; empty pool → `failed` with `last_error` (needs `SUPABASE_TEST_PROJECT=1`)
 - [ ] 4.6 Report validates against its zod schema in every test path
 - [ ] 4.7 Type checking, linting and full suite pass
 
@@ -468,12 +498,14 @@ Phase 2 changes an exported API that F-01 shipped: run-state functions gain a cl
 #### Automated
 
 - [ ] 5.1 `npm run collect` completes end-to-end and exits 0
-- [ ] 5.2 Live smoke test passes with its opt-in flag and skips without it
-- [ ] 5.3 Full suite, type check, lint and build pass
+- [ ] 5.2 Week-resolution tests pass (`--week` wins; failed digest beats current week; else create current)
+- [ ] 5.3 Live smoke test passes with its opt-in flag and skips without it
+- [ ] 5.4 Runtime-boundary lint rules reject a deliberate cross-runtime import in both directions
+- [ ] 5.5 Full suite, type check, lint and build pass
 
 #### Manual
 
-- [ ] 5.4 Real run leaves a digest in `ranking` with a plausible, spot-checked article pool
-- [ ] 5.5 A deliberately broken source is recorded as failed without failing the run
-- [ ] 5.6 Re-running tops up without duplicating; a digest past `ranking` is refused
-- [ ] 5.7 Worker killed mid-run recovers the week on re-run with no lost articles
+- [ ] 5.6 Real run leaves a digest in `ranking` with a plausible, spot-checked article pool
+- [ ] 5.7 A deliberately broken source is recorded as failed without failing the run
+- [ ] 5.8 Re-running tops up without duplicating; a digest past `ranking` is refused
+- [ ] 5.9 Worker killed mid-run recovers the week on re-run with no lost articles
