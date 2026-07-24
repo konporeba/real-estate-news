@@ -3,7 +3,7 @@ project: "Real Estate News"
 version: 1
 status: draft
 created: 2026-07-22
-updated: 2026-07-22
+updated: 2026-07-24
 prd_version: 1
 main_goal: quality
 top_blocker: none
@@ -29,7 +29,7 @@ A single real-estate professional serving Polish investors in Spain publishes no
 
 | ID   | Change ID                  | Outcome (user can …)                                              | Prerequisites        | PRD refs                         | Status   |
 | ---- | -------------------------- | ---------------------------------------------------------------- | -------------------- | -------------------------------- | -------- |
-| F-01 | durable-digest-run-state   | (foundation) durable digest state machine + core schema in place | —                    | NFR-durability, §Data, §State    | ready    |
+| F-01 | durable-digest-run-state   | (foundation) durable digest state machine + core schema in place | —                    | NFR-durability, §Data, §State    | shipped  |
 | F-02 | operator-pin-access-gate   | (foundation) PIN gate + lockout replaces email/password auth     | —                    | US-22, NFR-access, §Access       | ready    |
 | F-03 | llm-cost-ceiling-harness   | (foundation) budgeted, retry-safe LLM invocation wrapper         | —                    | FR-016, FR-017, NFR-cost         | ready    |
 | F-04 | outbound-email-notifications | (foundation) system can email the operator                     | —                    | FR-010, FR-019, FR-021           | ready    |
@@ -64,7 +64,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 
 - **Frontend:** present — Astro 6 + React 19 + Tailwind 4; layouts/components/pages scaffolded (`src/`). Per `tech-stack.md`.
 - **Backend / API:** partial — Astro server runtime + API-route pattern exists (`src/pages/api/auth/*`), but only auth endpoints; no domain/pipeline routes.
-- **Data:** absent — Supabase client wired (`src/lib/supabase.ts`), but no schema/migrations for the digest data model (no `supabase/migrations`); only `auth.users` in use.
+- **Data:** present as of 2026-07-24 (F-01) — `digest`/`article`/`cluster` in `supabase/migrations/20260722173032_digest_core_schema.sql`, deny-by-default RLS, generated `Database` type in `src/db/database.types.ts`, and the run-state module in `src/lib/digest/`. Later slices add their own tables (`selection`, `generated_asset`, `publication`, `feedback_label`). Was: absent at 2026-07-22.
 - **Auth:** partial — Supabase email/password fully scaffolded (`src/middleware.ts`, `src/pages/auth/*`, `src/pages/api/auth/*`), but the PRD requires a 6-digit PIN + lockout, not email/password — the scaffolded mechanism is wrong for this product.
 - **Deploy / infra:** partial — scaffold ships `wrangler.jsonc` (Cloudflare) + a GitHub Actions `ci.yml`, but the real target is self-host on a Raspberry Pi (Cloudflare Tunnel, systemd timer) and CI choice is GitLab; none of that infra exists yet.
 - **Observability:** absent — no logging / error tracking / metrics / heartbeat.
@@ -82,7 +82,9 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Sequenced first because nothing in the pipeline can be built or verified without durable run-state. Scope kept minimal — later slices add their own tables (selection, generated_asset, publication, feedback_label); this is the state-machine contract + three core tables, not the whole data layer.
-- **Status:** ready
+- **Status:** shipped (2026-07-24, commits `00280d7`…`0deb13f`)
+- **Delivered:** `digest`/`article`/`cluster` schema with the `digest_status` enum, transition-guard + `updated_at` triggers, `one_active_digest_per_week` partial unique index, deny-by-default RLS; generated `Database` type wired into the SSR client plus a server-only service-role client; a typed run-state module (`src/lib/digest/run-state.ts`) exposing `createDigest`, `transitionDigest`, `markStageComplete`, `getActiveDigestForWeek`, `resumeDigest`; Vitest with a drift guard that fails when the TS transition map and the SQL trigger diverge.
+- **Carried forward:** the migration was applied to the cloud project via the SQL Editor, so it is **not** recorded in `supabase_migrations.schema_migrations` — repair (`supabase link` + `migration repair --status applied 20260722173032`) is required before the next `db push`. A `check (window_end >= window_start)` constraint is deferred to that same migration. See `context/changes/durable-digest-run-state/reviews/impl-review.md` (F1, F8).
 
 ### F-02: Operator access gate (PIN + lockout, private path)
 
@@ -270,12 +272,12 @@ Foundations below assume these are present and do NOT re-scaffold them.
 
 | Roadmap ID | Change ID                    | Suggested issue title                                   | Ready for `/10x-plan` | Notes                                   |
 | ---------- | ---------------------------- | ------------------------------------------------------ | --------------------- | --------------------------------------- |
-| F-01       | durable-digest-run-state     | Durable digest run-state & core schema                 | yes                   | On the north-star path; start here      |
+| F-01       | durable-digest-run-state     | Durable digest run-state & core schema                 | shipped               | Shipped 2026-07-24; see impl-review F1  |
 | F-02       | operator-pin-access-gate     | PIN access gate replacing scaffold auth                | yes                   | Independent; enables the dashboard      |
 | F-03       | llm-cost-ceiling-harness     | Budgeted, retry-safe LLM invocation harness            | yes                   | Independent; needed by S-02             |
 | F-04       | outbound-email-notifications | Outbound email notification capability                 | yes                   | Independent; needed by S-04/S-07        |
-| F-05       | reliable-scheduler-backbone  | DST-correct persistent scheduler primitive             | no                    | Needs F-01 first                        |
-| S-01       | weekly-source-collection     | Weekly source collection (tiered, resilient)           | no                    | Needs F-01; confirm source list (OQ#1)  |
+| F-05       | reliable-scheduler-backbone  | DST-correct persistent scheduler primitive             | yes                   | F-01 shipped; unblocked                 |
+| S-01       | weekly-source-collection     | Weekly source collection (tiered, resilient)           | yes                   | F-01 shipped; confirm source list (OQ#1) |
 | S-02       | geography-ranking-rubric     | Geography-ranking rubric + eval harness                | no                    | Needs S-01, F-03                        |
 | S-03       | translated-shortlist-view    | Translated shortlist dashboard view ★                  | no                    | North star; needs S-02, F-02            |
 | S-04       | story-selection-gate         | Story selection gate (human gate 1)                    | no                    | Needs S-03, F-04                        |
