@@ -4,7 +4,11 @@
 //
 // Target: whatever SUPABASE_URL points at, using the service-role key from `.env`. Every
 // row is written into synthetic 1970 week windows and purged before and after the run,
-// so no real digest data is touched. The suite skips itself when no key is configured.
+// so no real digest data is touched.
+//
+// Running requires an explicit opt-in — SUPABASE_TEST_PROJECT=1 on top of the key — so
+// that pointing an RLS-bypassing write suite at a project is always a deliberate act and
+// never something a bare `npm test` does by inheriting whatever `.env` happens to hold.
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -19,7 +23,9 @@ import {
 import { createServiceClient } from "@/lib/supabase-admin";
 import type { DigestWindow, RunStateResult } from "@/types";
 
-const configured = Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+const configured = Boolean(
+  process.env.SUPABASE_TEST_PROJECT === "1" && process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY,
+);
 
 /** Synthetic weeks live in 1970 so they can never collide with a real digest. */
 const TEST_WINDOW_FIRST = "1970-01-01";
@@ -133,6 +139,15 @@ describe.skipIf(!configured)("run-state (integration)", () => {
       const retried = unwrap(await transitionDigest(digest.id, "collecting"));
       expect(retried.status).toBe("collecting");
       expect(retried.last_error).toBeNull();
+    });
+
+    it("leaves an existing last_error alone when the caller supplies none", async () => {
+      const digest = unwrap(await createDigest(nextWindow()));
+      await serviceClient().from("digest").update({ last_error: "earlier failure detail" }).eq("id", digest.id);
+
+      const failed = unwrap(await transitionDigest(digest.id, "failed"));
+
+      expect(failed.last_error).toBe("earlier failure detail");
     });
 
     it("rejects an illegal transition and leaves the row untouched", async () => {

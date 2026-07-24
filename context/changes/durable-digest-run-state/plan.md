@@ -305,6 +305,37 @@ First migration in the project; no existing data to migrate. Apply to the cloud 
 - Env-field pattern: `astro.config.mjs:17-22`
 - Client wiring point: `src/lib/supabase.ts:5-24`
 
+## Addendum (post-implementation, 2026-07-24)
+
+Recorded after `/10x-impl-review` so this plan reconciles with the shipped diff. Full detail
+in `reviews/impl-review.md`.
+
+**Deviations from the plan as written:**
+
+- **Integration tests run against the cloud project, not a local Supabase stack** (Phase 3, step
+  3.3). No local stack exists; Phase 1 applied the schema to `arugswrcmlupwyyumugn` via the SQL
+  Editor. Tests use synthetic 1970 week windows, purge before and after, and now require an
+  explicit `SUPABASE_TEST_PROJECT=1` opt-in on top of the service-role key.
+- **Phase 1 step 1.1 never ran `npx supabase db reset`** — the row has been reworded to describe
+  the cloud apply that actually happened. As a consequence the migration is *not* recorded in
+  `supabase_migrations.schema_migrations`; a future `supabase db push` will replay it and abort.
+  Repair (`link` + `migration repair`) is outstanding and blocked on a Supabase login that can
+  reach the project.
+
+**Additions not described in Changes Required:**
+
+- Phase 1: FK indexes `cluster_digest_id_idx`, `article_digest_id_idx`, `article_cluster_id_idx`.
+- Phase 2: eslint ignore for the generated `src/db/database.types.ts`.
+- Phase 3: `src/types.ts` (shared entity/DTO types, per CLAUDE.md convention);
+  `test/shims/astro-env-server.ts` (required for Vitest to resolve `astro:env/server` at all);
+  a `npm test` entry in CLAUDE.md; `transitionDigest`'s optional `{ lastError }` parameter.
+
+**Applied during review triage:** `SUPABASE_SERVICE_ROLE_KEY` + `SUPABASE_TEST_PROJECT` added to
+`.env.example` and CLAUDE.md; `npm test` added to CI and its triggers moved `master` → `main`;
+`transitionDigest` no longer clobbers `last_error` when the caller supplies none; the service-role
+client is memoized. Deferred: migration-history repair and a
+`check (window_end >= window_start)` constraint.
+
 ## Progress
 
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles. See `references/progress-format.md`.
@@ -313,7 +344,7 @@ First migration in the project; no existing data to migrate. Apply to the cloud 
 
 #### Automated
 
-- [x] 1.1 Migration applies cleanly to a fresh local DB: `npx supabase db reset` — 00280d7
+- [x] 1.1 Migration applied cleanly to the cloud project via SQL Editor (no local stack; `npx supabase db reset` not run) — 00280d7
 - [x] 1.2 Enum, three tables, partial unique index, and both triggers exist — 00280d7
 - [x] 1.3 No SQL lint/parse errors during apply — 00280d7
 

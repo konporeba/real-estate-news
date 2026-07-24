@@ -7,7 +7,7 @@ This file provides guidance to AI Agent when working with code in this repositor
 - `npm run dev` — start dev server (Cloudflare workerd runtime)
 - `npm run build` — production build (SSR via `@astrojs/cloudflare`)
 - `npm run preview` — preview production build
-- `npm test` — Vitest (`vitest run`); integration suites hit the Supabase project in `.env` and skip when `SUPABASE_SERVICE_ROLE_KEY` is unset
+- `npm test` — Vitest (`vitest run`); integration suites write to the Supabase project in `.env` with RLS bypassed and run only when `SUPABASE_TEST_PROJECT=1` is set alongside `SUPABASE_SERVICE_ROLE_KEY` — otherwise they skip
 - `npm run lint` — ESLint with type-checked rules
 - `npm run lint:fix` — auto-fix lint issues
 - `npm run format` — Prettier (includes prettier-plugin-astro + prettier-plugin-tailwindcss)
@@ -45,7 +45,8 @@ Full server-side rendering (`output: "server"` in astro.config.mjs). All pages a
 ### Environment
 
 - Node.js v22.14.0 (see `.nvmrc`)
-- Env vars: `SUPABASE_URL`, `SUPABASE_KEY` (copy `.env.example` to `.env` for Node, or `.dev.vars` for Cloudflare local dev)
+- Env vars: `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (copy `.env.example` to `.env` for Node, or `.dev.vars` for Cloudflare local dev)
+- `SUPABASE_SERVICE_ROLE_KEY` comes from the dashboard (Settings → API → `service_role`). It bypasses RLS, so it is server-only — without it `createServiceClient()` returns `null` and every run-state call fails with `not_configured`.
 - Local Supabase: `npx supabase start` (requires Docker)
 - Cloudflare local dev: secrets go in `.dev.vars` (gitignored)
 - Deploy: `npx wrangler deploy` (requires Cloudflare account + `wrangler` auth)

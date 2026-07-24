@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
 
 jobs:
   ci:
@@ -18,6 +18,9 @@ jobs:
       - run: npm ci
       - run: npx astro sync
       - run: npm run lint
+      # Unit tests + the state-machine drift guard. The run-state integration suite
+      # self-skips without SUPABASE_SERVICE_ROLE_KEY, so no secret is needed here.
+      - run: npm test
       - run: npm run build
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

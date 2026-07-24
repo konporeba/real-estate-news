@@ -75,8 +75,10 @@ export async function createDigest(window: DigestWindow): Promise<RunStateResult
  * scoped to the status we read, so a concurrent writer surfaces as
  * `concurrent_modification` instead of silently overwriting.
  *
- * `last_error` belongs to the run's most recent failure, so it is set when transitioning
- * into `failed` and cleared on every other successful transition.
+ * `last_error` is written only when the caller supplies one — passing `null` clears it
+ * explicitly — and is cleared automatically when a failed run is re-triggered. An
+ * unannotated transition leaves the column alone, so it cannot silently erase the
+ * diagnostic a previous caller recorded.
  */
 export async function transitionDigest(
   id: string,
@@ -94,13 +96,15 @@ export async function transitionDigest(
     return fail("illegal_transition", `illegal digest transition: ${from} -> ${to}`);
   }
 
-  const { data, error } = await client
-    .from("digest")
-    .update({ status: to, last_error: options.lastError ?? null })
-    .eq("id", id)
-    .eq("status", from)
-    .select()
-    .single();
+  const patch: DigestUpdate = { status: to };
+  if (options.lastError !== undefined) {
+    patch.last_error = options.lastError;
+  } else if (from === "failed") {
+    // Re-triggering a failed run starts a clean slate (FR-018).
+    patch.last_error = null;
+  }
+
+  const { data, error } = await client.from("digest").update(patch).eq("id", id).eq("status", from).select().single();
 
   if (error) {
     if (error.code === CHECK_VIOLATION) return fail("illegal_transition", error.message);
