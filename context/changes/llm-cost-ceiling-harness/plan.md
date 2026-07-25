@@ -510,17 +510,17 @@ assume neither the direct-DB nor the management-API CLI paths are reliable here.
 
 #### Automated
 
-- [ ] 2.1 A call below the ceiling succeeds and increases `cost_usd` correctly
-- [ ] 2.2 A digest at the ceiling is refused with `ceiling_reached`, no API call made
-- [ ] 2.3 Cost is accounted even when the response is a refusal or truncated
-- [ ] 2.4 Concurrent calls against one digest accumulate with no lost increments
-- [ ] 2.5 Cache token counts are surfaced in the result
-- [ ] 2.6 Missing API key surfaces as `not_configured`
-- [ ] 2.7 Type checking, linting and full suite pass
+- [x] 2.1 A call below the ceiling succeeds and increases `cost_usd` correctly — 478922d
+- [x] 2.2 A digest at the ceiling is refused with `ceiling_reached`, no API call made — 478922d (asserted `llm.calls` is empty; deliberate-break confirmed)
+- [x] 2.3 Cost is accounted even when the response is a refusal or truncated — 478922d (both cases)
+- [x] 2.4 Concurrent calls against one digest accumulate with no lost increments — 478922d (10 concurrent invokes → exact sum)
+- [x] 2.5 Cache token counts are surfaced in the result — 478922d
+- [x] 2.6 Missing API key surfaces as `not_configured` — 478922d (null client; no DB touched)
+- [x] 2.7 Type checking, linting and full suite pass — 478922d (123 passing, 0 errors, clean)
 
 #### Manual
 
-- [ ] 2.8 The harness imports and runs under plain Node with no Astro build
+- [x] 2.8 The harness imports and runs under plain Node with no Astro build — 478922d (tsx import of client/invoke/pricing resolves; null-for-empty-key confirmed)
 
 ### Phase 3: Structured outputs & recovery
 
