@@ -6,17 +6,21 @@
 // CHECK-BEFORE / ACCUMULATE-AFTER loop around each call. Enforcement granularity is one call;
 // `maxTokens` bounds the overshoot of the call already in flight.
 //
-// Phase 2 handles the ceiling, accounting, and stop-reason branching. Schema-constrained output
-// and one-reprompt recovery land in Phase 3 (the `schema` field on the request is added there).
+// Phase 2 handled the ceiling, accounting, and stop-reason branching; Phase 3 adds schema-
+// constrained output (output_config.format) with a single corrective reprompt, and up-front
+// rejection of schema shapes the API cannot enforce.
 import type {
   ContentBlock,
+  JSONOutputFormat,
   MessageCreateParamsNonStreaming,
   MessageParam,
   TextBlockParam,
 } from "@anthropic-ai/sdk/resources/messages";
+import type { z } from "zod";
 
 import type { LlmTransport } from "@/lib/llm/client";
 import { costOf, DEFAULT_MODEL, type LlmModel, type TokenUsage } from "@/lib/llm/pricing";
+import { toStructuredFormat } from "@/lib/llm/schema";
 import type { ServiceClient } from "@/lib/supabase-service";
 import type { LlmError, LlmErrorReason, LlmResult } from "@/types";
 
@@ -34,6 +38,11 @@ export interface LlmRequest {
   cacheSystem?: boolean;
 }
 
+/** A request that constrains the response to a schema and returns the parsed value. */
+export interface StructuredRequest<T> extends LlmRequest {
+  schema: z.ZodType<T>;
+}
+
 export interface LlmSuccess {
   /** Concatenated text blocks — the usual payload. Raw `content` is alongside for the rest. */
   text: string;
@@ -47,6 +56,11 @@ export interface LlmSuccess {
   /** From `usage` — so callers can verify caching actually engaged rather than assume it. */
   cacheReadTokens: number;
   cacheCreationTokens: number;
+}
+
+/** A structured success also carries the schema-parsed value. */
+export interface StructuredSuccess<T> extends LlmSuccess {
+  parsed: T;
 }
 
 export interface InvokeOptions {
@@ -69,40 +83,43 @@ function textOf(content: ContentBlock[]): string {
     .join("");
 }
 
-function buildParams(request: LlmRequest, model: LlmModel): MessageCreateParamsNonStreaming {
+function buildParams(
+  request: LlmRequest,
+  model: LlmModel,
+  messages: MessageParam[],
+  format?: JSONOutputFormat,
+): MessageCreateParamsNonStreaming {
   const params: MessageCreateParamsNonStreaming = {
     model,
     max_tokens: request.maxTokens,
-    messages: request.messages,
+    messages,
   };
   if (request.system !== undefined) {
     params.system = request.cacheSystem
       ? ([{ type: "text", text: request.system, cache_control: { type: "ephemeral" } }] satisfies TextBlockParam[])
       : request.system;
   }
+  if (format) params.output_config = { format };
   return params;
 }
 
 /**
- * Invoke the model for a digest, enforcing its ceiling and accounting the cost.
+ * One call: ceiling check, the API call, cost accounting, stop-reason branch. Does not throw.
  *
  * Order is load-bearing: the ceiling is checked BEFORE the call (a digest already at its limit
  * makes no call at all), and the cost is accumulated AFTER the call regardless of whether the
  * response is usable — a refusal or a truncated response still bills, and the ceiling would be a
- * lie if those were not counted.
+ * lie if those were not counted. The reprompt in `invoke` calls this a second time, so a retry is
+ * ceiling-checked and accounted exactly like a first attempt.
  */
-export async function invoke(
-  llm: LlmTransport | null,
+async function attemptCall(
+  llm: LlmTransport,
   db: ServiceClient,
   digestId: string,
-  request: LlmRequest,
-  options: InvokeOptions,
+  model: LlmModel,
+  params: MessageCreateParamsNonStreaming,
+  ceilingUsd: number,
 ): Promise<LlmResult<LlmSuccess>> {
-  if (!llm) return err("not_configured", "no LLM client — ANTHROPIC_API_KEY is missing");
-
-  const model = request.model ?? DEFAULT_MODEL;
-
-  // 1. Ceiling check — read the running total and refuse before spending anything more.
   const { data: digest, error: readError } = await db
     .from("digest")
     .select("cost_usd")
@@ -110,22 +127,17 @@ export async function invoke(
     .maybeSingle();
   if (readError) return err("api_error", `failed to read digest cost: ${readError.code}: ${readError.message}`);
   if (!digest) return err("api_error", `no digest with id ${digestId}`);
-  if (digest.cost_usd >= options.ceilingUsd) {
-    return err(
-      "ceiling_reached",
-      `digest ${digestId} at $${digest.cost_usd} has reached the $${options.ceilingUsd} ceiling`,
-    );
+  if (digest.cost_usd >= ceilingUsd) {
+    return err("ceiling_reached", `digest ${digestId} at $${digest.cost_usd} has reached the $${ceilingUsd} ceiling`);
   }
 
-  // 2. The call. A transport failure (after the SDK's own retries) is an api_error, not a throw.
   let response;
   try {
-    response = await llm.messages.create(buildParams(request, model));
+    response = await llm.messages.create(params);
   } catch (error) {
     return err("api_error", errorMessage(error));
   }
 
-  // 3. Account the cost ALWAYS — before deciding whether the response is usable.
   const usage = response.usage;
   const costUsd = costOf(usage, model);
   const { data: totalCostUsd, error: acctError } = await db.rpc("increment_digest_cost", {
@@ -133,8 +145,6 @@ export async function invoke(
     p_delta: costUsd,
   });
   if (acctError || totalCostUsd === null) {
-    // A billed call whose cost we could not record leaves the ceiling untrustworthy. Fail loudly
-    // rather than continue against a total that understates real spend.
     return err(
       "api_error",
       `cost accounting failed after a billed $${costUsd} call: ${acctError?.message ?? "digest not found"}`,
@@ -144,7 +154,7 @@ export async function invoke(
   const cacheReadTokens = usage.cache_read_input_tokens ?? 0;
   const cacheCreationTokens = usage.cache_creation_input_tokens ?? 0;
 
-  // 4. Branch on stop_reason BEFORE reading content — a refusal returns 200 with possibly-empty
+  // Branch on stop_reason BEFORE reading content — a refusal returns 200 with possibly-empty
   // content, and indexing it blindly would crash.
   switch (response.stop_reason) {
     case "end_turn":
@@ -167,7 +177,7 @@ export async function invoke(
       return err("refusal", `model refused${category ? ` (${category})` : ""}`);
     }
     case "max_tokens":
-      return err("truncated", `response hit max_tokens (${request.maxTokens})`);
+      return err("truncated", `response hit max_tokens (${params.max_tokens})`);
     case "model_context_window_exceeded":
       return err("context_exceeded", "prompt exceeded the model context window");
     case "pause_turn":
@@ -177,4 +187,103 @@ export async function invoke(
     default:
       return err("api_error", `unexpected stop_reason: ${String(response.stop_reason)}`);
   }
+}
+
+/** Parse a structured response body: JSON.parse, then validate against the schema. */
+function validate<T>(schema: z.ZodType<T>, text: string): { ok: true; value: T } | { ok: false; message: string } {
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch (error) {
+    return { ok: false, message: `response was not valid JSON: ${errorMessage(error)}` };
+  }
+  const parsed = schema.safeParse(json);
+  return parsed.success ? { ok: true, value: parsed.data } : { ok: false, message: parsed.error.message };
+}
+
+export function invoke<T>(
+  llm: LlmTransport | null,
+  db: ServiceClient,
+  digestId: string,
+  request: StructuredRequest<T>,
+  options: InvokeOptions,
+): Promise<LlmResult<StructuredSuccess<T>>>;
+export function invoke(
+  llm: LlmTransport | null,
+  db: ServiceClient,
+  digestId: string,
+  request: LlmRequest,
+  options: InvokeOptions,
+): Promise<LlmResult<LlmSuccess>>;
+/**
+ * Invoke the model for a digest, enforcing its ceiling and accounting the cost.
+ *
+ * With a `schema`, the response is constrained to it and parsed; a validation failure triggers ONE
+ * corrective reprompt (the bad answer plus the error, fed back), and a second failure returns
+ * `malformed_output`. Each attempt is a full call — ceiling-checked and accounted — so a run at its
+ * limit does not get a free retry.
+ */
+export async function invoke<T>(
+  llm: LlmTransport | null,
+  db: ServiceClient,
+  digestId: string,
+  request: LlmRequest | StructuredRequest<T>,
+  options: InvokeOptions,
+): Promise<LlmResult<LlmSuccess | StructuredSuccess<T>>> {
+  const schema = "schema" in request ? request.schema : undefined;
+
+  // Reject an unsupported schema before touching the client or the DB — a bad schema is a caller
+  // bug that must surface in tests, not as a 400 mid-run.
+  let format: JSONOutputFormat | undefined;
+  if (schema) {
+    const converted = toStructuredFormat(schema);
+    if (!converted.ok) return err("api_error", converted.message);
+    format = converted.format;
+  }
+
+  if (!llm) return err("not_configured", "no LLM client — ANTHROPIC_API_KEY is missing");
+
+  const model = request.model ?? DEFAULT_MODEL;
+
+  const first = await attemptCall(
+    llm,
+    db,
+    digestId,
+    model,
+    buildParams(request, model, request.messages, format),
+    options.ceilingUsd,
+  );
+  if (!first.ok) return first;
+  if (!schema) return first;
+
+  const firstParse = validate(schema, first.data.text);
+  if (firstParse.ok) return { ok: true, data: { ...first.data, parsed: firstParse.value } };
+
+  // One corrective reprompt: replay the bad answer and name what was wrong. A normal multi-turn
+  // exchange (the trailing turn is the user's), not a prefill.
+  const retryMessages: MessageParam[] = [
+    ...request.messages,
+    { role: "assistant", content: first.data.text },
+    {
+      role: "user",
+      content: `Your previous response did not match the required schema: ${firstParse.message}. Respond again with only valid JSON matching the schema.`,
+    },
+  ];
+  const second = await attemptCall(
+    llm,
+    db,
+    digestId,
+    model,
+    buildParams(request, model, retryMessages, format),
+    options.ceilingUsd,
+  );
+  if (!second.ok) return second;
+
+  const secondParse = validate(schema, second.data.text);
+  if (secondParse.ok) return { ok: true, data: { ...second.data, parsed: secondParse.value } };
+
+  return err(
+    "malformed_output",
+    `output failed schema validation twice — [1] ${firstParse.message} [2] ${secondParse.message}`,
+  );
 }
