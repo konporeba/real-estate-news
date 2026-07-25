@@ -178,4 +178,33 @@ describe.skipIf(!configured)("invoke (integration)", () => {
     expect(result.reason).toBe("not_configured");
     expect(await costOf(db, id)).toBe(0); // no spend recorded
   });
+
+  // The NFR itself, not just its parts: a run that keeps getting billed cannot outspend the
+  // ceiling. Loop invoking against a low ceiling until it refuses; assert it halts, ends in
+  // ceiling_reached, and never overshoots by more than a single call's worst case.
+  it("cannot outspend the ceiling under a loop of billed calls", async () => {
+    const id = await freshDigest(db);
+    const ceilingUsd = 1; // ~3.3 calls of $0.30 each fit under it
+    const perCallWorstCase = 0.3;
+
+    let calls = 0;
+    let lastReason = "";
+    for (let i = 0; i < 50; i++) {
+      const result = await invoke(fakeLlmTransport([fakeMessage({ text: "spend", usage })]), db, id, REQUEST, {
+        ceilingUsd,
+      });
+      calls += 1;
+      if (!result.ok) {
+        lastReason = result.reason;
+        break;
+      }
+    }
+
+    expect(lastReason).toBe("ceiling_reached");
+    expect(calls).toBeLessThan(50); // it halted rather than running the full loop
+    const finalCost = await costOf(db, id);
+    // The ceiling is soft by exactly one in-flight call: never more than ceiling + one call.
+    expect(finalCost).toBeLessThanOrEqual(ceilingUsd + perCallWorstCase);
+    expect(finalCost).toBeGreaterThanOrEqual(ceilingUsd - perCallWorstCase);
+  });
 });

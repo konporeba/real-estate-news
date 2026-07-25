@@ -60,16 +60,16 @@ const reactConfig = tseslint.config({
 });
 
 // ---------------------------------------------------------------------------
-// Runtime boundary (S-01)
+// Runtime boundary (S-01, extended for F-03)
 // ---------------------------------------------------------------------------
 // This project builds for TWO runtimes. The Astro app targets Cloudflare workerd; the
 // pipeline worker (`npm run collect`) is plain Node and uses Node-oriented dependencies
-// such as rss-parser. An import crossing the boundary breaks a build — and would break it
-// in whichever slice happens to add the import, far from where the rule was understood.
-// These rules make the split structural rather than remembered.
+// such as rss-parser and @anthropic-ai/sdk. An import crossing the boundary breaks a build —
+// and would break it in whichever slice happens to add the import, far from where the rule
+// was understood. These rules make the split structural rather than remembered.
 const runtimeBoundaryConfig = tseslint.config(
   {
-    // App -> worker: pulling collection code into a page or island drags Node built-ins
+    // App -> worker: pulling collection/LLM code into a page or island drags Node built-ins
     // into the workerd bundle.
     files: ["src/pages/**", "src/components/**", "src/layouts/**", "src/middleware.ts"],
     rules: {
@@ -78,10 +78,10 @@ const runtimeBoundaryConfig = tseslint.config(
         {
           patterns: [
             {
-              group: ["@/lib/collection/*", "@/lib/collection", "@/worker/*", "@/worker"],
+              group: ["@/lib/collection/*", "@/lib/collection", "@/lib/llm/*", "@/lib/llm", "@/worker/*", "@/worker"],
               message:
                 "Worker-side code runs in plain Node and must not enter the Astro/workerd bundle. " +
-                "If a page needs collection data, read it from the database instead.",
+                "If a page needs pipeline data, read it from the database instead.",
             },
           ],
         },
@@ -91,7 +91,7 @@ const runtimeBoundaryConfig = tseslint.config(
   {
     // Worker -> app: `astro:env/server` is a Vite virtual module that exists only inside
     // Astro's build and fails to resolve under Node.
-    files: ["src/worker/**", "src/lib/collection/**"],
+    files: ["src/worker/**", "src/lib/collection/**", "src/lib/llm/**"],
     rules: {
       "no-restricted-imports": [
         "error",
