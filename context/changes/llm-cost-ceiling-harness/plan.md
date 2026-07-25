@@ -467,6 +467,15 @@ reason. Regenerate types afterwards with
 `npx supabase gen types typescript --project-id <ref>`, and re-add the `GENERATED FILE` header the
 generator drops.
 
+**Update (Phase 1, 2026-07-25):** the gen-types endpoint now returns "account does not have the
+necessary privileges" for this project on the current CLI session — it worked during S-01, so this
+is a token/permission regression, not a permanent state. The `increment_digest_cost` function entry
+was therefore added to `src/db/database.types.ts` **by hand**, with an EXCEPTION note in the file
+header. When gen-types access is restored, a clean regenerate should reproduce it; verify it
+matches rather than assuming. This is the second CLI capability degraded on this machine (after
+`db push` on 5432) — both have HTTPS or manual workarounds, but F-05's deployment story should
+assume neither the direct-DB nor the management-API CLI paths are reliable here.
+
 ## References
 
 - Resolved research and the F-03 decision record: `context/changes/llm-cost-ceiling-harness/change.md`
@@ -484,13 +493,13 @@ generator drops.
 
 #### Automated
 
-- [x] 1.1 `increment_digest_cost` exists and returns the post-increment total — d5d4502 (verified over HTTPS)
-- [x] 1.2 Two concurrent increments both land — total equals their sum — d5d4502 (10 concurrent, no lost updates)
-- [ ] 1.3 `costOf` computes known usage/price pairs, including cache rates
-- [ ] 1.4 Every selectable model has a price entry: completeness test
-- [ ] 1.5 Sub-$0.00005 rounding floor asserted and documented
-- [ ] 1.6 Type checking passes: `npx astro check`
-- [ ] 1.7 Linting passes: `npm run lint`
+- [x] 1.1 `increment_digest_cost` exists and returns the post-increment total — 4a5a4db (committed integration test in cost-accounting.test.ts; DB verified d5d4502)
+- [x] 1.2 Two concurrent increments both land — total equals their sum — 4a5a4db (20 concurrent, no lost updates)
+- [x] 1.3 `costOf` computes known usage/price pairs, including cache rates — 4a5a4db
+- [x] 1.4 Every selectable model has a price entry: completeness test — 4a5a4db (compile-enforced via `satisfies` + runtime test)
+- [x] 1.5 Sub-$0.00005 rounding floor asserted and documented — 4a5a4db (asserted against the real numeric(10,4) column)
+- [x] 1.6 Type checking passes: `npx astro check` — 4a5a4db (needed a hand-added function type; gen-types is privilege-blocked, see Migration Notes)
+- [x] 1.7 Linting passes: `npm run lint` — 4a5a4db
 
 #### Manual
 
