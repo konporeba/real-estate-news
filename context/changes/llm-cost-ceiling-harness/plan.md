@@ -549,5 +549,5 @@ assume neither the direct-DB nor the management-API CLI paths are reliable here.
 
 #### Manual
 
-- [x] 4.5 A real run's `cost_usd` is plausible against reported token counts — $0.000807 for 219 in / 10 out on Sonnet 5 matches costOf exactly; stored as $0.0008 (numeric(10,4) rounding, as documented)
+- [x] 4.5 A real run's `cost_usd` is plausible against reported token counts — 0f0d0e6 ($0.000807 for 219 in / 10 out on Sonnet 5 matches costOf exactly; stored as $0.0008, numeric(10,4) rounding as documented)
 - [x] 4.6 CLAUDE.md entry is sufficient to use the harness without reading its source — 590403e ("LLM calls go through the harness" section: client, call, result, transition ownership, cost, caching)
