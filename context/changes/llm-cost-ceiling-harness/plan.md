@@ -484,8 +484,8 @@ generator drops.
 
 #### Automated
 
-- [ ] 1.1 `increment_digest_cost` exists and returns the post-increment total
-- [ ] 1.2 Two concurrent increments both land — total equals their sum
+- [x] 1.1 `increment_digest_cost` exists and returns the post-increment total — d5d4502 (verified over HTTPS)
+- [x] 1.2 Two concurrent increments both land — total equals their sum — d5d4502 (10 concurrent, no lost updates)
 - [ ] 1.3 `costOf` computes known usage/price pairs, including cache rates
 - [ ] 1.4 Every selectable model has a price entry: completeness test
 - [ ] 1.5 Sub-$0.00005 rounding floor asserted and documented
@@ -494,8 +494,8 @@ generator drops.
 
 #### Manual
 
-- [ ] 1.8 Migration and its `schema_migrations` row applied and confirmed
-- [ ] 1.9 Execute permission denied to `anon` and `authenticated`
+- [x] 1.8 Migration and its `schema_migrations` row applied and confirmed — d5d4502 (all three migrations recorded; operator-run)
+- [x] 1.9 Execute permission denied to `anon` and `authenticated` — d5d4502 (anon rejected with 42501; both revokes ran in one committed txn)
 
 ### Phase 2: Invocation harness
 
