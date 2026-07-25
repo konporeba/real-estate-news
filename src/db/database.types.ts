@@ -7,10 +7,13 @@
 //
 // EXCEPTION (F-03, 2026-07-25): the gen-types management endpoint now returns
 // "account does not have the necessary privileges" for this project on the current
-// CLI session, so the `increment_digest_cost` entry under public.Functions was added
-// by hand to match supabase/migrations/20260724170000_digest_cost_increment.sql. When
-// gen-types access is restored, a clean regenerate will reproduce it — verify it still
-// matches rather than assuming.
+// CLI session, so the following were added BY HAND to match the migrations; when
+// gen-types access is restored, a clean regenerate should reproduce them — verify
+// rather than assuming:
+//   - `increment_digest_cost` under public.Functions
+//     (20260724170000_digest_cost_increment.sql)
+//   - `cluster.scoring_detail: Json | null` in Row/Insert/Update
+//     (20260725175328_cluster_scoring_detail.sql)
 export type Json =
   | string
   | number
@@ -117,6 +120,7 @@ export type Database = {
           id: string
           rank: number | null
           relevance_score: number | null
+          scoring_detail: Json | null
         }
         Insert: {
           coverage_count?: number
@@ -125,6 +129,7 @@ export type Database = {
           id?: string
           rank?: number | null
           relevance_score?: number | null
+          scoring_detail?: Json | null
         }
         Update: {
           coverage_count?: number
@@ -133,6 +138,7 @@ export type Database = {
           id?: string
           rank?: number | null
           relevance_score?: number | null
+          scoring_detail?: Json | null
         }
         Relationships: [
           {

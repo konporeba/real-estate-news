@@ -469,17 +469,17 @@ populated by the first ranking run.
 
 #### Automated
 
-- [ ] 1.1 `ClusterScore` schema round-trips a valid score and rejects a bad tier
-- [ ] 1.2 `assertScoreInRange` accepts 0–100 and rejects out-of-range
-- [ ] 1.3 `evaluateRubric` reports tier and ordering failures correctly on synthetic data
-- [ ] 1.4 Type checking passes: `npx astro check`
-- [ ] 1.5 Linting passes: `npm run lint`
-- [ ] 1.6 Existing suite still green: `npm test`
+- [x] 1.1 `ClusterScore` schema round-trips a valid score and rejects a bad tier
+- [x] 1.2 `assertScoreInRange` accepts 0–100 and rejects out-of-range
+- [x] 1.3 `evaluateRubric` reports tier and ordering failures correctly on synthetic data
+- [x] 1.4 Type checking passes: `npx astro check`
+- [x] 1.5 Linting passes: `npm run lint`
+- [x] 1.6 Existing suite still green: `npm test`
 
 #### Manual
 
-- [ ] 1.7 `scoring_detail` column and `schema_migrations` row visible in Studio
-- [ ] 1.8 Labeled set covers all four tiers incl. ≥2 published-vs-effects cases; operator agrees with labels
+- [x] 1.7 `scoring_detail` column and `schema_migrations` row visible in Studio — column verified over HTTPS (PostgREST select), all four migration history rows confirmed by operator
+- [x] 1.8 Labeled set covers all four tiers incl. ≥2 published-vs-effects cases; operator agrees with labels — operator reviewed 2026-07-25; moved Segro/Prologis to `discard` (foreign REITs, no Spanish angle). Deviation: no `global` example this week (none in the pool) — the rubric still produces the tier; the eval gates it once a genuine global story appears
 
 ### Phase 2: Geography rubric & scoring function
 
