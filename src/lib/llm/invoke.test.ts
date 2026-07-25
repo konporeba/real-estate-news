@@ -180,9 +180,10 @@ describe.skipIf(!configured)("invoke (integration)", () => {
   });
 
   // The NFR itself, not just its parts: a run that keeps getting billed cannot outspend the
-  // ceiling. Loop invoking against a low ceiling until it refuses; assert it halts, ends in
-  // ceiling_reached, and never overshoots by more than a single call's worst case.
-  it("cannot outspend the ceiling under a loop of billed calls", async () => {
+  // ceiling. This exercises the SEQUENTIAL case, where the overshoot bound is one call. The
+  // ceiling is soft, not atomic — under concurrency the bound is `concurrency × per-call cost`
+  // (see the invoke.ts header); a caller scoring a large pool caps its fan-out to keep that small.
+  it("cannot outspend the ceiling under a sequential loop of billed calls", async () => {
     const id = await freshDigest(db);
     const ceilingUsd = 1; // ~3.3 calls of $0.30 each fit under it
     const perCallWorstCase = 0.3;
@@ -203,7 +204,7 @@ describe.skipIf(!configured)("invoke (integration)", () => {
     expect(lastReason).toBe("ceiling_reached");
     expect(calls).toBeLessThan(50); // it halted rather than running the full loop
     const finalCost = await costOf(db, id);
-    // The ceiling is soft by exactly one in-flight call: never more than ceiling + one call.
+    // Sequential: the overshoot is at most one in-flight call's worth beyond the ceiling.
     expect(finalCost).toBeLessThanOrEqual(ceilingUsd + perCallWorstCase);
     expect(finalCost).toBeGreaterThanOrEqual(ceilingUsd - perCallWorstCase);
   });

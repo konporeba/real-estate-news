@@ -3,8 +3,14 @@
 // the LlmResult idiom the rest of the codebase already branches on.
 //
 // The controlling idea (F-03): there is no vendor budget primitive, so the ceiling is a
-// CHECK-BEFORE / ACCUMULATE-AFTER loop around each call. Enforcement granularity is one call;
-// `maxTokens` bounds the overshoot of the call already in flight.
+// CHECK-BEFORE / ACCUMULATE-AFTER loop around each call. The check and the increment are separate
+// round trips with the API call between them, so the ceiling is SOFT: it is not atomic across
+// concurrent calls. Sequentially the overshoot is bounded by one call. Under concurrency — S-02's
+// pattern, scoring a whole pool — N in-flight calls can all pass the check before any increments,
+// so the real bound is `concurrency × max per-call cost`. `maxTokens` bounds each call's cost;
+// bounded fan-out bounds the multiplier. A caller that scores a large pool (S-02) should cap its
+// concurrency so `concurrency × per-call` stays small against the ceiling. The atomic RPC keeps
+// the *accounting* exact (no lost increments); it does not make the *ceiling* hard.
 //
 // Phase 2 handled the ceiling, accounting, and stop-reason branching; Phase 3 adds schema-
 // constrained output (output_config.format) with a single corrective reprompt, and up-front
@@ -140,16 +146,13 @@ async function attemptCall(
 
   const usage = response.usage;
   const costUsd = costOf(usage, model);
-  const { data: totalCostUsd, error: acctError } = await db.rpc("increment_digest_cost", {
-    p_digest_id: digestId,
-    p_delta: costUsd,
-  });
-  if (acctError || totalCostUsd === null) {
-    return err(
-      "api_error",
-      `cost accounting failed after a billed $${costUsd} call: ${acctError?.message ?? "digest not found"}`,
-    );
+  const accounted = await accountCost(db, digestId, costUsd);
+  if (!accounted.ok) {
+    // A billed call whose cost we could not record (after retries) leaves the ceiling
+    // untrustworthy. Fail loudly rather than continue against a total that understates spend.
+    return err("api_error", `cost accounting failed after a billed $${costUsd} call: ${accounted.message}`);
   }
+  const totalCostUsd = accounted.total;
 
   const cacheReadTokens = usage.cache_read_input_tokens ?? 0;
   const cacheCreationTokens = usage.cache_creation_input_tokens ?? 0;
@@ -187,6 +190,31 @@ async function attemptCall(
     default:
       return err("api_error", `unexpected stop_reason: ${String(response.stop_reason)}`);
   }
+}
+
+/**
+ * Record a billed call's cost, retrying a transient write failure before giving up.
+ *
+ * The cost is already known and the money already spent by the time this runs, so losing the
+ * write to a transient DB blip would understate spend and let a re-trigger re-spend. A missing
+ * digest (data === null) is not transient — retrying cannot conjure the row — so it bails at once.
+ * If every attempt fails, the caller still fails loudly rather than continuing against an
+ * untrustworthy total.
+ */
+export async function accountCost(
+  db: ServiceClient,
+  digestId: string,
+  costUsd: number,
+): Promise<{ ok: true; total: number } | { ok: false; message: string }> {
+  let lastMessage = "unknown accounting error";
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { data, error } = await db.rpc("increment_digest_cost", { p_digest_id: digestId, p_delta: costUsd });
+    if (!error && data !== null) return { ok: true, total: data };
+    if (!error && data === null) return { ok: false, message: "digest not found" }; // not transient
+    lastMessage = error?.message ?? "unknown accounting error";
+    if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 100 * (attempt + 1)));
+  }
+  return { ok: false, message: lastMessage };
 }
 
 /** Parse a structured response body: JSON.parse, then validate against the schema. */
