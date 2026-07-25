@@ -542,12 +542,12 @@ assume neither the direct-DB nor the management-API CLI paths are reliable here.
 
 #### Automated
 
-- [~] 4.1 Live smoke passes with its flag and skips without it — 590403e (SKIP half verified: 10 skipped on a plain run; PASS half pending the opt-in live run)
+- [x] 4.1 Live smoke passes with its flag and skips without it — 590403e (skips on a plain run; passes with the flag: one real Sonnet call, 219 in / 10 out)
 - [x] 4.2 Boundary rules reject a deliberate cross-runtime import in both directions — 590403e (probes: page→llm and llm→astro:env both rejected)
 - [x] 4.3 End-to-end ceiling test halts within one call's worst case of the limit — 590403e
 - [x] 4.4 Full suite, type check, lint and build pass — 590403e (138 passing)
 
 #### Manual
 
-- [ ] 4.5 A real run's `cost_usd` is plausible against reported token counts — pending the opt-in live run
+- [x] 4.5 A real run's `cost_usd` is plausible against reported token counts — $0.000807 for 219 in / 10 out on Sonnet 5 matches costOf exactly; stored as $0.0008 (numeric(10,4) rounding, as documented)
 - [x] 4.6 CLAUDE.md entry is sufficient to use the harness without reading its source — 590403e ("LLM calls go through the harness" section: client, call, result, transition ownership, cost, caching)
