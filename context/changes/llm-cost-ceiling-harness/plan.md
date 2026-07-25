@@ -526,17 +526,17 @@ assume neither the direct-DB nor the management-API CLI paths are reliable here.
 
 #### Automated
 
-- [ ] 3.1 A schema-valid response parses and returns typed data
-- [ ] 3.2 One malformed then valid: retry succeeds, both calls accounted
-- [ ] 3.3 Two malformed responses return `malformed_output` with both errors
-- [ ] 3.4 A retry is refused when the first call exhausted the ceiling
-- [ ] 3.5 Each `stop_reason` maps correctly; refusal with empty content does not throw
-- [ ] 3.6 An unsupported schema shape is rejected before any API call
-- [ ] 3.7 Type checking, linting and full suite pass
+- [x] 3.1 A schema-valid response parses and returns typed data — c3b1a2a
+- [x] 3.2 One malformed then valid: retry succeeds, both calls accounted — c3b1a2a (2 calls, $0.60 billed)
+- [x] 3.3 Two malformed responses return `malformed_output` with both errors — c3b1a2a
+- [x] 3.4 A retry is refused when the first call exhausted the ceiling — c3b1a2a (reprompt never calls the transport)
+- [x] 3.5 Each `stop_reason` maps correctly; refusal with empty content does not throw — c3b1a2a (context_exceeded, pause_turn, empty-content refusal)
+- [x] 3.6 An unsupported schema shape is rejected before any API call — c3b1a2a (deliberate break failed exactly the 5 rejection tests)
+- [x] 3.7 Type checking, linting and full suite pass — c3b1a2a (137 passing)
 
 #### Manual
 
-- [ ] 3.8 Unsupported-schema error names the offending constraint clearly
+- [x] 3.8 Unsupported-schema error names the offending constraint clearly — c3b1a2a (message carries the keyword, e.g. "minimum", and the dotted path)
 
 ### Phase 4: Integration & verification
 
