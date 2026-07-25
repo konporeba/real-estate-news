@@ -199,7 +199,9 @@ export type Database = {
           p_digest_id: string
           p_delta: number
         }
-        Returns: number
+        // Nullable: the UPDATE ... RETURNING yields no row (null) when the digest id does not
+        // exist. Supabase's typegen would emit `number`; corrected by hand to match runtime.
+        Returns: number | null
       }
     }
     Enums: {

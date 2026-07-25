@@ -41,3 +41,32 @@ export interface RunStateError {
 }
 
 export type RunStateResult<T> = { ok: true; data: T } | RunStateError;
+
+/**
+ * Why an LLM invocation did not return usable output. Mirrors {@link RunStateErrorReason}: these
+ * are expected results the caller handles, not exceptions.
+ *
+ * - `ceiling_reached` — the digest is already at/over its spend ceiling; no call was made
+ * - `malformed_output` — a schema-constrained response failed validation twice (F-03 Phase 3)
+ * - `refusal` — the model declined (HTTP 200, `stop_reason: "refusal"`)
+ * - `truncated` — the response hit `max_tokens`
+ * - `context_exceeded` — the prompt exceeded the model's context window
+ * - `api_error` — a transport failure, an unexpected stop reason, or a post-call accounting failure
+ * - `not_configured` — no LLM client (missing `ANTHROPIC_API_KEY`)
+ */
+export type LlmErrorReason =
+  | "ceiling_reached"
+  | "malformed_output"
+  | "refusal"
+  | "truncated"
+  | "context_exceeded"
+  | "api_error"
+  | "not_configured";
+
+export interface LlmError {
+  ok: false;
+  reason: LlmErrorReason;
+  message: string;
+}
+
+export type LlmResult<T> = { ok: true; data: T } | LlmError;
