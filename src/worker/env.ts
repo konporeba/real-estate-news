@@ -9,6 +9,11 @@ import { z } from "zod";
 const workerEnvSchema = z.object({
   SUPABASE_URL: z.url("SUPABASE_URL must be a valid URL"),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, "SUPABASE_SERVICE_ROLE_KEY must not be empty"),
+  // F-03: the LLM harness's credentials and spend ceiling.
+  ANTHROPIC_API_KEY: z.string().min(1, "ANTHROPIC_API_KEY must not be empty"),
+  // Hard per-digest USD ceiling. `coerce` because process.env values are strings; the default
+  // keeps the worker runnable before the operator tunes it. Tightening this needs no deploy.
+  LLM_COST_CEILING_USD: z.coerce.number().positive("LLM_COST_CEILING_USD must be a positive number").default(5),
 });
 
 export type WorkerEnv = z.infer<typeof workerEnvSchema>;

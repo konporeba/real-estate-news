@@ -1,9 +1,16 @@
-// GENERATED FILE — DO NOT EDIT BY HAND.
+// GENERATED FILE — DO NOT EDIT BY HAND (with one recorded exception, below).
 // Regenerate after any migration with:
 //   npx supabase gen types typescript --project-id <ref> > src/db/database.types.ts
 // This goes over HTTPS. The `--local` and `--db-url` forms need a direct Postgres
 // connection on 5432, which does not survive the path from the current dev machine.
 // Re-add this header after regenerating; the generator does not emit it.
+//
+// EXCEPTION (F-03, 2026-07-25): the gen-types management endpoint now returns
+// "account does not have the necessary privileges" for this project on the current
+// CLI session, so the `increment_digest_cost` entry under public.Functions was added
+// by hand to match supabase/migrations/20260724170000_digest_cost_increment.sql. When
+// gen-types access is restored, a clean regenerate will reproduce it — verify it still
+// matches rather than assuming.
 export type Json =
   | string
   | number
@@ -187,7 +194,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_digest_cost: {
+        Args: {
+          p_digest_id: string
+          p_delta: number
+        }
+        Returns: number
+      }
     }
     Enums: {
       digest_status:
