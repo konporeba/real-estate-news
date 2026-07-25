@@ -2,7 +2,7 @@
 change_id: llm-cost-ceiling-harness
 roadmap_id: F-03
 title: LLM cost-ceiling & resilient-invocation harness
-status: implemented
+status: impl_reviewed
 created: 2026-07-24
 updated: 2026-07-25
 prd_refs: [FR-016, FR-017, US-15]
