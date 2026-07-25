@@ -3,7 +3,7 @@ project: "Real Estate News"
 version: 1
 status: draft
 created: 2026-07-22
-updated: 2026-07-24
+updated: 2026-07-25
 prd_version: 1
 main_goal: quality
 top_blocker: none
@@ -31,7 +31,7 @@ A single real-estate professional serving Polish investors in Spain publishes no
 | ---- | -------------------------- | ---------------------------------------------------------------- | -------------------- | -------------------------------- | -------- |
 | F-01 | durable-digest-run-state   | (foundation) durable digest state machine + core schema in place | —                    | NFR-durability, §Data, §State    | done     |
 | F-02 | operator-pin-access-gate   | (foundation) PIN gate + lockout replaces email/password auth     | —                    | US-22, NFR-access, §Access       | ready    |
-| F-03 | llm-cost-ceiling-harness   | (foundation) budgeted, retry-safe LLM invocation wrapper         | —                    | FR-016, FR-017, NFR-cost         | ready    |
+| F-03 | llm-cost-ceiling-harness   | (foundation) budgeted, retry-safe LLM invocation wrapper         | —                    | FR-016, FR-017, NFR-cost         | done     |
 | F-04 | outbound-email-notifications | (foundation) system can email the operator                     | —                    | FR-010, FR-019, FR-021           | ready    |
 | F-05 | reliable-scheduler-backbone | (foundation) DST-correct persistent scheduler primitive         | F-01                 | FR-027, FR-022, NFR-time         | proposed |
 | S-01 | weekly-source-collection   | trigger/re-trigger a week's article collection                   | F-01                 | FR-001,002,003,018; US-01→04     | done     |
@@ -111,7 +111,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Unknowns:** ~~Which model SDK/provider exposes the budget primitive (`maxBudgetUsd` / `maxCost`)~~ — **Resolved 2026-07-24: none does.** The Anthropic API has no USD-denominated budget parameter. The ceiling must be computed application-side from `usage` token counts × a per-model price table, checked before each call and accumulated after. `output_config.task_budget` (beta) is a *token* budget the model paces itself against — explicitly a suggestion, not a hard cap — so it cannot serve as the enforcement mechanism. This makes F-03 a larger slice than assumed: it owns the accounting, not just a wrapper. Detail in `context/changes/llm-cost-ceiling-harness/change.md`.
 - **Scope note (2026-07-24):** FR-017's malformed-output recovery is largely obviated by structured outputs (`output_config.format` + `strict: true`), which constrain the shape rather than repairing it; staged recovery should be a narrow fallback. Transport retry/backoff already ships in the SDK (`maxRetries` default 2, covering 408/409/429/5xx). Two cost levers found during the same research and inherited by S-02: the **Message Batches API halves cost** on whole-pool scoring (asynchronous by nature), and **prompt caching** on the shared rubric prefix cuts repeat input to ~0.1× — subject to a model-dependent minimum cacheable prefix (4096 tokens on Opus 4.8, 2048 on Sonnet 5) below which it silently does not cache.
 - **Risk:** The first LLM call (S-02 scoring, over the whole article pool) is exactly the unattended failure mode this guards, so the harness precedes it. Minimal scope: budget enforcement + retry/recovery contract, not a general model-orchestration layer — each slice still owns its own prompts.
-- **Status:** ready
+- **Status:** done
 
 ### F-04: Outbound email notifications
 
@@ -273,7 +273,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 | ---------- | ---------------------------- | ------------------------------------------------------ | --------------------- | --------------------------------------- |
 | F-01       | durable-digest-run-state     | Durable digest run-state & core schema                 | shipped               | Shipped 2026-07-24; see impl-review F1  |
 | F-02       | operator-pin-access-gate     | PIN access gate replacing scaffold auth                | yes                   | Independent; enables the dashboard      |
-| F-03       | llm-cost-ceiling-harness     | Budgeted, retry-safe LLM invocation harness            | yes                   | Independent; needed by S-02             |
+| F-03       | llm-cost-ceiling-harness     | Budgeted, retry-safe LLM invocation harness            | shipped               | Shipped & reviewed 2026-07-25; unblocks S-02 |
 | F-04       | outbound-email-notifications | Outbound email notification capability                 | yes                   | Independent; needed by S-04/S-07        |
 | F-05       | reliable-scheduler-backbone  | DST-correct persistent scheduler primitive             | yes                   | F-01 shipped; unblocked                 |
 | S-01       | weekly-source-collection     | Weekly source collection (tiered, resilient)           | shipped               | Shipped 2026-07-24; 234 articles on first run |
@@ -309,5 +309,6 @@ Foundations below assume these are present and do NOT re-scaffold them.
 
 ## Done
 
+- **F-03: (foundation) a shared wrapper around every model call that enforces a hard per-run cost ceiling and halts on reaching it, with staged malformed-output recovery and bounded backoff retries — so an unattended run can never bill quietly overnight.** — Archived 2026-07-25 → `context/archive/2026-07-24-llm-cost-ceiling-harness/`. Lesson: the vendor exposes no USD budget primitive, so the ceiling is application-side accounting (token `usage` × a price table) — and because the check and the increment are separate round trips, the ceiling is *soft*: under concurrency the overshoot bound is `concurrency × per-call cost`, not one call. S-02's scoring loop must cap its fan-out accordingly.
 - **S-01: operator can trigger (or the scheduler can auto-run) a week's collection, pulling articles from a configured source list — resilient to a blocked source and to a thin news week.** — Archived 2026-07-24 → `context/archive/2026-07-24-weekly-source-collection/`. Lesson: the opt-in live smoke test found a real regression within minutes of existing — a source that verified working in the morning was blocking by the afternoon. Fixtures cannot see that class of failure; every slice depending on third-party feeds should ship one.
 - **F-01: (foundation) the digest state machine (`collecting → ranking → ready_for_selection → generating → ready_for_approval → approved → published`, plus `skipped`/`failed`) is persisted with per-stage checkpoints, and the core `digest`/`article`/`cluster` tables exist — enough for a multi-day run to survive a machine restart.** — Archived 2026-07-24 → `context/archive/2026-07-22-durable-digest-run-state/`. Lesson: —.
