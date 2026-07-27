@@ -67,7 +67,18 @@ interface PersistedCluster {
   articleIds: string[];
 }
 
-/** Insert one `cluster` row per group and assign each group's articles to it. */
+/**
+ * Insert one `cluster` row per group and assign each group's articles to it.
+ *
+ * The article assignment is one `assign_articles_to_clusters` RPC call for the whole pool, not
+ * one `.update()` per cluster — a real ~368-article pool produces on the order of 250 clusters,
+ * and a per-cluster loop there was ~250 sequential round trips for what is really one bulk
+ * write. PostgREST's `.upsert()` can't express this: it's typed against the table's full
+ * `Insert` shape, which demands every NOT NULL column even though every one of these ids already
+ * exists and only `cluster_id` is changing — the same "PostgREST can't express it, so make it a
+ * function" precedent as `increment_digest_cost` (F-03). See
+ * `supabase/migrations/20260727150000_bulk_ranking_writes.sql`.
+ */
 async function persistClusters(
   client: ServiceClient,
   digestId: string,
@@ -79,26 +90,41 @@ async function persistClusters(
 
   const persisted: PersistedCluster[] = clusters.map((c, index) => ({ id: data[index].id, articleIds: c.articleIds }));
 
+  const articleIds: string[] = [];
+  const clusterIds: string[] = [];
   for (const cluster of persisted) {
-    const { error: assignError } = await client
-      .from("article")
-      .update({ cluster_id: cluster.id })
-      .in("id", cluster.articleIds);
+    for (const articleId of cluster.articleIds) {
+      articleIds.push(articleId);
+      clusterIds.push(cluster.id);
+    }
+  }
+  if (articleIds.length > 0) {
+    const { error: assignError } = await client.rpc("assign_articles_to_clusters", {
+      p_article_ids: articleIds,
+      p_cluster_ids: clusterIds,
+    });
     if (assignError) return databaseFail(assignError);
   }
 
   return { ok: true, data: persisted };
 }
 
-/** Write the score, detail, and shortlist rank onto an already-persisted cluster row. */
+/**
+ * Write the score, detail, and shortlist rank onto every already-persisted cluster row in one
+ * `persist_cluster_rankings` RPC call, for the same reason `persistClusters` batches its article
+ * assignment above.
+ */
 async function persistRanking(
   client: ServiceClient,
-  cluster: { id: string; score: number; detail: ClusterScore; rank: number | null },
+  clusters: { id: string; score: number; detail: ClusterScore; rank: number | null }[],
 ): Promise<RunStateResult<void>> {
-  const { error } = await client
-    .from("cluster")
-    .update({ relevance_score: cluster.score, scoring_detail: cluster.detail, rank: cluster.rank })
-    .eq("id", cluster.id);
+  if (clusters.length === 0) return { ok: true, data: undefined };
+  const { error } = await client.rpc("persist_cluster_rankings", {
+    p_cluster_ids: clusters.map((c) => c.id),
+    p_scores: clusters.map((c) => c.score),
+    p_details: clusters.map((c) => c.detail),
+    p_ranks: clusters.map((c) => c.rank),
+  });
   if (error) return databaseFail(error);
   return { ok: true, data: undefined };
 }
@@ -176,11 +202,14 @@ export async function rankDigest(
 
   const ordered = orderClusters(scoredClusters);
 
-  for (const [index, cluster] of ordered.entries()) {
-    const rank = index < SHORTLIST_SIZE ? index + 1 : null;
-    const write = await persistRanking(client, { id: cluster.id, score: cluster.score, detail: cluster.detail, rank });
-    if (!write.ok) return write;
-  }
+  const rankingRows = ordered.map((cluster, index) => ({
+    id: cluster.id,
+    score: cluster.score,
+    detail: cluster.detail,
+    rank: index < SHORTLIST_SIZE ? index + 1 : null,
+  }));
+  const written = await persistRanking(client, rankingRows);
+  if (!written.ok) return written;
 
   const checkpointed = await markStageComplete(client, digest.id, "ranking");
   if (!checkpointed.ok) return checkpointed;

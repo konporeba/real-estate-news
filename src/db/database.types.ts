@@ -14,6 +14,8 @@
 //     (20260724170000_digest_cost_increment.sql)
 //   - `cluster.scoring_detail: Json | null` in Row/Insert/Update
 //     (20260725175328_cluster_scoring_detail.sql)
+//   - `assign_articles_to_clusters`, `persist_cluster_rankings` under public.Functions
+//     (20260727150000_bulk_ranking_writes.sql)
 export type Json =
   | string
   | number
@@ -208,6 +210,22 @@ export type Database = {
         // Nullable: the UPDATE ... RETURNING yields no row (null) when the digest id does not
         // exist. Supabase's typegen would emit `number`; corrected by hand to match runtime.
         Returns: number | null
+      }
+      assign_articles_to_clusters: {
+        Args: {
+          p_article_ids: string[]
+          p_cluster_ids: string[]
+        }
+        Returns: undefined
+      }
+      persist_cluster_rankings: {
+        Args: {
+          p_cluster_ids: string[]
+          p_scores: number[]
+          p_details: Json[]
+          p_ranks: (number | null)[]
+        }
+        Returns: undefined
       }
     }
     Enums: {
