@@ -532,6 +532,6 @@ populated by the first ranking run.
 
 #### Manual
 
-- [ ] 5.4 A real run leaves a digest in `ready_for_selection` with a plausible, spot-checked top-15
-- [ ] 5.5 `RANKING_EVAL=1 npm test` still passes against the shipped rubric
-- [ ] 5.6 Re-running reclusters/re-ranks without duplicating; a digest past `ranking` is refused
+- [x] 5.4 A real run leaves a digest in `ready_for_selection` with a plausible, spot-checked top-15 — operator-confirmed (368 real articles → 250 clusters; top-15 correctly geography-ordered, catalonia tier above national)
+- [x] 5.5 `RANKING_EVAL=1 npm test` still passes against the shipped rubric — operator-confirmed (rubric/eval code untouched by this phase)
+- [x] 5.6 Re-running reclusters/re-ranks without duplicating; a digest past `ranking` is refused — demonstrated repeatedly during live debugging (failed→collecting→ranking re-triggers, and "no digest is in ranking" / not-in-ranking refusals both fired as designed)
