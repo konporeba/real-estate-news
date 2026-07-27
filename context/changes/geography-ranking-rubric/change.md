@@ -2,9 +2,9 @@
 change_id: geography-ranking-rubric
 roadmap_id: S-02
 title: Geography-ranking rubric (with eval harness)
-status: implementing
+status: done
 created: 2026-07-25
-updated: 2026-07-26
+updated: 2026-07-27
 prd_refs: [FR-004, FR-005, FR-006, FR-007, FR-008, FR-026, US-06, US-07, US-08, US-25]
 roadmap: context/foundation/roadmap.md
 archived_at: null
