@@ -2,7 +2,7 @@
 change_id: operator-pin-access-gate
 roadmap_id: F-02
 title: Operator access gate (PIN + lockout, private path)
-status: implemented
+status: impl_reviewed
 created: 2026-07-27
 updated: 2026-07-27
 prd_refs: [US-22, NFR-access, "§Access Control"]
