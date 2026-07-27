@@ -526,9 +526,9 @@ populated by the first ranking run.
 
 #### Automated
 
-- [ ] 5.1 `npm run rank` completes end-to-end against a `ranking` digest and exits 0
-- [ ] 5.2 Digest-resolution unit tests (`--digest` wins; else newest `ranking`; refuse non-`ranking`)
-- [ ] 5.3 Full suite, type check, lint and build pass
+- [x] 5.1 `npm run rank` completes end-to-end against a `ranking` digest and exits 0 — 59de4bf
+- [x] 5.2 Digest-resolution unit tests (`--digest` wins; else newest `ranking`; refuse non-`ranking`) — 59de4bf
+- [x] 5.3 Full suite, type check, lint and build pass — 59de4bf
 
 #### Manual
 
