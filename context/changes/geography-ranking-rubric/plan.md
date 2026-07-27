@@ -505,7 +505,7 @@ populated by the first ranking run.
 
 #### Manual
 
-- [ ] 3.4 On the real pool, same-story articles land in one cluster; unrelated stories are not merged
+- [x] 3.4 On the real pool, same-story articles land in one cluster; unrelated stories are not merged — operator-confirmed
 
 ### Phase 4: Ranking orchestrator
 
