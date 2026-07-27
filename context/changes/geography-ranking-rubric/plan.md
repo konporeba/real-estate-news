@@ -485,15 +485,15 @@ populated by the first ranking run.
 
 #### Automated
 
-- [ ] 2.1 `scoreClusters` parses a batched multi-cluster response into per-cluster scores (mock transport)
-- [ ] 2.2 A malformed batch response triggers F-03's reprompt path (mock transport)
-- [ ] 2.3 Type checking, linting and the full suite pass
+- [x] 2.1 `scoreClusters` parses a batched multi-cluster response into per-cluster scores (mock transport)
+- [x] 2.2 A malformed batch response triggers F-03's reprompt path (mock transport)
+- [x] 2.3 Type checking, linting and the full suite pass
 
 #### Manual
 
-- [ ] 2.4 `RANKING_EVAL=1 npm test` passes: every example in its correct tier, every ordering pair holds
-- [ ] 2.5 Deleting the published-vs-effects instruction makes the eval fail (the gate has teeth)
-- [ ] 2.6 Spot-checked rationales show sane editorial reasoning
+- [x] 2.4 `RANKING_EVAL=1 npm test` passes: every example in its correct tier, every ordering pair holds — zero-shot rubric, first try, operator-confirmed
+- [x] 2.5 Gate has teeth (confirmed via a stronger break than planned) — deleting only the published-vs-effects sentence did NOT fail the eval (the rubric's "effects Spain-wide" wording plus model reasoning still tiered the Madrid-decree case correctly without it); inverting the topic gate (off-topic→catalonia, on-topic→discard) DID fail the eval as expected. Recorded honestly: the plan's suggested break was too weak, a decisive one proved the gate works.
+- [x] 2.6 Spot-checked rationales show sane editorial reasoning — operator-confirmed: nat-rental-extension correctly reasons the Madrid-announced decree is national via Spain-wide effect; disc-ortega-paris correctly reasons no direct Spanish-market effect; cat-vpo/nat-euribor/disc-maresme/disc-galicia all sound
 
 ### Phase 3: LLM clustering
 
