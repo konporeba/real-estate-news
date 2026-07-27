@@ -16,6 +16,8 @@
 //     (20260725175328_cluster_scoring_detail.sql)
 //   - `assign_articles_to_clusters`, `persist_cluster_rankings` under public.Functions
 //     (20260727150000_bulk_ranking_writes.sql)
+//   - `pin_lockout_state` under public.Tables, `record_pin_attempt` under public.Functions
+//     (20260727160000_pin_lockout_state.sql)
 export type Json =
   | string
   | number
@@ -197,6 +199,27 @@ export type Database = {
         }
         Relationships: []
       }
+      pin_lockout_state: {
+        Row: {
+          failed_attempts: number
+          id: boolean
+          locked_until: string | null
+          updated_at: string
+        }
+        Insert: {
+          failed_attempts?: number
+          id?: boolean
+          locked_until?: string | null
+          updated_at?: string
+        }
+        Update: {
+          failed_attempts?: number
+          id?: boolean
+          locked_until?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -226,6 +249,17 @@ export type Database = {
           p_ranks: (number | null)[]
         }
         Returns: undefined
+      }
+      record_pin_attempt: {
+        Args: {
+          p_matched: boolean
+          p_max_attempts: number
+          p_lockout_seconds: number
+        }
+        Returns: {
+          authenticated: boolean
+          locked_until: string | null
+        }[]
       }
     }
     Enums: {

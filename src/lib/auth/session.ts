@@ -5,6 +5,13 @@
 // constant-time comparison primitive.
 import { decodeBase64Url, encodeBase64Url } from "@/lib/auth/base64url";
 
+/** Shared by verify-pin.ts (sets it) and middleware.ts (reads it) so the name lives in one place. */
+export const SESSION_COOKIE_NAME = "operator_session";
+
+/** ~30 days -- matches the weekly usage pattern; re-entering a PIN every visit is friction the
+ * product exists to shrink, not a security requirement for a single operator's own device. */
+export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
+
 async function importHmacKey(secret: string, usage: "sign" | "verify"): Promise<CryptoKey> {
   return crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, [
     usage,

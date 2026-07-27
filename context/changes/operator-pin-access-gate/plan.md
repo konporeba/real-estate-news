@@ -428,24 +428,24 @@ this repo's migrations) but becomes unused.
 
 #### Automated
 
-- [x] 2.1 Unit tests pass: `npm test`
-- [x] 2.2 Lint passes: `npm run lint`
+- [x] 2.1 Unit tests pass: `npm test` — 8d36528
+- [x] 2.2 Lint passes: `npm run lint` — 8d36528
 
 #### Manual
 
-- [x] 2.3 `node scripts/hash-pin.mjs` prints a stable, deterministic hash
+- [x] 2.3 `node scripts/hash-pin.mjs` prints a stable, deterministic hash — 8d36528
 
 ### Phase 3: PIN entry route and API
 
 #### Automated
 
-- [ ] 3.1 Unit tests pass: `npm test`
-- [ ] 3.2 Lint passes: `npm run lint`
+- [x] 3.1 Unit tests pass: `npm test`
+- [x] 3.2 Lint passes: `npm run lint`
 
 #### Manual
 
-- [ ] 3.3 5 wrong PINs trigger a lockout message with a retry time
-- [ ] 3.4 Correct PIN mid-lockout authenticates immediately and sets the session cookie
+- [x] 3.3 5 wrong PINs trigger a lockout message with a retry time
+- [x] 3.4 Correct PIN mid-lockout authenticates immediately and sets the session cookie
 
 ### Phase 4: Middleware, locals, and dashboard cutover
 
