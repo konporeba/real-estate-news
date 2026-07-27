@@ -21,8 +21,8 @@ const configured = Boolean(
   process.env.SUPABASE_TEST_PROJECT === "1" && process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY,
 );
 
-const TEST_WINDOW_FIRST = "2993-01-01";
-const TEST_WINDOW_LAST = "2993-12-31";
+const TEST_WINDOW_FIRST = "2994-01-01";
+const TEST_WINDOW_LAST = "2994-12-31";
 
 let weekIndex = 0;
 
@@ -31,8 +31,8 @@ function nextWeek(): { start: string; end: string } {
   weekIndex += 1;
   const iso = (d: Date) => d.toISOString().slice(0, 10);
   return {
-    start: iso(new Date(Date.UTC(2993, 0, 4 + offset))),
-    end: iso(new Date(Date.UTC(2993, 0, 10 + offset))),
+    start: iso(new Date(Date.UTC(2994, 0, 3 + offset))),
+    end: iso(new Date(Date.UTC(2994, 0, 9 + offset))),
   };
 }
 

@@ -50,6 +50,9 @@ async function freshDigest(db: ServiceClient): Promise<string> {
   return data.id;
 }
 
+// Positions matter: clusterArticles asks the model for LOCAL indices ("0", "1", "2" — this
+// array's position), not these real ids, so the mocked responses below use indices and the
+// assertions check the real ids the function maps back to.
 const ARTICLES: ClusterableArticle[] = [
   { id: "a1", title: "Story A, outlet 1", lede: null },
   { id: "a2", title: "Story A, outlet 2", lede: null },
@@ -74,7 +77,7 @@ describe.skipIf(!configured)("clusterArticles (integration)", () => {
 
   it("partitions a known article set into the expected clusters", async () => {
     const id = await freshDigest(db);
-    const llm = fakeLlmTransport([fakeMessage({ text: groupingResponse([["a1", "a2"], ["b1"]]), usage })]);
+    const llm = fakeLlmTransport([fakeMessage({ text: groupingResponse([["0", "1"], ["2"]]), usage })]);
 
     const result = await clusterArticles(llm, db, id, ARTICLES, CEILING);
 
@@ -85,23 +88,47 @@ describe.skipIf(!configured)("clusterArticles (integration)", () => {
     expect(result.data.find((c) => c.articleIds.includes("b1"))?.articleIds).toEqual(["b1"]);
   });
 
-  it("rejects a grouping that drops an article id", async () => {
+  it("recovers a dropped id via a corrective retry", async () => {
     const id = await freshDigest(db);
-    // b1 never appears in any group.
-    const llm = fakeLlmTransport([fakeMessage({ text: groupingResponse([["a1", "a2"]]), usage })]);
+    // First attempt drops b1 (index 2); the retry gets it right.
+    const llm = fakeLlmTransport([
+      fakeMessage({ text: groupingResponse([["0", "1"]]), usage }),
+      fakeMessage({ text: groupingResponse([["0", "1"], ["2"]]), usage }),
+    ]);
+
+    const result = await clusterArticles(llm, db, id, ARTICLES, CEILING);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data).toHaveLength(2);
+    expect(llm.calls).toHaveLength(2);
+  });
+
+  it("rejects a grouping that still drops an article id after a corrective retry", async () => {
+    const id = await freshDigest(db);
+    // b1 (index 2) never appears in any group, on either attempt.
+    const llm = fakeLlmTransport([
+      fakeMessage({ text: groupingResponse([["0", "1"]]), usage }),
+      fakeMessage({ text: groupingResponse([["0", "1"]]), usage }),
+    ]);
 
     const result = await clusterArticles(llm, db, id, ARTICLES, CEILING);
 
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.reason).toBe("malformed_output");
+    expect(result.message).toMatch(/corrective retry/);
     expect(result.message).toMatch(/missing/);
+    expect(llm.calls).toHaveLength(2);
   });
 
-  it("rejects a grouping that duplicates an article id across groups", async () => {
+  it("rejects a grouping that still duplicates an article id after a corrective retry", async () => {
     const id = await freshDigest(db);
-    // a1 appears in two groups.
-    const llm = fakeLlmTransport([fakeMessage({ text: groupingResponse([["a1", "a2"], ["a1"], ["b1"]]), usage })]);
+    // a1 (index 0) appears in two groups, on either attempt.
+    const llm = fakeLlmTransport([
+      fakeMessage({ text: groupingResponse([["0", "1"], ["0"], ["2"]]), usage }),
+      fakeMessage({ text: groupingResponse([["0", "1"], ["0"], ["2"]]), usage }),
+    ]);
 
     const result = await clusterArticles(llm, db, id, ARTICLES, CEILING);
 
@@ -111,9 +138,13 @@ describe.skipIf(!configured)("clusterArticles (integration)", () => {
     expect(result.message).toMatch(/duplicated/);
   });
 
-  it("rejects a grouping that invents an unknown article id", async () => {
+  it("rejects a grouping that still invents an unknown article id after a corrective retry", async () => {
     const id = await freshDigest(db);
-    const llm = fakeLlmTransport([fakeMessage({ text: groupingResponse([["a1", "a2"], ["b1"], ["ghost"]]), usage })]);
+    const badResponse = groupingResponse([["0", "1"], ["2"], ["ghost"]]);
+    const llm = fakeLlmTransport([
+      fakeMessage({ text: badResponse, usage }),
+      fakeMessage({ text: badResponse, usage }),
+    ]);
 
     const result = await clusterArticles(llm, db, id, ARTICLES, CEILING);
 
@@ -138,7 +169,7 @@ describe.skipIf(!configured)("clusterArticles (integration)", () => {
   it("treats a singleton article as a cluster of one", async () => {
     const id = await freshDigest(db);
     const solo: ClusterableArticle[] = [{ id: "only", title: "Unique story", lede: null }];
-    const llm = fakeLlmTransport([fakeMessage({ text: groupingResponse([["only"]]), usage })]);
+    const llm = fakeLlmTransport([fakeMessage({ text: groupingResponse([["0"]]), usage })]);
 
     const result = await clusterArticles(llm, db, id, solo, CEILING);
 

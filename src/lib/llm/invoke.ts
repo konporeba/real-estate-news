@@ -42,6 +42,15 @@ export interface LlmRequest {
    * (2048 tokens on Sonnet 5) it silently does not cache; check the returned cache token counts.
    */
   cacheSystem?: boolean;
+  /**
+   * Set `false` to send `thinking: {type: "disabled"}`. Sonnet 5 runs ADAPTIVE THINKING BY
+   * DEFAULT when `thinking` is omitted — a silent behavior change from earlier models — and
+   * `maxTokens` is a hard cap on thinking plus response text combined. A call whose `maxTokens`
+   * was sized only for its visible output (e.g. a structured-JSON task with no need for
+   * deliberation) can silently truncate before the real content is written. Omit this (leave
+   * thinking on) for calls that benefit from reasoning; set it for calls that don't.
+   */
+  thinking?: boolean;
 }
 
 /** A request that constrains the response to a schema and returns the parsed value. */
@@ -106,6 +115,7 @@ function buildParams(
       : request.system;
   }
   if (format) params.output_config = { format };
+  if (request.thinking === false) params.thinking = { type: "disabled" };
   return params;
 }
 
