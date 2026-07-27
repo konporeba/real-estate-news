@@ -520,7 +520,7 @@ populated by the first ranking run.
 
 #### Manual
 
-- [ ] 4.7 The persisted shortlist is readable in Studio: top-15 ranked, scores and `scoring_detail` present
+- [x] 4.7 The persisted shortlist is readable in Studio: top-15 ranked, scores and `scoring_detail` present — operator-confirmed
 
 ### Phase 5: Worker entrypoint & integration
 
