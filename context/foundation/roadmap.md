@@ -30,7 +30,7 @@ A single real-estate professional serving Polish investors in Spain publishes no
 | ID   | Change ID                  | Outcome (user can …)                                              | Prerequisites        | PRD refs                         | Status   |
 | ---- | -------------------------- | ---------------------------------------------------------------- | -------------------- | -------------------------------- | -------- |
 | F-01 | durable-digest-run-state   | (foundation) durable digest state machine + core schema in place | —                    | NFR-durability, §Data, §State    | done     |
-| F-02 | operator-pin-access-gate   | (foundation) PIN gate + lockout replaces email/password auth     | —                    | US-22, NFR-access, §Access       | ready    |
+| F-02 | operator-pin-access-gate   | (foundation) PIN gate + lockout replaces email/password auth     | —                    | US-22, NFR-access, §Access       | done     |
 | F-03 | llm-cost-ceiling-harness   | (foundation) budgeted, retry-safe LLM invocation wrapper         | —                    | FR-016, FR-017, NFR-cost         | done     |
 | F-04 | outbound-email-notifications | (foundation) system can email the operator                     | —                    | FR-010, FR-019, FR-021           | ready    |
 | F-05 | reliable-scheduler-backbone | (foundation) DST-correct persistent scheduler primitive         | F-01                 | FR-027, FR-022, NFR-time         | proposed |
@@ -97,7 +97,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Under a `quality` goal the access gate is not deferred behind user-facing slices. Must swap out the scaffolded email/password flow rather than layer on top of it; leaving both in place would be a second, weaker auth path. Minimal scope: the PIN gate + lockout + tunnel exposure, not a general identity system (there is only ever one operator).
-- **Status:** ready
+- **Status:** done
 
 ### F-03: LLM cost-ceiling & resilient-invocation harness
 
@@ -311,6 +311,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 
 ## Done
 
+- **F-02: (foundation) the dashboard is gated by a 6-digit PIN with lockout-after-~5-attempts and rate limiting, reachable only over a private path (Cloudflare Tunnel) — replacing the scaffold's email/password auth, which is the wrong mechanism for this product.** — Archived 2026-07-27 → `context/archive/2026-07-27-operator-pin-access-gate/`. Lesson: —.
 - **S-02: (system) the week's articles are semantically clustered (coverage count as a ranking boost, not redundancy) and each cluster is scored by the geography-first rubric from title + lede — with an eval harness that gates any rubric change against known-correct examples.** — Archived 2026-07-27 → `context/archive/2026-07-25-geography-ranking-rubric/`. Lesson: real-pool verification (a live ~368-article digest) surfaced three failure modes no mocked test could — a real UUID costs far more output tokens than expected to echo back, Sonnet 5 runs adaptive thinking by default and silently eats the `maxTokens` budget meant for output, and a single-pass whole-pool LLM call occasionally mis-partitions at scale. All three are now handled (local-id indirection, an explicit `thinking: false` opt-out threaded through F-03's harness, and a corrective retry) — but the lesson generalizes: an LLM call sized and tested only against small mocked inputs can behave qualitatively differently at real production scale, and that gap only shows up by actually running against real data before calling a slice done.
 - **F-03: (foundation) a shared wrapper around every model call that enforces a hard per-run cost ceiling and halts on reaching it, with staged malformed-output recovery and bounded backoff retries — so an unattended run can never bill quietly overnight.** — Archived 2026-07-25 → `context/archive/2026-07-24-llm-cost-ceiling-harness/`. Lesson: the vendor exposes no USD budget primitive, so the ceiling is application-side accounting (token `usage` × a price table) — and because the check and the increment are separate round trips, the ceiling is *soft*: under concurrency the overshoot bound is `concurrency × per-call cost`, not one call. S-02's scoring loop must cap its fan-out accordingly.
 - **S-01: operator can trigger (or the scheduler can auto-run) a week's collection, pulling articles from a configured source list — resilient to a blocked source and to a thin news week.** — Archived 2026-07-24 → `context/archive/2026-07-24-weekly-source-collection/`. Lesson: the opt-in live smoke test found a real regression within minutes of existing — a source that verified working in the morning was blocking by the afternoon. Fixtures cannot see that class of failure; every slice depending on third-party feeds should ship one.
