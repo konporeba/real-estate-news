@@ -485,9 +485,9 @@ populated by the first ranking run.
 
 #### Automated
 
-- [x] 2.1 `scoreClusters` parses a batched multi-cluster response into per-cluster scores (mock transport)
-- [x] 2.2 A malformed batch response triggers F-03's reprompt path (mock transport)
-- [x] 2.3 Type checking, linting and the full suite pass
+- [x] 2.1 `scoreClusters` parses a batched multi-cluster response into per-cluster scores (mock transport) — 6bb63ce
+- [x] 2.2 A malformed batch response triggers F-03's reprompt path (mock transport) — 6bb63ce
+- [x] 2.3 Type checking, linting and the full suite pass — 6bb63ce
 
 #### Manual
 
