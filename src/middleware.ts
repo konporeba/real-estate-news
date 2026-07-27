@@ -1,24 +1,18 @@
+// F-02: PIN-gate cutover. No DB read per request -- the session cookie is self-verifying.
 import { defineMiddleware } from "astro:middleware";
-import { createClient } from "@/lib/supabase";
+import { SESSION_SECRET } from "astro:env/server";
+
+import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth/session";
 
 const PROTECTED_ROUTES = ["/dashboard"];
 
 export const onRequest = defineMiddleware(async (context, next) => {
-  const supabase = createClient(context.request.headers, context.cookies);
+  const token = context.cookies.get(SESSION_COOKIE_NAME)?.value;
+  const authenticated = token && SESSION_SECRET ? await verifySessionToken(token, SESSION_SECRET) : false;
+  context.locals.operatorAuthenticated = authenticated;
 
-  if (supabase) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    context.locals.user = user ?? null;
-  } else {
-    context.locals.user = null;
-  }
-
-  if (PROTECTED_ROUTES.some((route) => context.url.pathname.startsWith(route))) {
-    if (!context.locals.user) {
-      return context.redirect("/auth/signin");
-    }
+  if (PROTECTED_ROUTES.some((route) => context.url.pathname.startsWith(route)) && !authenticated) {
+    return context.redirect("/auth/pin");
   }
 
   return next();

@@ -439,27 +439,27 @@ this repo's migrations) but becomes unused.
 
 #### Automated
 
-- [x] 3.1 Unit tests pass: `npm test`
-- [x] 3.2 Lint passes: `npm run lint`
+- [x] 3.1 Unit tests pass: `npm test` — 66a1881
+- [x] 3.2 Lint passes: `npm run lint` — 66a1881
 
 #### Manual
 
-- [x] 3.3 5 wrong PINs trigger a lockout message with a retry time
-- [x] 3.4 Correct PIN mid-lockout authenticates immediately and sets the session cookie
+- [x] 3.3 5 wrong PINs trigger a lockout message with a retry time — 66a1881
+- [x] 3.4 Correct PIN mid-lockout authenticates immediately and sets the session cookie — 66a1881
 
 ### Phase 4: Middleware, locals, and dashboard cutover
 
 #### Automated
 
-- [ ] 4.1 Unit tests pass: `npm test`
-- [ ] 4.2 Lint passes: `npm run lint`
-- [ ] 4.3 Build succeeds: `npm run build`
+- [x] 4.1 Unit tests pass: `npm test`
+- [x] 4.2 Lint passes: `npm run lint`
+- [x] 4.3 Build succeeds: `npm run build`
 
 #### Manual
 
-- [ ] 4.4 Logged-out visit to `/dashboard` redirects to `/auth/pin`
-- [ ] 4.5 Logged-in `/dashboard` renders and sign-out works
-- [ ] 4.6 Session survives a dev-server restart without re-entering the PIN
+- [x] 4.4 Logged-out visit to `/dashboard` redirects to `/auth/pin`
+- [x] 4.5 Logged-in `/dashboard` renders and sign-out works
+- [x] 4.6 Session survives a dev-server restart without re-entering the PIN
 
 ### Phase 5: Remove the old scaffold, finish test coverage
 
