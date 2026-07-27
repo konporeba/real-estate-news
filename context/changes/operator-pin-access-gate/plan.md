@@ -451,26 +451,26 @@ this repo's migrations) but becomes unused.
 
 #### Automated
 
-- [x] 4.1 Unit tests pass: `npm test`
-- [x] 4.2 Lint passes: `npm run lint`
-- [x] 4.3 Build succeeds: `npm run build`
+- [x] 4.1 Unit tests pass: `npm test` — b4e1e3a
+- [x] 4.2 Lint passes: `npm run lint` — b4e1e3a
+- [x] 4.3 Build succeeds: `npm run build` — b4e1e3a
 
 #### Manual
 
-- [x] 4.4 Logged-out visit to `/dashboard` redirects to `/auth/pin`
-- [x] 4.5 Logged-in `/dashboard` renders and sign-out works
-- [x] 4.6 Session survives a dev-server restart without re-entering the PIN
+- [x] 4.4 Logged-out visit to `/dashboard` redirects to `/auth/pin` — b4e1e3a
+- [x] 4.5 Logged-in `/dashboard` renders and sign-out works — b4e1e3a
+- [x] 4.6 Session survives a dev-server restart without re-entering the PIN — b4e1e3a
 
 ### Phase 5: Remove the old scaffold, finish test coverage
 
 #### Automated
 
-- [ ] 5.1 Full suite passes: `npm test`
-- [ ] 5.2 Integration suite passes when opted in: `SUPABASE_TEST_PROJECT=1 npm test`
-- [ ] 5.3 Lint passes with no unused-import warnings: `npm run lint`
-- [ ] 5.4 Build succeeds: `npm run build`
-- [ ] 5.5 No remaining `@supabase/ssr` references: `grep -r "@supabase/ssr" src/`
+- [x] 5.1 Full suite passes: `npm test`
+- [x] 5.2 Integration suite passes when opted in: `SUPABASE_TEST_PROJECT=1 npm test`
+- [x] 5.3 Lint passes with no unused-import warnings: `npm run lint`
+- [x] 5.4 Build succeeds: `npm run build`
+- [x] 5.5 No remaining `@supabase/ssr` references: `grep -r "@supabase/ssr" src/`
 
 #### Manual
 
-- [ ] 5.6 Full end-to-end walkthrough repeated post-deletion, including confirming `/auth/signin` and `/auth/signup` now 404
+- [x] 5.6 Full end-to-end walkthrough repeated post-deletion, including confirming `/auth/signin` and `/auth/signup` now 404
