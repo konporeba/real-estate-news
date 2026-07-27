@@ -465,12 +465,12 @@ this repo's migrations) but becomes unused.
 
 #### Automated
 
-- [x] 5.1 Full suite passes: `npm test`
-- [x] 5.2 Integration suite passes when opted in: `SUPABASE_TEST_PROJECT=1 npm test`
-- [x] 5.3 Lint passes with no unused-import warnings: `npm run lint`
-- [x] 5.4 Build succeeds: `npm run build`
-- [x] 5.5 No remaining `@supabase/ssr` references: `grep -r "@supabase/ssr" src/`
+- [x] 5.1 Full suite passes: `npm test` — 5132c22
+- [x] 5.2 Integration suite passes when opted in: `SUPABASE_TEST_PROJECT=1 npm test` — 5132c22
+- [x] 5.3 Lint passes with no unused-import warnings: `npm run lint` — 5132c22
+- [x] 5.4 Build succeeds: `npm run build` — 5132c22
+- [x] 5.5 No remaining `@supabase/ssr` references: `grep -r "@supabase/ssr" src/` — 5132c22
 
 #### Manual
 
-- [x] 5.6 Full end-to-end walkthrough repeated post-deletion, including confirming `/auth/signin` and `/auth/signup` now 404
+- [x] 5.6 Full end-to-end walkthrough repeated post-deletion, including confirming `/auth/signin` and `/auth/signup` now 404 — 5132c22
