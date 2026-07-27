@@ -3,7 +3,7 @@ project: "Real Estate News"
 version: 1
 status: draft
 created: 2026-07-22
-updated: 2026-07-25
+updated: 2026-07-27
 prd_version: 1
 main_goal: quality
 top_blocker: none
@@ -35,7 +35,7 @@ A single real-estate professional serving Polish investors in Spain publishes no
 | F-04 | outbound-email-notifications | (foundation) system can email the operator                     | —                    | FR-010, FR-019, FR-021           | ready    |
 | F-05 | reliable-scheduler-backbone | (foundation) DST-correct persistent scheduler primitive         | F-01                 | FR-027, FR-022, NFR-time         | proposed |
 | S-01 | weekly-source-collection   | trigger/re-trigger a week's article collection                   | F-01                 | FR-001,002,003,018; US-01→04     | done     |
-| S-02 | geography-ranking-rubric   | (system) cluster + geography-rank the pool, gated by an eval harness | S-01, F-03       | FR-004→008,026; US-06,07,08,25   | proposed |
+| S-02 | geography-ranking-rubric   | (system) cluster + geography-rank the pool, gated by an eval harness | S-01, F-03       | FR-004→008,026; US-06,07,08,25   | done     |
 | S-03 | translated-shortlist-view  | view the ranked Polish shortlist on the dashboard ★              | S-02, F-02           | FR-008,009,009a,011; US-05,07,22 | proposed |
 | S-04 | story-selection-gate       | select 2–4 stories, format, and platforms                        | S-03, F-04           | FR-010,012; US-09,10             | proposed |
 | S-05 | polish-copy-generation     | get Polish social copy with a numeric-integrity gate             | S-04, F-03           | FR-013,014,016,017; US-11,12,15  | proposed |
@@ -164,7 +164,9 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** This is the product. The rubric must separate where a story was *published* from where its *effects* land (a national announcement made in Madrid is national, not "Madrid news") — the PRD flags this as the most likely misjudgment. Shipping the rubric together with its eval harness is the quality-first bet: the regression gate must exist before the rubric is tuned.
-- **Status:** proposed
+- **Status:** done (shipped 2026-07-27, commits `2ae85c4`…`6ace8e6`)
+- **Delivered:** the `ranking` stage end to end — score schema + eval harness gating the rubric (Phase 1), the zero-shot geography rubric and batched scoring function (Phase 2), LLM clustering with partition validation (Phase 3), the ranking orchestrator composing cluster→score→order→persist→transition (Phase 4), and the `npm run rank` worker entrypoint (Phase 5). Verified against a real ~368-article digest: 250 clusters, top-15 correctly geography-ordered (Catalonia tier above national).
+- **Carried forward:** real-pool verification surfaced three fixes the mocked test suite couldn't — see `src/lib/ranking/cluster.ts` and `src/lib/llm/invoke.ts`. (1) Clustering echoes article ids into the model's response; a real UUID costs far more output tokens than a short local index, so ids are now localized to array-position strings for the prompt/response and mapped back after parsing. (2) Sonnet 5 runs adaptive thinking by default when `thinking` is omitted from a request — a silent behavior change from earlier models — and `invoke()`'s `maxTokens` caps thinking plus output combined, so hidden reasoning tokens were silently consuming the budget meant for the JSON output. `invoke()` now accepts a `thinking` flag; clustering disables it. Any future `invoke()` caller on Sonnet 5 with a tight `maxTokens` should consider the same. (3) At real pool size the model occasionally mis-partitions (drops or duplicates an id) on the single-pass whole-pool grouping; `clusterArticles` now does one corrective retry, mirroring `invoke()`'s own schema-validation retry pattern.
 
 ### S-03: Translated shortlist view ★ (north star)
 
@@ -277,8 +279,8 @@ Foundations below assume these are present and do NOT re-scaffold them.
 | F-04       | outbound-email-notifications | Outbound email notification capability                 | yes                   | Independent; needed by S-04/S-07        |
 | F-05       | reliable-scheduler-backbone  | DST-correct persistent scheduler primitive             | yes                   | F-01 shipped; unblocked                 |
 | S-01       | weekly-source-collection     | Weekly source collection (tiered, resilient)           | shipped               | Shipped 2026-07-24; 234 articles on first run |
-| S-02       | geography-ranking-rubric     | Geography-ranking rubric + eval harness                | no                    | Needs S-01, F-03                        |
-| S-03       | translated-shortlist-view    | Translated shortlist dashboard view ★                  | no                    | North star; needs S-02, F-02            |
+| S-02       | geography-ranking-rubric     | Geography-ranking rubric + eval harness                | shipped               | Shipped 2026-07-27; verified against a real 368-article pool |
+| S-03       | translated-shortlist-view    | Translated shortlist dashboard view ★                  | yes                   | North star; S-02 shipped — unblocked    |
 | S-04       | story-selection-gate         | Story selection gate (human gate 1)                    | no                    | Needs S-03, F-04                        |
 | S-05       | polish-copy-generation       | Polish copy generation + numeric-integrity gate        | no                    | Needs S-04, F-03                        |
 | S-06       | brand-visual-assets          | Per-platform brand visual assets                       | no                    | Needs S-05; file Canva access (OQ#2)    |
