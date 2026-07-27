@@ -511,12 +511,12 @@ populated by the first ranking run.
 
 #### Automated
 
-- [ ] 4.1 `orderClusters` ranks by score, breaks ties by coverage, does not let coverage override a clear score gap
-- [ ] 4.2 Non-empty pool → `ready_for_selection` with top-15 ranked and the rest rank-null (needs `SUPABASE_TEST_PROJECT=1`)
-- [ ] 4.3 Empty pool → `failed` with `last_error` (needs `SUPABASE_TEST_PROJECT=1`)
-- [ ] 4.4 A re-run deletes prior clusters and re-clusters without duplicating (needs `SUPABASE_TEST_PROJECT=1`)
-- [ ] 4.5 A ceiling hit during scoring fails the digest with a diagnostic (needs `SUPABASE_TEST_PROJECT=1`)
-- [ ] 4.6 Type checking, linting and the full suite pass
+- [x] 4.1 `orderClusters` ranks by score, breaks ties by coverage, does not let coverage override a clear score gap — d20507a
+- [x] 4.2 Non-empty pool → `ready_for_selection` with top-15 ranked and the rest rank-null (needs `SUPABASE_TEST_PROJECT=1`) — d20507a
+- [x] 4.3 Empty pool → `failed` with `last_error` (needs `SUPABASE_TEST_PROJECT=1`) — d20507a
+- [x] 4.4 A re-run deletes prior clusters and re-clusters without duplicating (needs `SUPABASE_TEST_PROJECT=1`) — d20507a
+- [x] 4.5 A ceiling hit during scoring fails the digest with a diagnostic (needs `SUPABASE_TEST_PROJECT=1`) — d20507a
+- [x] 4.6 Type checking, linting and the full suite pass — d20507a
 
 #### Manual
 
