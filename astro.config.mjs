@@ -23,6 +23,9 @@ export default defineConfig({
         access: "secret",
         optional: true,
       }),
+      PIN_HASH: envField.string({ context: "server", access: "secret", optional: true }),
+      PIN_PEPPER: envField.string({ context: "server", access: "secret", optional: true }),
+      SESSION_SECRET: envField.string({ context: "server", access: "secret", optional: true }),
     },
   },
 });

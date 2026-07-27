@@ -415,25 +415,25 @@ this repo's migrations) but becomes unused.
 
 #### Automated
 
-- [x] 1.1 Migration applies cleanly: `npx supabase db push`
-- [x] 1.2 Lint passes: `npm run lint`
+- [x] 1.1 Migration applies cleanly: `npx supabase db push` — 8dc0411
+- [x] 1.2 Lint passes: `npm run lint` — 8dc0411
 
 #### Manual
 
-- [x] 1.3 Seeded row exists after migration apply
-- [x] 1.4 RPC locks out on the 5th failed call, not before
-- [x] 1.5 RPC authenticates and clears lockout on a correct PIN mid-lockout
+- [x] 1.3 Seeded row exists after migration apply — 8dc0411
+- [x] 1.4 RPC locks out on the 5th failed call, not before — 8dc0411
+- [x] 1.5 RPC authenticates and clears lockout on a correct PIN mid-lockout — 8dc0411
 
 ### Phase 2: PIN & session crypto primitives
 
 #### Automated
 
-- [ ] 2.1 Unit tests pass: `npm test`
-- [ ] 2.2 Lint passes: `npm run lint`
+- [x] 2.1 Unit tests pass: `npm test`
+- [x] 2.2 Lint passes: `npm run lint`
 
 #### Manual
 
-- [ ] 2.3 `node scripts/hash-pin.mjs` prints a stable, deterministic hash
+- [x] 2.3 `node scripts/hash-pin.mjs` prints a stable, deterministic hash
 
 ### Phase 3: PIN entry route and API
 

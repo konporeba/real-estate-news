@@ -12,7 +12,8 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "collect": "tsx --env-file=.env src/worker/collect.ts",
-    "rank": "tsx --env-file=.env src/worker/rank.ts"
+    "rank": "tsx --env-file=.env src/worker/rank.ts",
+    "hash-pin": "tsx scripts/hash-pin.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",

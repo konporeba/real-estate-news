@@ -91,7 +91,7 @@ const runtimeBoundaryConfig = tseslint.config(
   {
     // Worker -> app: `astro:env/server` is a Vite virtual module that exists only inside
     // Astro's build and fails to resolve under Node.
-    files: ["src/worker/**", "src/lib/collection/**", "src/lib/llm/**"],
+    files: ["src/worker/**", "src/lib/collection/**", "src/lib/llm/**", "scripts/**"],
     rules: {
       "no-restricted-imports": [
         "error",
