@@ -499,9 +499,9 @@ populated by the first ranking run.
 
 #### Automated
 
-- [ ] 3.1 A mocked grouping partitions a known article set into the expected clusters
-- [ ] 3.2 A grouping that drops or duplicates an id is rejected
-- [ ] 3.3 Type checking, linting and the full suite pass
+- [x] 3.1 A mocked grouping partitions a known article set into the expected clusters — 4d7e975
+- [x] 3.2 A grouping that drops or duplicates an id is rejected — 4d7e975
+- [x] 3.3 Type checking, linting and the full suite pass — 4d7e975
 
 #### Manual
 
