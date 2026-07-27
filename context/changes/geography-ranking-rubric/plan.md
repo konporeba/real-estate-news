@@ -491,9 +491,9 @@ populated by the first ranking run.
 
 #### Manual
 
-- [x] 2.4 `RANKING_EVAL=1 npm test` passes: every example in its correct tier, every ordering pair holds — zero-shot rubric, first try, operator-confirmed
-- [x] 2.5 Gate has teeth (confirmed via a stronger break than planned) — deleting only the published-vs-effects sentence did NOT fail the eval (the rubric's "effects Spain-wide" wording plus model reasoning still tiered the Madrid-decree case correctly without it); inverting the topic gate (off-topic→catalonia, on-topic→discard) DID fail the eval as expected. Recorded honestly: the plan's suggested break was too weak, a decisive one proved the gate works.
-- [x] 2.6 Spot-checked rationales show sane editorial reasoning — operator-confirmed: nat-rental-extension correctly reasons the Madrid-announced decree is national via Spain-wide effect; disc-ortega-paris correctly reasons no direct Spanish-market effect; cat-vpo/nat-euribor/disc-maresme/disc-galicia all sound
+- [x] 2.4 `RANKING_EVAL=1 npm test` passes: every example in its correct tier, every ordering pair holds — zero-shot rubric, first try, operator-confirmed — 6bb63ce
+- [x] 2.5 Gate has teeth (confirmed via a stronger break than planned) — deleting only the published-vs-effects sentence did NOT fail the eval (the rubric's "effects Spain-wide" wording plus model reasoning still tiered the Madrid-decree case correctly without it); inverting the topic gate (off-topic→catalonia, on-topic→discard) DID fail the eval as expected. Recorded honestly: the plan's suggested break was too weak, a decisive one proved the gate works. — 6bb63ce
+- [x] 2.6 Spot-checked rationales show sane editorial reasoning — operator-confirmed: nat-rental-extension correctly reasons the Madrid-announced decree is national via Spain-wide effect; disc-ortega-paris correctly reasons no direct Spanish-market effect; cat-vpo/nat-euribor/disc-maresme/disc-galicia all sound — 6bb63ce
 
 ### Phase 3: LLM clustering
 
@@ -505,7 +505,7 @@ populated by the first ranking run.
 
 #### Manual
 
-- [x] 3.4 On the real pool, same-story articles land in one cluster; unrelated stories are not merged — operator-confirmed
+- [x] 3.4 On the real pool, same-story articles land in one cluster; unrelated stories are not merged — operator-confirmed — 483eb45
 
 ### Phase 4: Ranking orchestrator
 
@@ -520,7 +520,7 @@ populated by the first ranking run.
 
 #### Manual
 
-- [x] 4.7 The persisted shortlist is readable in Studio: top-15 ranked, scores and `scoring_detail` present — operator-confirmed
+- [x] 4.7 The persisted shortlist is readable in Studio: top-15 ranked, scores and `scoring_detail` present — operator-confirmed — eb25994
 
 ### Phase 5: Worker entrypoint & integration
 
@@ -532,6 +532,6 @@ populated by the first ranking run.
 
 #### Manual
 
-- [x] 5.4 A real run leaves a digest in `ready_for_selection` with a plausible, spot-checked top-15 — operator-confirmed (368 real articles → 250 clusters; top-15 correctly geography-ordered, catalonia tier above national)
-- [x] 5.5 `RANKING_EVAL=1 npm test` still passes against the shipped rubric — operator-confirmed (rubric/eval code untouched by this phase)
-- [x] 5.6 Re-running reclusters/re-ranks without duplicating; a digest past `ranking` is refused — demonstrated repeatedly during live debugging (failed→collecting→ranking re-triggers, and "no digest is in ranking" / not-in-ranking refusals both fired as designed)
+- [x] 5.4 A real run leaves a digest in `ready_for_selection` with a plausible, spot-checked top-15 — operator-confirmed (368 real articles → 250 clusters; top-15 correctly geography-ordered, catalonia tier above national) — 6ace8e6
+- [x] 5.5 `RANKING_EVAL=1 npm test` still passes against the shipped rubric — operator-confirmed (rubric/eval code untouched by this phase) — 6ace8e6
+- [x] 5.6 Re-running reclusters/re-ranks without duplicating; a digest past `ranking` is refused — demonstrated repeatedly during live debugging (failed→collecting→ranking re-triggers, and "no digest is in ranking" / not-in-ranking refusals both fired as designed) — 6ace8e6
