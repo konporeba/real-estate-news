@@ -264,23 +264,23 @@ None — no schema changes in this slice.
 
 #### Automated
 
-- [x] 2.1 Unit tests pass: `npm test`
-- [x] 2.2 Lint passes: `npm run lint`
-- [x] 2.3 Build passes: `npm run build`
+- [x] 2.1 Unit tests pass: `npm test` — dcd551c
+- [x] 2.2 Lint passes: `npm run lint` — dcd551c
+- [x] 2.3 Build passes: `npm run build` — dcd551c
 
 #### Manual
 
-- [x] 2.4 Render `renderEmailHtml()` output to a local `.html` file and eyeball the layout in a browser
+- [x] 2.4 Render `renderEmailHtml()` output to a local `.html` file and eyeball the layout in a browser — dcd551c
 
 ### Phase 3: Live smoke test & docs
 
 #### Automated
 
-- [ ] 3.1 Lint passes: `npm run lint`
-- [ ] 3.2 Build passes: `npm run build`
-- [ ] 3.3 Default suite unaffected: `npm test`
+- [x] 3.1 Lint passes: `npm run lint`
+- [x] 3.2 Build passes: `npm run build`
+- [x] 3.3 Default suite unaffected: `npm test`
 
 #### Manual
 
-- [ ] 3.4 Run `EMAIL_LIVE_SMOKE=1 npx vitest run src/lib/email/send.live.test.ts` with real Gmail credentials set and confirm it passes
-- [ ] 3.5 Open the received email in Gmail and confirm the branded layout renders correctly
+- [x] 3.4 Run `EMAIL_LIVE_SMOKE=1 npx vitest run src/lib/email/send.live.test.ts` with real Gmail credentials set and confirm it passes
+- [x] 3.5 Open the received email in Gmail and confirm the branded layout renders correctly

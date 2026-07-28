@@ -13,6 +13,7 @@ This file provides guidance to AI Agent when working with code in this repositor
 - `RANKING_EVAL=1 npm test` — score the held-out labeled set (`src/lib/ranking/eval/examples.ts`) through the real geography rubric and assert every example lands in its correct tier with every ordering pair intact. Opt-in and must pass before shipping any rubric change (`src/lib/ranking/rubric.ts`) — the labeled set is deliberately held out of the rubric prompt, so this measures generalization, not memorization.
 - `COLLECTION_LIVE_SMOKE=1 npx vitest run src/lib/collection/adapters/rss.live.test.ts` — fetch every enabled RSS source for real. Opt-in; catches a source changing its feed format or starting to block us, which fixtures cannot.
 - `LLM_LIVE_SMOKE=1 SUPABASE_TEST_PROJECT=1 npx vitest run src/lib/llm/invoke.live.test.ts` — make one real (sub-cent) Anthropic call. Opt-in; the only test that spends money. Catches the real `usage`/response shape drifting from what the harness assumes.
+- `EMAIL_LIVE_SMOKE=1 npx vitest run src/lib/email/send.live.test.ts` — send one real email via Gmail SMTP (requires `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `OPERATOR_EMAIL` set). Opt-in. Catches a bad App Password or Gmail rejecting the connection, which the mocked-transport suite cannot.
 - `npm run lint` — ESLint with type-checked rules
 - `npm run lint:fix` — auto-fix lint issues
 - `npm run format` — Prettier (includes prettier-plugin-astro + prettier-plugin-tailwindcss)
@@ -24,11 +25,11 @@ Pre-commit hooks: husky + lint-staged runs `eslint --fix` on `*.{ts,tsx,astro}` 
 This repo builds for **two** runtimes, and an import crossing between them breaks a build.
 
 - **Astro app** → Cloudflare workerd. `src/pages/`, `src/components/`, `src/layouts/`, `src/middleware.ts`.
-- **Pipeline worker** → plain Node, launched by `npm run collect`. `src/worker/`, `src/lib/collection/`, `src/lib/llm/`. Uses Node-oriented dependencies (`rss-parser`, `@anthropic-ai/sdk`) and long-running work the edge runtime is wrong for.
+- **Pipeline worker** → plain Node, launched by `npm run collect`. `src/worker/`, `src/lib/collection/`, `src/lib/llm/`, `src/lib/email/`. Uses Node-oriented dependencies (`rss-parser`, `@anthropic-ai/sdk`, `nodemailer`) and long-running work the edge runtime is wrong for.
 
 Rules, enforced by `no-restricted-imports` in `eslint.config.js` (both directions):
 
-- App code must **not** import `@/lib/collection/*`, `@/lib/llm/*`, or `@/worker/*` — it drags Node built-ins into the workerd bundle. If a page needs pipeline results, read them from the database.
+- App code must **not** import `@/lib/collection/*`, `@/lib/llm/*`, `@/lib/email/*`, or `@/worker/*` — it drags Node built-ins into the workerd bundle. If a page needs pipeline results, read them from the database.
 - Worker code must **not** import `astro:env/server`, `@/lib/supabase-admin`, or `@/lib/supabase` — `astro:env/server` is an Astro build-time virtual module that does not resolve in Node. Worker config comes from `src/worker/env.ts`; build the privileged client with `createServiceClient()` from `@/lib/supabase-service`.
 - Shared code (`src/lib/digest/`, `src/lib/supabase-service.ts`) takes its Supabase client as a **parameter** rather than constructing one, which is what lets both runtimes use it.
 
@@ -42,6 +43,16 @@ Never call `@anthropic-ai/sdk` directly from a pipeline stage. Every model call 
 - **The harness does NOT transition the digest.** On `ceiling_reached` (or any failure) the *caller* decides — typically transition to `failed` with `last_error`, as `collect.ts` does for an empty pool.
 - **Cost** accumulates atomically in `digest.cost_usd` via the `increment_digest_cost` RPC. The ceiling is `LLM_COST_CEILING_USD` (env, default 5). Prices live in `src/lib/llm/pricing.ts` as **sticker** rates with a `verified` date — update the date when you check them.
 - **Caching**: pass `cacheSystem: true` for a large stable system prefix; check `data.cacheReadTokens` to confirm it engaged (below ~2048 tokens it silently won't cache).
+
+## Outbound email goes through the harness (F-04)
+
+Never call `nodemailer` directly from a pipeline stage. Every notification goes through `sendEmail()` in `src/lib/email/send.ts`, which never throws and reports outcomes in the `EmailResult` idiom.
+
+- **Build the client** with `createEmailClient({ user: env.GMAIL_USER, appPassword: env.GMAIL_APP_PASSWORD })` (`src/lib/email/client.ts`). It returns `null` when config is missing; pass that `null` straight to `sendEmail`, which returns `not_configured`.
+- **Call it**: `sendEmail(transport, to, { subject, content })`, where `content` is `{ heading, bodyHtml, bodyText?, cta? }` (`src/lib/email/layout.ts`). Use `renderArticleCards(articles)` to embed a list of item cards (title, optional link, description, meta, and a color-coded `score` tier) into `content.bodyHtml`.
+- **Branch on the result**: `{ ok: true }` or `{ ok: false, reason }` where `reason` ∈ `not_configured | invalid_recipient | send_failed`. No retry — one attempt, fail fast.
+- **No pipeline stage calls this yet.** F-04 built the capability only; S-04 (digest-ready email) and S-07 (approval-ready email, Monday reminder) are the first real callers.
+- **Config**: `GMAIL_USER`, `GMAIL_APP_PASSWORD` (a Gmail **App Password**, not the account password), and `OPERATOR_EMAIL` in `.env` — all optional, so the worker runs fine unconfigured until a caller exists.
 
 ## Architecture
 
