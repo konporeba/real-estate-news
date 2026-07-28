@@ -126,9 +126,9 @@ Build the actual `src/lib/email/` module: transport construction, the one reusab
 
 **File**: `src/lib/email/layout.ts`
 
-**Intent**: One reusable, Gmail-safe branded shell (header/body/optional CTA button/footer) that every future notification renders through, so design work happens once here rather than being redone per notification type.
+**Intent**: One reusable, Gmail-safe branded shell (gradient header/body/optional CTA button/footer) that every future notification renders through, so design work happens once here rather than being redone per notification type. The palette and structure (gradient header banner, rounded card + shadow, bordered content box, gradient CTA button) deliberately mirror the client's other app ("Real Estate AI Agent") so notifications from both products share a visual identity, decided mid-implementation once the operator shared that app's existing template as a reference.
 
-**Contract**: Export `EmailContent { heading: string; bodyHtml: string; bodyText?: string; cta?: { text: string; url: string } }`. Export `renderEmailHtml(content: EmailContent): string` — a single centered `<table>` (~600px), system font stack, every rule as an inline `style` attribute (see Critical Implementation Details — no `<style>` block), with the CTA rendered as a table-based bulletproof button only when `content.cta` is present. Export `renderEmailText(content: EmailContent): string` — returns `content.bodyText` if supplied, else a plain-text fallback derived from `heading` + `bodyHtml` with tags stripped.
+**Contract**: Export `EmailContent { heading: string; bodyHtml: string; bodyText?: string; cta?: { text: string; url: string } }`. Export `renderEmailHtml(content: EmailContent): string` — a single centered `<table>` (~600px), system font stack, every rule as an inline `style` attribute (see Critical Implementation Details — no `<style>` block), with the CTA rendered as a table-based bulletproof button only when `content.cta` is present. Export `renderEmailText(content: EmailContent): string` — returns `content.bodyText` if supplied, else a plain-text fallback derived from `heading` + `bodyHtml` with tags stripped. Export `ArticleScoreTier = "high" | "medium" | "low"` and `ArticleScore { tier: ArticleScoreTier; label: string }` — a generic 3-level relevance indicator deliberately not named after the ranking module's `GeographyTier`, so a future caller (S-04) maps its real tier onto this scale and supplies its own display text. Export `ArticleCard { title: string; url?: string; description?: string; meta?: string; score?: ArticleScore }` and `renderArticleCards(articles: ArticleCard[]): string` — a per-article bordered card fragment (auto-numbered badge by list position, title linked when `url` is given, optional description snippet, optional score pill + tier-colored left border reusing the client's other app's green/amber palette plus a neutral slate for "low", optional meta as a colored pill, and a "Read article →" link shown when `url` is given) that a caller embeds into `EmailContent.bodyHtml`; deliberately generic (not coupled to the digest/article schema) so mapping real article/score data to it is a future slice's job (S-04).
 
 #### 4. Send harness
 
@@ -152,7 +152,7 @@ Build the actual `src/lib/email/` module: transport construction, the one reusab
 
 **Intent**: Cover every branch of the new harness against the fake transport.
 
-**Contract**: `send.test.ts` — `not_configured` when transport is `null`; `not_configured` when `to` is undefined/empty; `invalid_recipient` for a malformed address; `send_failed` when the fake transport rejects, with the underlying message surfaced; `{ ok: true }` on success, asserting the fake transport received the rendered HTML/text/subject/to. `layout.test.ts` — `renderEmailHtml` includes the heading and body, includes the CTA block only when `cta` is passed, contains no `<style>` tag; `renderEmailText` returns a supplied `bodyText` verbatim, or a tag-stripped fallback when omitted. `client.test.ts` — `createEmailClient(null)` returns `null`; a config object returns a non-null transport exposing `sendMail`.
+**Contract**: `send.test.ts` — `not_configured` when transport is `null`; `not_configured` when `to` is undefined/empty; `invalid_recipient` for a malformed address; `send_failed` when the fake transport rejects, with the underlying message surfaced; `{ ok: true }` on success, asserting the fake transport received the rendered HTML/text/subject/to. `layout.test.ts` — `renderEmailHtml` includes the heading and body, includes the CTA block only when `cta` is passed, contains no `<style>` tag; `renderEmailText` returns a supplied `bodyText` verbatim, or a tag-stripped fallback when omitted; `renderArticleCards` renders each title, links it only when `url` is given, renders the meta/description/score-label only when given, gives each score tier a distinct accent color (and omits the accent border entirely when no score is given), and escapes title/url/description/meta/score label. `client.test.ts` — `createEmailClient(null)` returns `null`; a config object returns a non-null transport exposing `sendMail`.
 
 ### Success Criteria:
 
@@ -256,21 +256,21 @@ None — no schema changes in this slice.
 
 #### Automated
 
-- [ ] 1.1 Lint passes: `npm run lint`
-- [ ] 1.2 Build passes: `npm run build`
-- [ ] 1.3 Existing suite still passes unchanged: `npm test`
+- [x] 1.1 Lint passes: `npm run lint` — 25855e4
+- [x] 1.2 Build passes: `npm run build` — 25855e4
+- [x] 1.3 Existing suite still passes unchanged: `npm test` — 25855e4
 
 ### Phase 2: Email client, branded layout & send harness
 
 #### Automated
 
-- [ ] 2.1 Unit tests pass: `npm test`
-- [ ] 2.2 Lint passes: `npm run lint`
-- [ ] 2.3 Build passes: `npm run build`
+- [x] 2.1 Unit tests pass: `npm test`
+- [x] 2.2 Lint passes: `npm run lint`
+- [x] 2.3 Build passes: `npm run build`
 
 #### Manual
 
-- [ ] 2.4 Render `renderEmailHtml()` output to a local `.html` file and eyeball the layout in a browser
+- [x] 2.4 Render `renderEmailHtml()` output to a local `.html` file and eyeball the layout in a browser
 
 ### Phase 3: Live smoke test & docs
 

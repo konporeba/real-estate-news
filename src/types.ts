@@ -70,3 +70,21 @@ export interface LlmError {
 }
 
 export type LlmResult<T> = { ok: true; data: T } | LlmError;
+
+/**
+ * Why an email notification did not send. Mirrors {@link LlmErrorReason}: these are expected
+ * results the caller handles, not exceptions.
+ *
+ * - `not_configured` — no email client (missing Gmail credentials) or no recipient address
+ * - `invalid_recipient` — the recipient address failed a basic email-shape check
+ * - `send_failed` — the transport rejected the send (auth failure, network error, provider error)
+ */
+export type EmailErrorReason = "not_configured" | "invalid_recipient" | "send_failed";
+
+export interface EmailError {
+  ok: false;
+  reason: EmailErrorReason;
+  message: string;
+}
+
+export type EmailResult = { ok: true } | EmailError;
