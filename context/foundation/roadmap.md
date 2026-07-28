@@ -3,7 +3,7 @@ project: "Real Estate News"
 version: 1
 status: draft
 created: 2026-07-22
-updated: 2026-07-27
+updated: 2026-07-28
 prd_version: 1
 main_goal: quality
 top_blocker: none
@@ -32,7 +32,7 @@ A single real-estate professional serving Polish investors in Spain publishes no
 | F-01 | durable-digest-run-state   | (foundation) durable digest state machine + core schema in place | —                    | NFR-durability, §Data, §State    | done     |
 | F-02 | operator-pin-access-gate   | (foundation) PIN gate + lockout replaces email/password auth     | —                    | US-22, NFR-access, §Access       | done     |
 | F-03 | llm-cost-ceiling-harness   | (foundation) budgeted, retry-safe LLM invocation wrapper         | —                    | FR-016, FR-017, NFR-cost         | done     |
-| F-04 | outbound-email-notifications | (foundation) system can email the operator                     | —                    | FR-010, FR-019, FR-021           | ready    |
+| F-04 | outbound-email-notifications | (foundation) system can email the operator                     | —                    | FR-010, FR-019, FR-021           | done     |
 | F-05 | reliable-scheduler-backbone | (foundation) DST-correct persistent scheduler primitive         | F-01                 | FR-027, FR-022, NFR-time         | proposed |
 | S-01 | weekly-source-collection   | trigger/re-trigger a week's article collection                   | F-01                 | FR-001,002,003,018; US-01→04     | done     |
 | S-02 | geography-ranking-rubric   | (system) cluster + geography-rank the pool, gated by an eval harness | S-01, F-03       | FR-004→008,026; US-06,07,08,25   | done     |
@@ -123,9 +123,11 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Parallel with:** F-01, F-02, F-03
 - **Blockers:** —
 - **Unknowns:**
-  - Whether a second channel (e.g. push/Telegram) is wanted specifically for the time-critical Monday reminder — Owner: operator. Block: no. (PRD Open Question #6.)
+  - Whether a second channel (e.g. push/Telegram) is wanted specifically for the time-critical Monday reminder — Owner: operator. Block: no. (PRD Open Question #6.) Confirmed non-blocking: F-04 shipped email-only without resolving this.
 - **Risk:** Small enabler, but genuinely cross-cutting (three notification points across two slices), so it lives here rather than being owned by whichever slice happens to send the first email.
-- **Status:** ready
+- **Status:** done (shipped 2026-07-28, commits `25855e4`…`c8bac8d`)
+- **Delivered:** a worker-side `src/lib/email/` module mirroring `src/lib/llm/`'s harness shape — `createEmailClient()` (Gmail SMTP transport, `null` on missing config) and `sendEmail()` (never throws, typed `EmailResult`), plus a reusable branded HTML email layout (`renderEmailHtml`/`renderEmailText`) restyled mid-implementation to match the client's other app ("Real Estate AI Agent") for a shared visual identity across both products. Also delivered `renderArticleCards()` — a generic, color-coded-by-relevance-tier article-card rendering primitive, added interactively against rendered previews once the operator asked for per-article visibility in the digest email. 30 unit tests against a fake transport; verified once against real Gmail via an opt-in live smoke test (`EMAIL_LIVE_SMOKE=1`). No pipeline stage calls it yet — S-04 and S-07 are the first real callers.
+- **Carried forward:** the impl-review (`context/changes/outbound-email-notifications/reviews/impl-review.md`, verdict APPROVED, 0 critical/warnings, 4 observations) found two low-impact gaps, both fixed before commit: `escapeHtml()` is now exported with `EmailContent.bodyHtml` documented as raw/trusted HTML (so a future hand-built caller has a sanctioned escaping utility), and an http(s)-only URL-scheme allowlist was added on `cta`/article links (blocks `javascript:` URIs from rendering as clickable). Neither is a blocker for S-04/S-07.
 
 ### F-05: Reliable scheduler backbone
 
@@ -276,15 +278,15 @@ Foundations below assume these are present and do NOT re-scaffold them.
 | F-01       | durable-digest-run-state     | Durable digest run-state & core schema                 | shipped               | Shipped 2026-07-24; see impl-review F1  |
 | F-02       | operator-pin-access-gate     | PIN access gate replacing scaffold auth                | yes                   | Independent; enables the dashboard      |
 | F-03       | llm-cost-ceiling-harness     | Budgeted, retry-safe LLM invocation harness            | shipped               | Shipped & reviewed 2026-07-25; unblocks S-02 |
-| F-04       | outbound-email-notifications | Outbound email notification capability                 | yes                   | Independent; needed by S-04/S-07        |
+| F-04       | outbound-email-notifications | Outbound email notification capability                 | shipped               | Shipped 2026-07-28; reviewed (impl-review APPROVED, 2 low-impact fixes applied) |
 | F-05       | reliable-scheduler-backbone  | DST-correct persistent scheduler primitive             | yes                   | F-01 shipped; unblocked                 |
 | S-01       | weekly-source-collection     | Weekly source collection (tiered, resilient)           | shipped               | Shipped 2026-07-24; 234 articles on first run |
 | S-02       | geography-ranking-rubric     | Geography-ranking rubric + eval harness                | shipped               | Shipped 2026-07-27; verified against a real 368-article pool |
 | S-03       | translated-shortlist-view    | Translated shortlist dashboard view ★                  | yes                   | North star; S-02 shipped — unblocked    |
-| S-04       | story-selection-gate         | Story selection gate (human gate 1)                    | no                    | Needs S-03, F-04                        |
+| S-04       | story-selection-gate         | Story selection gate (human gate 1)                    | no                    | Needs S-03; F-04 shipped — unblocked on that side |
 | S-05       | polish-copy-generation       | Polish copy generation + numeric-integrity gate        | no                    | Needs S-04, F-03                        |
 | S-06       | brand-visual-assets          | Per-platform brand visual assets                       | no                    | Needs S-05; file Canva access (OQ#2)    |
-| S-07       | content-approval-gate        | Content approval gate (human gate 2) + reminder        | no                    | Needs S-05, S-06, F-04                  |
+| S-07       | content-approval-gate        | Content approval gate (human gate 2) + reminder        | no                    | Needs S-05, S-06; F-04 shipped — unblocked on that side |
 | S-08       | scheduled-publishing         | Scheduled per-platform publishing + missed-deadline    | no                    | Needs S-07, F-05; reuses publish integ. |
 | S-09       | archive-and-learning-loop    | Full-fidelity archive + rubric learning loop           | no                    | Needs S-08, S-02                        |
 | S-10       | ops-heartbeat-and-catchup    | Ops heartbeat alert + missed-run catch-up              | no                    | Needs F-05                              |
@@ -296,7 +298,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 3. **Carousel length — fixed, or driven by story count?** — Owner: operator. Block: S-06.
 4. **Selection granularity — pick the cluster or a specific article within it?** — Owner: operator. Block: S-04.
 5. **Retention policy for full-fidelity archive material on local disk.** — Owner: operator. Block: S-09.
-6. **Second notification channel for the time-critical Monday reminder?** — Owner: operator. Block: F-04 / S-07.
+6. **Second notification channel for the time-critical Monday reminder?** — Owner: operator. Block: S-07 only (non-blocking; F-04 shipped 2026-07-28 email-only without resolving this — the reminder can ship as email-only too if the operator doesn't ask for a second channel by then).
 7. ~~**Late-Sunday news window — shrink to Sun 17:00, or roll into next week?**~~ — **Resolved 2026-07-24: roll into next week.** Windows tile from the previous digest's `collection_completed_at` checkpoint to the current run's start time, so the calendar is covered exactly once and a late-Sunday story is never dropped — it lands in the following run. No declared cutoff to maintain. Implemented in S-01 Phase 4 (`src/lib/collection/window.ts`).
 8. **Delivery timeline soft target.** — Owner: operator. Block: roadmap-wide. Resolved stance: `main_goal: quality`, `mvp_weeks` intentionally unbounded; sequence by dependency, not by calendar. Set a soft milestone only if downstream coordination needs one.
 
