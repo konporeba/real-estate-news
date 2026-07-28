@@ -14,6 +14,12 @@ const workerEnvSchema = z.object({
   // Hard per-digest USD ceiling. `coerce` because process.env values are strings; the default
   // keeps the worker runnable before the operator tunes it. Tightening this needs no deploy.
   LLM_COST_CEILING_USD: z.coerce.number().positive("LLM_COST_CEILING_USD must be a positive number").default(5),
+  // F-04: the email harness's Gmail SMTP credentials and the fixed single-operator recipient.
+  // All three are optional — no pipeline stage calls the harness yet, so an unconfigured worker
+  // must keep running. createEmailClient() returns null when these are absent.
+  GMAIL_USER: z.email("GMAIL_USER must be a valid email address").optional(),
+  GMAIL_APP_PASSWORD: z.string().min(1, "GMAIL_APP_PASSWORD must not be empty").optional(),
+  OPERATOR_EMAIL: z.email("OPERATOR_EMAIL must be a valid email address").optional(),
 });
 
 export type WorkerEnv = z.infer<typeof workerEnvSchema>;

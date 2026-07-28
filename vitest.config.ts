@@ -29,6 +29,7 @@ export default defineConfig({
     fileParallelism: false,
     // Supabase credentials live in `.env` (git-ignored). Integration suites skip
     // themselves when these are unset. COLLECTION_LIVE_SMOKE gates the live RSS suite.
-    env: loadEnv("test", process.cwd(), ["SUPABASE_", "COLLECTION_"]),
+    // GMAIL_/OPERATOR_ gate the F-04 email live smoke suite (EMAIL_LIVE_SMOKE).
+    env: loadEnv("test", process.cwd(), ["SUPABASE_", "COLLECTION_", "GMAIL_", "OPERATOR_"]),
   },
 });
