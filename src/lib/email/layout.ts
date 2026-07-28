@@ -25,6 +25,11 @@ const CONTENT_BOX_BORDER = "#e2e8f0";
 
 export interface EmailContent {
   heading: string;
+  /**
+   * Raw, trusted HTML — inserted into the shell as-is, not escaped. Build it via
+   * renderArticleCards() where possible; if assembling it by hand from external/user-derived
+   * text (e.g. RSS article titles), escape that text yourself with escapeHtml() first.
+   */
   bodyHtml: string;
   /** Plain-text body. When omitted, renderEmailText() derives one from heading + bodyHtml. */
   bodyText?: string;
@@ -61,7 +66,8 @@ export interface ArticleCard {
   score?: ArticleScore;
 }
 
-function escapeHtml(value: string): string {
+/** Escapes text for safe interpolation into HTML. Use this on any external/user-derived text before building a custom `bodyHtml` by hand (see EmailContent.bodyHtml). */
+export function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -70,8 +76,13 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
+/** Only http(s) links are rendered as clickable — blocks javascript:/data: URI schemes. */
+function isSafeUrl(url: string): boolean {
+  return /^https?:\/\//i.test(url);
+}
+
 function ctaBlockHtml(cta: EmailContent["cta"]): string {
-  if (!cta) return "";
+  if (!cta || !isSafeUrl(cta.url)) return "";
   return `
             <tr>
               <td style="padding: 0 40px 40px; text-align: center;">
@@ -100,8 +111,10 @@ const SCORE_TIER_COLORS: Record<ArticleScoreTier, { accent: string; pillBg: stri
 };
 
 function articleCardHtml(article: ArticleCard, position: number): string {
-  const titleHtml = article.url
-    ? `<a href="${escapeHtml(article.url)}" style="color: ${HEADING_COLOR}; text-decoration: none; font-weight: 600; font-size: 15px;">${escapeHtml(article.title)}</a>`
+  const linkable = Boolean(article.url && isSafeUrl(article.url));
+
+  const titleHtml = linkable
+    ? `<a href="${escapeHtml(article.url ?? "")}" style="color: ${HEADING_COLOR}; text-decoration: none; font-weight: 600; font-size: 15px;">${escapeHtml(article.title)}</a>`
     : `<span style="color: ${HEADING_COLOR}; font-weight: 600; font-size: 15px;">${escapeHtml(article.title)}</span>`;
 
   const descriptionHtml = article.description
@@ -116,8 +129,8 @@ function articleCardHtml(article: ArticleCard, position: number): string {
     ? `<span style="display: inline-block; background: ${META_PILL_BG}; color: ${META_PILL_COLOR}; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 999px; font-family: ${FONT_STACK};">${escapeHtml(article.meta)}</span>`
     : "";
 
-  const readLinkHtml = article.url
-    ? `<a href="${escapeHtml(article.url)}" style="color: ${READ_LINK_COLOR}; font-size: 12px; font-weight: 600; text-decoration: none; font-family: ${FONT_STACK};">Read article &rarr;</a>`
+  const readLinkHtml = linkable
+    ? `<a href="${escapeHtml(article.url ?? "")}" style="color: ${READ_LINK_COLOR}; font-size: 12px; font-weight: 600; text-decoration: none; font-family: ${FONT_STACK};">Read article &rarr;</a>`
     : "";
 
   const footerCells = [

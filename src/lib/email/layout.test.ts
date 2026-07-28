@@ -34,6 +34,16 @@ describe("renderEmailHtml", () => {
     const html = renderEmailHtml({ heading: "Digest ready", bodyHtml: "<p>body</p>" });
     expect(html).not.toContain("<style");
   });
+
+  it("omits the CTA button when the url uses a non-http(s) scheme", () => {
+    const html = renderEmailHtml({
+      heading: "Digest ready",
+      bodyHtml: "<p>body</p>",
+      cta: { text: "Click me", url: "javascript:alert(1)" },
+    });
+    expect(html).not.toContain("href=");
+    expect(html).not.toContain("Click me");
+  });
 });
 
 describe("renderEmailText", () => {
@@ -157,5 +167,12 @@ describe("renderArticleCards", () => {
     const html = renderArticleCards([{ title: "Story", score: { tier: "high", label: "<b>injected</b>" } }]);
     expect(html).not.toContain("<b>injected</b>");
     expect(html).toContain("&lt;b&gt;injected&lt;/b&gt;");
+  });
+
+  it("renders the title unlinked and omits the 'Read article' link when the url uses a non-http(s) scheme", () => {
+    const html = renderArticleCards([{ title: "Suspicious story", url: "javascript:alert(1)" }]);
+    expect(html).not.toContain("href=");
+    expect(html).not.toContain("Read article");
+    expect(html).toContain("Suspicious story");
   });
 });
