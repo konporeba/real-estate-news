@@ -276,11 +276,11 @@ None — no schema changes in this slice.
 
 #### Automated
 
-- [x] 3.1 Lint passes: `npm run lint`
-- [x] 3.2 Build passes: `npm run build`
-- [x] 3.3 Default suite unaffected: `npm test`
+- [x] 3.1 Lint passes: `npm run lint` — a015373
+- [x] 3.2 Build passes: `npm run build` — a015373
+- [x] 3.3 Default suite unaffected: `npm test` — a015373
 
 #### Manual
 
-- [x] 3.4 Run `EMAIL_LIVE_SMOKE=1 npx vitest run src/lib/email/send.live.test.ts` with real Gmail credentials set and confirm it passes
-- [x] 3.5 Open the received email in Gmail and confirm the branded layout renders correctly
+- [x] 3.4 Run `EMAIL_LIVE_SMOKE=1 npx vitest run src/lib/email/send.live.test.ts` with real Gmail credentials set and confirm it passes — a015373
+- [x] 3.5 Open the received email in Gmail and confirm the branded layout renders correctly — a015373
