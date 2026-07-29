@@ -466,21 +466,21 @@ needs no migration — `tryAcquireJob` upserts on first use.
 
 #### Automated
 
-- [x] 1.1 ~~`npx supabase db push`~~ → both `db push` and the Supabase MCP tools were blocked this session (CLI: 403 "account does not have the necessary privileges" on the linked cloud project, same class of issue as F-01/F-03; MCP: authenticated to a different Supabase account entirely). Applied and verified cleanly instead against a local Docker Supabase stack (`npx supabase db reset`). **The real cloud project still needs this migration applied** — carried forward, same as F-01's precedent.
-- [x] 1.2 Types regenerate (hand-spliced into the existing file per its documented EXCEPTION mechanism, not a wholesale regen — see below); `npx astro check` passes (2 pre-existing unrelated errors in `src/lib/auth/{pin,session}.ts` confirmed present on a clean stash, not introduced by this phase)
-- [x] 1.3 `npm run lint` passes
-- [x] 1.4 Integration tests pass (`SUPABASE_TEST_PROJECT=1 npm test`, against the local stack): claim/release/stale-reclaim behavior — 21/21 passed, including the pre-existing `run-state` suite (no regression)
+- [x] 1.1 ~~`npx supabase db push`~~ → both `db push` and the Supabase MCP tools were blocked this session (CLI: 403 "account does not have the necessary privileges" on the linked cloud project, same class of issue as F-01/F-03; MCP: authenticated to a different Supabase account entirely). Applied and verified cleanly instead against a local Docker Supabase stack (`npx supabase db reset`). **The real cloud project still needs this migration applied** — carried forward, same as F-01's precedent. — b190e0a
+- [x] 1.2 Types regenerate (hand-spliced into the existing file per its documented EXCEPTION mechanism, not a wholesale regen — see below); `npx astro check` passes (2 pre-existing unrelated errors in `src/lib/auth/{pin,session}.ts` confirmed present on a clean stash, not introduced by this phase) — b190e0a
+- [x] 1.3 `npm run lint` passes — b190e0a
+- [x] 1.4 Integration tests pass (`SUPABASE_TEST_PROJECT=1 npm test`, against the local stack): claim/release/stale-reclaim behavior — 21/21 passed, including the pre-existing `run-state` suite (no regression) — b190e0a
 
 #### Manual
 
-- [x] 1.5 Schema inspected in Studio/psql: enum, table, RLS, reused trigger all present
+- [x] 1.5 Schema inspected in Studio/psql: enum, table, RLS, reused trigger all present — b190e0a
 
 ### Phase 2: Scheduler core (DST-correct due-check)
 
 #### Automated
 
-- [ ] 2.1 Unit tests pass: DST-transition-pinned `mostRecentScheduledInstant` and `isJobDue` cases
-- [ ] 2.2 `npm run lint` and `npx astro check` pass
+- [x] 2.1 Unit tests pass: DST-transition-pinned `mostRecentScheduledInstant` and `isJobDue` cases — 8/8 passed on first run (2026-03-29 spring-forward, 2026-10-25 fall-back, mid-week resolution, multi-week collapse)
+- [x] 2.2 `npm run lint` and `npx astro check` pass (same 2 pre-existing, unrelated `src/lib/auth/*` errors as Phase 1, no new errors)
 
 ### Phase 3: Orchestration entrypoint
 
