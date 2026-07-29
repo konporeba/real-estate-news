@@ -25,11 +25,11 @@ Pre-commit hooks: husky + lint-staged runs `eslint --fix` on `*.{ts,tsx,astro}` 
 This repo builds for **two** runtimes, and an import crossing between them breaks a build.
 
 - **Astro app** → Cloudflare workerd. `src/pages/`, `src/components/`, `src/layouts/`, `src/middleware.ts`.
-- **Pipeline worker** → plain Node, launched by `npm run collect`. `src/worker/`, `src/lib/collection/`, `src/lib/llm/`, `src/lib/email/`. Uses Node-oriented dependencies (`rss-parser`, `@anthropic-ai/sdk`, `nodemailer`) and long-running work the edge runtime is wrong for.
+- **Pipeline worker** → plain Node, launched by `npm run collect`. `src/worker/`, `src/lib/collection/`, `src/lib/llm/`, `src/lib/email/`, `src/lib/scheduler/`. Uses Node-oriented dependencies (`rss-parser`, `@anthropic-ai/sdk`, `nodemailer`) and long-running work the edge runtime is wrong for.
 
 Rules, enforced by `no-restricted-imports` in `eslint.config.js` (both directions):
 
-- App code must **not** import `@/lib/collection/*`, `@/lib/llm/*`, `@/lib/email/*`, or `@/worker/*` — it drags Node built-ins into the workerd bundle. If a page needs pipeline results, read them from the database.
+- App code must **not** import `@/lib/collection/*`, `@/lib/llm/*`, `@/lib/email/*`, `@/lib/scheduler/*`, or `@/worker/*` — it drags Node built-ins into the workerd bundle. If a page needs pipeline results, read them from the database.
 - Worker code must **not** import `astro:env/server`, `@/lib/supabase-admin`, or `@/lib/supabase` — `astro:env/server` is an Astro build-time virtual module that does not resolve in Node. Worker config comes from `src/worker/env.ts`; build the privileged client with `createServiceClient()` from `@/lib/supabase-service`.
 - Shared code (`src/lib/digest/`, `src/lib/supabase-service.ts`) takes its Supabase client as a **parameter** rather than constructing one, which is what lets both runtimes use it.
 

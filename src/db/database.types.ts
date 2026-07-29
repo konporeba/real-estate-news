@@ -18,6 +18,10 @@
 //     (20260727150000_bulk_ranking_writes.sql)
 //   - `pin_lockout_state` under public.Tables, `record_pin_attempt` under public.Functions
 //     (20260727160000_pin_lockout_state.sql)
+//   - `scheduled_job` under public.Tables, `scheduled_job_status` under public.Enums,
+//     `claim_scheduled_job` under public.Functions (SETOF return; a scalar composite
+//     would misrepresent "no row claimed" as an all-null-fields object)
+//     (20260729180000_scheduled_job_state.sql)
 export type Json =
   | string
   | number
@@ -220,6 +224,36 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_job: {
+        Row: {
+          last_completed_at: string | null
+          last_error: string | null
+          last_fired_at: string | null
+          name: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["scheduled_job_status"]
+          updated_at: string
+        }
+        Insert: {
+          last_completed_at?: string | null
+          last_error?: string | null
+          last_fired_at?: string | null
+          name: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["scheduled_job_status"]
+          updated_at?: string
+        }
+        Update: {
+          last_completed_at?: string | null
+          last_error?: string | null
+          last_fired_at?: string | null
+          name?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["scheduled_job_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -240,6 +274,26 @@ export type Database = {
           p_cluster_ids: string[]
         }
         Returns: undefined
+      }
+      claim_scheduled_job: {
+        Args: {
+          p_name: string
+          p_now: string
+          p_stale_after_seconds: number
+        }
+        // SETOF, not a nullable single row: the INSERT ... ON CONFLICT DO UPDATE ... WHERE
+        // RETURNING yields zero rows when the row exists, is not idle, and is not stale
+        // (another invocation genuinely holds it). A scalar-composite return would
+        // serialize that as an all-null-fields object, indistinguishable from a real row.
+        Returns: {
+          last_completed_at: string | null
+          last_error: string | null
+          last_fired_at: string | null
+          name: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["scheduled_job_status"]
+          updated_at: string
+        }[]
       }
       persist_cluster_rankings: {
         Args: {
@@ -273,6 +327,7 @@ export type Database = {
         | "published"
         | "skipped"
         | "failed"
+      scheduled_job_status: "idle" | "running"
     }
     CompositeTypes: {
       [_ in never]: never

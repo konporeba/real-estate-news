@@ -88,3 +88,23 @@ export interface EmailError {
 }
 
 export type EmailResult = { ok: true } | EmailError;
+
+/** A named job's scheduling state — is it running, when did it last fire/complete. */
+export type ScheduledJobRow = Database["public"]["Tables"]["scheduled_job"]["Row"];
+
+/**
+ * Why a scheduler-store operation did not produce the requested outcome. Mirrors
+ * {@link RunStateErrorReason}: these are expected results the caller handles, not exceptions.
+ *
+ * - `job_already_running` — another invocation genuinely holds the job's lock (not stale)
+ * - `database_error` — anything else Postgres reported
+ */
+export type SchedulerErrorReason = "job_already_running" | "database_error";
+
+export interface SchedulerError {
+  ok: false;
+  reason: SchedulerErrorReason;
+  message: string;
+}
+
+export type SchedulerResult<T> = { ok: true; data: T } | SchedulerError;
