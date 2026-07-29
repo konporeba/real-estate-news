@@ -486,21 +486,21 @@ needs no migration — `tryAcquireJob` upserts on first use.
 
 #### Automated
 
-- [x] 3.1 Integration tests pass: not-due no-op, due-and-claim, already-running skip, stale-reclaim — 5/5 passed, against fake job actions (not the real collect/rank chain — see 3.3/3.4 note)
-- [x] 3.2 `npm run lint` and `npx astro check` pass (same 2 pre-existing unrelated errors, no new ones)
+- [x] 3.1 Integration tests pass: not-due no-op, due-and-claim, already-running skip, stale-reclaim — 5/5 passed, against fake job actions (not the real collect/rank chain — see 3.3/3.4 note) — 6ec1f0d
+- [x] 3.2 `npm run lint` and `npx astro check` pass (same 2 pre-existing unrelated errors, no new ones) — 6ec1f0d
 
 #### Manual
 
-- [x] 3.3 `npm run scheduled-run` run twice back-to-back: second run is a no-op
-- [x] 3.4 Backdated `last_fired_at` drives a real collect → rank cycle via `npm run scheduled-run`
+- [x] 3.3 `npm run scheduled-run` run twice back-to-back: second run is a no-op — 6ec1f0d
+- [x] 3.4 Backdated `last_fired_at` drives a real collect → rank cycle via `npm run scheduled-run` — 6ec1f0d
 
 ### Phase 4: OS wiring & documentation
 
 #### Automated
 
-- [ ] 4.1 `npm run lint` and `npm test` pass (regression check)
+- [x] 4.1 `npm run lint` and `npm test` pass (regression check) — 258 passed / 11 skipped against the local stack, no new failures
 
 #### Manual
 
-- [ ] 4.2 Systemd unit files and runbook reviewed for correctness
-- [ ] 4.3 Explicitly recorded as pending verification against the real Raspberry Pi
+- [x] 4.2 Systemd unit files and runbook reviewed for correctness
+- [x] 4.3 Explicitly recorded as pending verification against the real Raspberry Pi

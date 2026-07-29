@@ -1,0 +1,16 @@
+[Unit]
+Description=Real Estate News: run the scheduler backbone check every 15 minutes (F-05)
+
+[Timer]
+# Deliberately frequent and deliberately dumb: correctness (DST, catch-up, concurrency)
+# lives in the in-repo due-check (src/lib/scheduler/), not in this timer's precision — it
+# only needs to fire often enough for the due-check to notice a scheduled moment has
+# passed, not fire at exactly the right instant.
+OnCalendar=*:0/15
+# Fires once immediately on boot if a tick was missed entirely (e.g. the Pi was off long
+# enough to skip the 15-minute cadence itself) — the in-repo due-check then decides
+# whether that catch-up fire actually needs to do anything.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

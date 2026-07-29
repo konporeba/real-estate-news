@@ -1,0 +1,20 @@
+[Unit]
+Description=Real Estate News: scheduler backbone check (F-05)
+# Filesystem/network readiness only. Correctness of "is anything due" lives entirely in
+# src/lib/scheduler/schedule.ts's due-check, not in this unit's timing — this service can
+# start at any moment and still behave correctly.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Adjust to the actual deployed clone path on the Pi.
+WorkingDirectory=/opt/real-estate-news
+# Same file `npm run collect`/`npm run rank` already load their secrets from — see
+# src/worker/env.ts. Never commit this file; it lives only on the Pi.
+EnvironmentFile=/opt/real-estate-news/.env
+ExecStart=/usr/bin/npm run scheduled-run
+# One attempt per invocation. A failed run is not retried by systemd — the next
+# 15-minute timer tick (or the next scheduled fire, or FR-018's manual re-trigger) is the
+# recovery path, matching the "no scheduler-level retry" decision in the plan.
+Restart=no

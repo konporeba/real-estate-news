@@ -54,6 +54,18 @@ Never call `nodemailer` directly from a pipeline stage. Every notification goes 
 - **No pipeline stage calls this yet.** F-04 built the capability only; S-04 (digest-ready email) and S-07 (approval-ready email, Monday reminder) are the first real callers.
 - **Config**: `GMAIL_USER`, `GMAIL_APP_PASSWORD` (a Gmail **App Password**, not the account password), and `OPERATOR_EMAIL` in `.env` — all optional, so the worker runs fine unconfigured until a caller exists.
 
+## Scheduling goes through the scheduler backbone (F-05)
+
+`npm run scheduled-run` (`src/worker/scheduled-run.ts`) is what the automatic Sunday collection (and, later, S-08's Tuesday publish) plug into. Invoke it at any frequency — manually, via cron, or via the systemd timer in `deploy/systemd/` — its own timing precision doesn't matter, because the in-repo due-check decides whether any work actually happens.
+
+- **Named jobs** live in `SCHEDULED_JOBS` (`src/lib/scheduler/registry.ts`), each with a `WeeklySchedule` (`dayOfWeek`/`hour`/`minute` in `Europe/Warsaw`). Today there is one: `collection`, Sunday 17:00.
+- **Due-check**: `isJobDue(schedule, lastFiredAt, now)` in `src/lib/scheduler/schedule.ts` computes DST-correctly whether a job is due, using the same `Intl.DateTimeFormat`-based zoned-math technique as `src/lib/collection/window.ts` — no date library. It compares only against the single most recent scheduled instant, so any length of outage collapses to exactly one catch-up fire, never a backlog of missed weeks.
+- **Job state** persists in the `scheduled_job` table via `src/lib/scheduler/store.ts`: `getJobState`, `tryAcquireJob` (atomic claim, backed by the `claim_scheduled_job` RPC — `SETOF`, not a nullable single row, so "no row claimed" is distinguishable from a real row), and `releaseJob` (scoped to the claim's own `started_at`, so a stale-reclaimed slow run can't clobber a fresher invocation's state on late completion). A `running` claim older than `DEFAULT_STALE_AFTER_MS` (3 hours) is treated as a crashed process and safely reclaimed.
+- **Branch on the result**: these follow the same `{ ok: true, data }` / `{ ok: false, reason, message }` idiom as `RunStateResult`/`LlmResult`/`EmailResult` — `SchedulerResult`/`SchedulerError` in `src/types.ts`, reason ∈ `job_already_running | database_error`.
+- **The "collection" job's action** chains `collect.ts`'s `main()` and, only on success, `rank.ts`'s `main()` — both are plain functions that never call `process.exit` themselves, so they compose directly in-process.
+- **No scheduler-level retry.** A failed run is recovered by the next scheduled fire (or FR-018's existing manual `npm run collect`), not by retry logic in the scheduler itself.
+- **OS wiring**: `deploy/systemd/` has the `.timer`/`.service` unit files (`OnCalendar=*:0/15`, `Persistent=true` as an outage backstop) and a deployment runbook — reviewed, but pending verification against the real Raspberry Pi.
+
 ## Architecture
 
 **Astro 6 SSR app** with React 19 islands, Tailwind 4, Supabase auth, and shadcn/ui components. Deployed to Cloudflare Workers.
