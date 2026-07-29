@@ -1,7 +1,7 @@
 ---
 change_id: reliable-scheduler-backbone
 title: Reliable scheduler backbone
-status: implemented
+status: impl_reviewed
 created: 2026-07-29
 updated: 2026-07-29
 archived_at: null

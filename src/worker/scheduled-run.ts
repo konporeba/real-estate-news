@@ -84,7 +84,20 @@ export async function runScheduledJobs(
     }
 
     console.log(`[scheduled-run] ${job.name}: due, claimed — running`);
-    const outcome = await actions[job.name]();
+    // A thrown error (collect.ts/rank.ts's main() throws CollectRefused/RankRefused or a
+    // plain Error via unwrap() — normally caught by their own CLI entrypoint guard) must
+    // still release the claim and record the failure. Left uncaught, it would skip
+    // releaseJob entirely, leaving the job stuck as "running" with no last_error until
+    // the stale-lock timeout silently reclaims it and the original cause is lost. A real
+    // try/catch (not `.catch()` chaining) is required to also cover a JobAction that
+    // throws synchronously rather than returning a rejected promise — `.catch()` only
+    // attaches to a promise that was actually returned.
+    let outcome: JobOutcome;
+    try {
+      outcome = await actions[job.name]();
+    } catch (error: unknown) {
+      outcome = { ok: false, error: String(error) };
+    }
 
     const released = await releaseJob(client, job.name, requireStartedAt(claim.data), {
       completedAt: new Date(),

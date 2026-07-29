@@ -118,6 +118,22 @@ describe.skipIf(!configured)("scheduled-run (integration)", () => {
     expect(row?.last_error).toBe("source unreachable");
   });
 
+  it("releases the claim and records the error when the action throws", async () => {
+    const name = nextJobName();
+    const throwingAction: JobAction = () => {
+      throw new Error("boom: unexpected refusal");
+    };
+    const jobs: ScheduledJobDefinition[] = [{ name, schedule: SCHEDULE }];
+
+    const allOk = await runScheduledJobs(db, jobs, { [name]: throwingAction }, NOW);
+
+    expect(allOk).toBe(false);
+
+    const { data: row } = await db.from("scheduled_job").select("*").eq("name", name).single();
+    expect(row?.status).toBe("idle");
+    expect(row?.last_error).toContain("boom: unexpected refusal");
+  });
+
   it("skips a job that is genuinely still running, without invoking the action", async () => {
     const name = nextJobName();
     // Simulate another invocation currently mid-run: claimed a moment ago, well within
