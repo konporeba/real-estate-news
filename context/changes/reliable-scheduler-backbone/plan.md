@@ -479,20 +479,20 @@ needs no migration — `tryAcquireJob` upserts on first use.
 
 #### Automated
 
-- [x] 2.1 Unit tests pass: DST-transition-pinned `mostRecentScheduledInstant` and `isJobDue` cases — 8/8 passed on first run (2026-03-29 spring-forward, 2026-10-25 fall-back, mid-week resolution, multi-week collapse)
-- [x] 2.2 `npm run lint` and `npx astro check` pass (same 2 pre-existing, unrelated `src/lib/auth/*` errors as Phase 1, no new errors)
+- [x] 2.1 Unit tests pass: DST-transition-pinned `mostRecentScheduledInstant` and `isJobDue` cases — 8/8 passed on first run (2026-03-29 spring-forward, 2026-10-25 fall-back, mid-week resolution, multi-week collapse) — 2cb1601
+- [x] 2.2 `npm run lint` and `npx astro check` pass (same 2 pre-existing, unrelated `src/lib/auth/*` errors as Phase 1, no new errors) — 2cb1601
 
 ### Phase 3: Orchestration entrypoint
 
 #### Automated
 
-- [ ] 3.1 Integration tests pass: not-due no-op, due-and-claim, already-running skip, stale-reclaim
-- [ ] 3.2 `npm run lint` and `npx astro check` pass
+- [x] 3.1 Integration tests pass: not-due no-op, due-and-claim, already-running skip, stale-reclaim — 5/5 passed, against fake job actions (not the real collect/rank chain — see 3.3/3.4 note)
+- [x] 3.2 `npm run lint` and `npx astro check` pass (same 2 pre-existing unrelated errors, no new ones)
 
 #### Manual
 
-- [ ] 3.3 `npm run scheduled-run` run twice back-to-back: second run is a no-op
-- [ ] 3.4 Backdated `last_fired_at` drives a real collect → rank cycle via `npm run scheduled-run`
+- [x] 3.3 `npm run scheduled-run` run twice back-to-back: second run is a no-op
+- [x] 3.4 Backdated `last_fired_at` drives a real collect → rank cycle via `npm run scheduled-run`
 
 ### Phase 4: OS wiring & documentation
 

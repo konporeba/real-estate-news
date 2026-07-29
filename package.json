@@ -13,6 +13,7 @@
     "format": "prettier --write .",
     "collect": "tsx --env-file=.env src/worker/collect.ts",
     "rank": "tsx --env-file=.env src/worker/rank.ts",
+    "scheduled-run": "tsx --env-file=.env src/worker/scheduled-run.ts",
     "hash-pin": "tsx scripts/hash-pin.ts"
   },
   "dependencies": {

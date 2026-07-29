@@ -22,6 +22,14 @@ function databaseError(error: PostgrestError): SchedulerError {
   return fail("database_error", `${error.code}: ${error.message}`);
 }
 
+/**
+ * How long a `running` claim may sit before a fresh invocation treats it as a crashed
+ * process rather than a genuinely active run — comfortably longer than collection +
+ * ranking should ever take (including LLM retries), but short enough to self-heal within
+ * the same day.
+ */
+export const DEFAULT_STALE_AFTER_MS = 3 * 60 * 60 * 1000;
+
 /** A job's persisted state, or `null` when it has never been claimed. */
 export async function getJobState(
   client: ServiceClient,
