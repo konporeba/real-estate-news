@@ -498,9 +498,9 @@ needs no migration — `tryAcquireJob` upserts on first use.
 
 #### Automated
 
-- [x] 4.1 `npm run lint` and `npm test` pass (regression check) — 258 passed / 11 skipped against the local stack, no new failures
+- [x] 4.1 `npm run lint` and `npm test` pass (regression check) — 258 passed / 11 skipped against the local stack, no new failures — 44925be
 
 #### Manual
 
-- [x] 4.2 Systemd unit files and runbook reviewed for correctness
-- [x] 4.3 Explicitly recorded as pending verification against the real Raspberry Pi
+- [x] 4.2 Systemd unit files and runbook reviewed for correctness — 44925be
+- [x] 4.3 Explicitly recorded as pending verification against the real Raspberry Pi — 44925be
