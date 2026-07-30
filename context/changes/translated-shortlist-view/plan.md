@@ -252,12 +252,12 @@ None — `polish_title`, `polish_summary`, and `translation_completed_at` alread
 
 #### Automated
 
-- [x] 3.1 Type checking passes: `npm run lint`
-- [x] 3.2 Build succeeds: `npm run build`
+- [x] 3.1 Type checking passes: `npm run lint` — bd7e7f2
+- [x] 3.2 Build succeeds: `npm run build` — bd7e7f2
 
 #### Manual
 
-- [x] 3.3 `ready_for_selection` digest detail page renders translated cards with tier badges, source counts, links
-- [x] 3.4 Not-yet-ranked digest shows "not ready yet" state
-- [x] 3.5 Failed digest shows its `last_error`
-- [x] 3.6 Nonexistent digest id shows a sensible not-found response
+- [x] 3.3 `ready_for_selection` digest detail page renders translated cards with tier badges, source counts, links — bd7e7f2
+- [x] 3.4 Not-yet-ranked digest shows "not ready yet" state — bd7e7f2
+- [x] 3.5 Failed digest shows its `last_error` — bd7e7f2
+- [x] 3.6 Nonexistent digest id shows a sensible not-found response — bd7e7f2
