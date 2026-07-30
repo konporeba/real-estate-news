@@ -1,0 +1,163 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import OperatorHeader from "@/components/OperatorHeader.astro";
+import { createServiceClient } from "@/lib/supabase-admin";
+import type { DigestStatus } from "@/types";
+
+const TIER_STYLES: Record<string, string> = {
+  catalonia: "border-green-400/40 bg-green-500/20 text-green-300",
+  national: "border-amber-400/40 bg-amber-500/20 text-amber-300",
+  global: "border-sky-400/40 bg-sky-500/20 text-sky-300",
+  discard: "border-white/20 bg-white/10 text-blue-100/60",
+};
+const DEFAULT_TIER_STYLE = "border-white/20 bg-white/10 text-blue-100/60";
+
+/** Statuses reached before the ranking stage (and its translation sub-step) has run. */
+const NOT_READY_STATUSES: DigestStatus[] = ["collecting", "ranking"];
+
+const { id } = Astro.params;
+const client = createServiceClient();
+
+const digest = client
+  ? (await client.from("digest").select("id, window_start, window_end, status, last_error").eq("id", id).maybeSingle())
+      .data
+  : null;
+
+if (client && !digest) {
+  Astro.response.status = 404;
+} else if (!client) {
+  Astro.response.status = 503;
+}
+
+interface ShortlistItem {
+  clusterId: string;
+  rank: number;
+  tier: string | null;
+  coverageCount: number;
+  title: string;
+  summary: string | null;
+  sourceUrl: string | null;
+  translated: boolean;
+}
+
+let shortlist: ShortlistItem[] = [];
+
+if (client && digest && !NOT_READY_STATUSES.includes(digest.status) && digest.status !== "failed") {
+  const { data: clusters } = await client
+    .from("cluster")
+    .select("id, rank, coverage_count, scoring_detail")
+    .eq("digest_id", digest.id)
+    .not("rank", "is", null)
+    .order("rank", { ascending: true });
+
+  const clusterIds = (clusters ?? []).map((c) => c.id);
+
+  const { data: articles } =
+    clusterIds.length > 0
+      ? await client
+          .from("article")
+          .select(
+            "id, cluster_id, source_url, published_at, original_title, original_lede, polish_title, polish_summary",
+          )
+          .in("cluster_id", clusterIds)
+          .order("published_at", { ascending: true })
+      : { data: [] };
+
+  const articlesByCluster = new Map<string, NonNullable<typeof articles>>();
+  for (const article of articles ?? []) {
+    if (!article.cluster_id) continue;
+    const list = articlesByCluster.get(article.cluster_id) ?? [];
+    list.push(article);
+    articlesByCluster.set(article.cluster_id, list);
+  }
+
+  shortlist = (clusters ?? []).map((cluster): ShortlistItem => {
+    const clusterArticles = articlesByCluster.get(cluster.id) ?? [];
+    // The representative is whichever article carries a Polish translation (per translateShortlist's
+    // scope, at most one per cluster); a cluster from before this feature shipped falls back to its
+    // earliest-published article, still shown in the original language. Every shortlisted cluster has
+    // at least one article — clusters are built from articles, never created empty.
+    const representative = clusterArticles.find((a) => a.polish_title) ?? clusterArticles[0];
+    const tier = (cluster.scoring_detail as { tier?: string } | null)?.tier ?? null;
+    return {
+      clusterId: cluster.id,
+      rank: cluster.rank,
+      tier,
+      coverageCount: cluster.coverage_count,
+      title: representative.polish_title ?? representative.original_title,
+      summary: representative.polish_summary ?? representative.original_lede,
+      sourceUrl: representative.source_url,
+      translated: Boolean(representative.polish_title),
+    };
+  });
+}
+---
+
+<Layout title="Digest">
+  <div class="bg-cosmic min-h-screen p-4 text-white">
+    <OperatorHeader title={digest ? `${digest.window_start} – ${digest.window_end}` : "Digest not found"} />
+    <main class="mx-auto mt-6 max-w-3xl">
+      {
+        !client ? (
+          <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">
+            Supabase is not configured — this digest cannot be loaded.
+          </p>
+        ) : !digest ? (
+          <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">
+            No digest with this id exists.
+          </p>
+        ) : NOT_READY_STATUSES.includes(digest.status) ? (
+          <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">
+            This digest is still <span class="font-semibold">{digest.status}</span> — the shortlist isn't ready yet.
+          </p>
+        ) : digest.status === "failed" ? (
+          <p class="rounded-xl border border-red-400/30 bg-red-500/10 p-6 text-sm text-red-200">
+            This digest failed: {digest.last_error ?? "no diagnostic recorded"}
+          </p>
+        ) : shortlist.length === 0 ? (
+          <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">
+            No shortlisted stories for this digest.
+          </p>
+        ) : (
+          <ul class="space-y-3">
+            {shortlist.map((item) => (
+              <li class="rounded-xl border border-white/10 bg-white/10 p-4">
+                <div class="flex items-start justify-between gap-3">
+                  <span class="text-blue-100/50">#{item.rank}</span>
+                  {item.tier && (
+                    <span
+                      class:list={[
+                        "rounded-full border px-3 py-1 text-xs tracking-wide uppercase",
+                        TIER_STYLES[item.tier] ?? DEFAULT_TIER_STYLE,
+                      ]}
+                    >
+                      {item.tier}
+                    </span>
+                  )}
+                </div>
+                <h2 class="mt-2 text-lg font-semibold">{item.title}</h2>
+                {item.summary && <p class="mt-1 text-sm text-blue-100/70">{item.summary}</p>}
+                <div class="mt-3 flex items-center gap-3 text-xs text-blue-100/60">
+                  <span>
+                    {item.coverageCount} source{item.coverageCount === 1 ? "" : "s"}
+                  </span>
+                  {!item.translated && <span class="text-amber-300">untranslated</span>}
+                  {item.sourceUrl && (
+                    <a
+                      href={item.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-blue-300 hover:underline"
+                    >
+                      Read original →
+                    </a>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </main>
+  </div>
+</Layout>

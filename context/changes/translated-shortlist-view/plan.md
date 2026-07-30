@@ -239,25 +239,25 @@ None — `polish_title`, `polish_summary`, and `translation_completed_at` alread
 
 #### Automated
 
-- [x] 2.1 Type checking passes: `npm run lint`
-- [x] 2.2 Build succeeds: `npm run build`
+- [x] 2.1 Type checking passes: `npm run lint` — 1eead7d
+- [x] 2.2 Build succeeds: `npm run build` — 1eead7d
 
 #### Manual
 
-- [x] 2.3 `/dashboard` lists digests newest-first with correct statuses and working links
-- [x] 2.4 Empty digest table renders an empty state, not an error
-- [x] 2.5 Sign-out from the list page still redirects to `/auth/pin`
+- [x] 2.3 `/dashboard` lists digests newest-first with correct statuses and working links — 1eead7d
+- [x] 2.4 Empty digest table renders an empty state, not an error — 1eead7d
+- [x] 2.5 Sign-out from the list page still redirects to `/auth/pin` — 1eead7d
 
 ### Phase 3: Dashboard shortlist detail page
 
 #### Automated
 
-- [ ] 3.1 Type checking passes: `npm run lint`
-- [ ] 3.2 Build succeeds: `npm run build`
+- [x] 3.1 Type checking passes: `npm run lint`
+- [x] 3.2 Build succeeds: `npm run build`
 
 #### Manual
 
-- [ ] 3.3 `ready_for_selection` digest detail page renders translated cards with tier badges, source counts, links
-- [ ] 3.4 Not-yet-ranked digest shows "not ready yet" state
-- [ ] 3.5 Failed digest shows its `last_error`
-- [ ] 3.6 Nonexistent digest id shows a sensible not-found response
+- [x] 3.3 `ready_for_selection` digest detail page renders translated cards with tier badges, source counts, links
+- [x] 3.4 Not-yet-ranked digest shows "not ready yet" state
+- [x] 3.5 Failed digest shows its `last_error`
+- [x] 3.6 Nonexistent digest id shows a sensible not-found response
