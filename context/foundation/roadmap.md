@@ -3,7 +3,7 @@ project: "Real Estate News"
 version: 1
 status: draft
 created: 2026-07-22
-updated: 2026-07-28
+updated: 2026-07-30
 prd_version: 1
 main_goal: quality
 top_blocker: none
@@ -33,7 +33,7 @@ A single real-estate professional serving Polish investors in Spain publishes no
 | F-02 | operator-pin-access-gate   | (foundation) PIN gate + lockout replaces email/password auth     | —                    | US-22, NFR-access, §Access       | done     |
 | F-03 | llm-cost-ceiling-harness   | (foundation) budgeted, retry-safe LLM invocation wrapper         | —                    | FR-016, FR-017, NFR-cost         | done     |
 | F-04 | outbound-email-notifications | (foundation) system can email the operator                     | —                    | FR-010, FR-019, FR-021           | done     |
-| F-05 | reliable-scheduler-backbone | (foundation) DST-correct persistent scheduler primitive         | F-01                 | FR-027, FR-022, NFR-time         | proposed |
+| F-05 | reliable-scheduler-backbone | (foundation) DST-correct persistent scheduler primitive         | F-01                 | FR-027, FR-022, NFR-time         | done     |
 | S-01 | weekly-source-collection   | trigger/re-trigger a week's article collection                   | F-01                 | FR-001,002,003,018; US-01→04     | done     |
 | S-02 | geography-ranking-rubric   | (system) cluster + geography-rank the pool, gated by an eval harness | S-01, F-03       | FR-004→008,026; US-06,07,08,25   | done     |
 | S-03 | translated-shortlist-view  | view the ranked Polish shortlist on the dashboard ★              | S-02, F-02           | FR-008,009,009a,011; US-05,07,22 | proposed |
@@ -140,7 +140,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Deliberately sequenced after F-01 and buildable in parallel with the pipeline: the pipeline is verified via manual triggers first (S-01/FR-018), then this automates it. DST correctness via a named zone (never a fixed offset) is the load-bearing detail. Minimal scope: the timer + catch-up primitive, not the heartbeat/alerting behavior (that's S-10).
-- **Status:** proposed
+- **Status:** done
 
 ## Slices
 
@@ -318,3 +318,4 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **F-03: (foundation) a shared wrapper around every model call that enforces a hard per-run cost ceiling and halts on reaching it, with staged malformed-output recovery and bounded backoff retries — so an unattended run can never bill quietly overnight.** — Archived 2026-07-25 → `context/archive/2026-07-24-llm-cost-ceiling-harness/`. Lesson: the vendor exposes no USD budget primitive, so the ceiling is application-side accounting (token `usage` × a price table) — and because the check and the increment are separate round trips, the ceiling is *soft*: under concurrency the overshoot bound is `concurrency × per-call cost`, not one call. S-02's scoring loop must cap its fan-out accordingly.
 - **S-01: operator can trigger (or the scheduler can auto-run) a week's collection, pulling articles from a configured source list — resilient to a blocked source and to a thin news week.** — Archived 2026-07-24 → `context/archive/2026-07-24-weekly-source-collection/`. Lesson: the opt-in live smoke test found a real regression within minutes of existing — a source that verified working in the morning was blocking by the afternoon. Fixtures cannot see that class of failure; every slice depending on third-party feeds should ship one.
 - **F-01: (foundation) the digest state machine (`collecting → ranking → ready_for_selection → generating → ready_for_approval → approved → published`, plus `skipped`/`failed`) is persisted with per-stage checkpoints, and the core `digest`/`article`/`cluster` tables exist — enough for a multi-day run to survive a machine restart.** — Archived 2026-07-24 → `context/archive/2026-07-22-durable-digest-run-state/`. Lesson: —.
+- **F-05: (foundation) a persistent scheduling primitive that fires jobs at a named-zone (`Europe/Warsaw`) wall-clock time correctly across the DST transition and replays a window missed while the machine was off — the timing mechanism the automatic Sunday collection and Tuesday publish plug into.** — Archived 2026-07-30 → `context/archive/2026-07-29-reliable-scheduler-backbone/`. Lesson: —.
