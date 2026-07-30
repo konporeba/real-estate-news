@@ -13,6 +13,7 @@
 import { clusterArticles, type ClusterableArticle } from "@/lib/ranking/cluster";
 import { orderClusters, type ScoredCluster } from "@/lib/ranking/rank-order";
 import { scoreClusters, type ScorableCluster } from "@/lib/ranking/score-clusters";
+import { translateShortlist, type TranslatableArticle, type Translation } from "@/lib/ranking/translate-shortlist";
 import { markStageComplete, transitionDigest } from "@/lib/digest/run-state";
 import type { LlmTransport } from "@/lib/llm/client";
 import type { ServiceClient } from "@/lib/supabase-service";
@@ -129,6 +130,28 @@ async function persistRanking(
   return { ok: true, data: undefined };
 }
 
+/**
+ * Write each representative article's Polish translation, one concurrent update per article — at
+ * most SHORTLIST_SIZE rows, so this doesn't need persistRanking's bulk-RPC treatment (that exists
+ * because clustering/ranking write hundreds of rows).
+ */
+async function persistTranslations(
+  client: ServiceClient,
+  translations: Map<string, Translation>,
+): Promise<RunStateResult<void>> {
+  const results = await Promise.all(
+    [...translations].map(([articleId, translation]) =>
+      client
+        .from("article")
+        .update({ polish_title: translation.polishTitle, polish_summary: translation.polishSummary })
+        .eq("id", articleId),
+    ),
+  );
+  const failed = results.find((r) => r.error);
+  if (failed?.error) return databaseFail(failed.error);
+  return { ok: true, data: undefined };
+}
+
 /** The genuine-failure path: transition to `failed` with a diagnostic, but return `ok: true` — the
  *  stage ran to completion, it just concluded the digest cannot proceed (see file header). */
 async function failDigest(
@@ -213,6 +236,26 @@ export async function rankDigest(
 
   const checkpointed = await markStageComplete(client, digest.id, "ranking");
   if (!checkpointed.ok) return checkpointed;
+
+  const representativeByCluster = new Map(persisted.data.map((c) => [c.id, c.articleIds[0]]));
+  const translatable: TranslatableArticle[] = ordered.slice(0, SHORTLIST_SIZE).map((cluster) => {
+    const articleId = representativeByCluster.get(cluster.id);
+    if (!articleId) throw new Error(`shortlisted cluster ${cluster.id} has no representative article`);
+    const article = byId.get(articleId);
+    if (!article) throw new Error(`representative article ${articleId} not found in pool`);
+    return { id: articleId, title: article.original_title, lede: article.original_lede };
+  });
+
+  const translated = await translateShortlist(llm, client, digest.id, translatable, options);
+  if (!translated.ok) {
+    return failDigest(client, digest.id, `translation ${translated.reason}: ${translated.message}`);
+  }
+
+  const translationWritten = await persistTranslations(client, translated.data);
+  if (!translationWritten.ok) return translationWritten;
+
+  const translationCheckpointed = await markStageComplete(client, digest.id, "translation");
+  if (!translationCheckpointed.ok) return translationCheckpointed;
 
   const transitioned = await transitionDigest(client, digest.id, "ready_for_selection");
   if (!transitioned.ok) return transitioned;

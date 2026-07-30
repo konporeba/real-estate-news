@@ -93,6 +93,22 @@ async function clustersFor(db: ServiceClient, digestId: string): Promise<Cluster
   return data as ClusterRow[];
 }
 
+interface ArticleRow {
+  id: string;
+  original_title: string;
+  polish_title: string | null;
+  polish_summary: string | null;
+}
+
+async function articlesFor(db: ServiceClient, digestId: string): Promise<ArticleRow[]> {
+  const { data, error } = await db
+    .from("article")
+    .select("id, original_title, polish_title, polish_summary")
+    .eq("digest_id", digestId);
+  if (error) throw new Error(error.message);
+  return data as ArticleRow[];
+}
+
 const usage = { input_tokens: 500, output_tokens: 300 };
 
 interface FakeConfig {
@@ -100,11 +116,15 @@ interface FakeConfig {
   groupOf: (title: string) => string;
   /** The tier/score a cluster earns, from the titles of the articles inside it. */
   tierOf: (titles: string[]) => { tier: string; score: number };
+  /** When true, the translation call always returns unparseable output (both attempts). */
+  translateFails?: boolean;
 }
 
 /**
- * Reads each request's prompt (built by cluster.ts/rubric.ts) and answers from it, since the
- * cluster ids it must echo in a scoring response are DB-generated and unknowable in advance.
+ * Reads each request's prompt (built by cluster.ts/rubric.ts/translate-shortlist.ts) and answers
+ * from it, since the cluster ids it must echo in a scoring response are DB-generated and
+ * unknowable in advance. Article ids ARE known in advance (they come from `insertArticles`), so
+ * the translation branch can answer with a simple deterministic "PL: <title>" mapping.
  */
 function fakeTransport(config: FakeConfig): { transport: LlmTransport; calls: unknown[] } {
   const calls: unknown[] = [];
@@ -125,6 +145,25 @@ function fakeTransport(config: FakeConfig): { transport: LlmTransport; calls: un
         groups.set(key, ids);
       }
       const text = JSON.stringify({ clusters: [...groups.values()].map((articleIds) => ({ articleIds })) });
+      return Promise.resolve(fakeMessage({ text, usage }));
+    }
+
+    if (content.startsWith("Translate each of the following")) {
+      if (config.translateFails) {
+        return Promise.resolve(fakeMessage({ text: "not valid json", usage }));
+      }
+      const translations = content
+        .split("\n\n")
+        .slice(1)
+        .map((block) => {
+          const idMatch = /^\[articleId: (.+?)\]/.exec(block);
+          if (!idMatch) return null;
+          const lines = block.split("\n").slice(1);
+          const title = lines[0] ?? "";
+          return { articleId: idMatch[1], polishTitle: `PL: ${title}`, polishSummary: lines[1] ? `PL: ${lines[1]}` : null };
+        })
+        .filter((t): t is NonNullable<typeof t> => t !== null);
+      const text = JSON.stringify({ translations });
       return Promise.resolve(fakeMessage({ text, usage }));
     }
 
@@ -190,6 +229,21 @@ describe.skipIf(!configured)("rankDigest (integration)", () => {
     expect(ranked[0].relevance_score).toBe(99);
     expect(ranked[0].scoring_detail?.tier).toBe("catalonia");
     expect(clusters.every((c) => c.coverage_count === 1)).toBe(true);
+
+    // Every shortlisted (rank 1-15) story's singleton article is its own representative, so all
+    // 15 should carry a Polish translation; the two unranked stories (18th article excluded by
+    // SHORTLIST_SIZE) stay untranslated.
+    const articles = await articlesFor(db, digest.id);
+    const shortlistedTitles = new Set(titles.slice(0, 15));
+    for (const a of articles) {
+      if (shortlistedTitles.has(a.original_title)) {
+        expect(a.polish_title).toBe(`PL: ${a.original_title}`);
+        // insertArticles gives every article a null lede, so the translated summary is null too.
+        expect(a.polish_summary).toBeNull();
+      } else {
+        expect(a.polish_title).toBeNull();
+      }
+    }
   });
 
   it("fails an empty pool with last_error, without calling the model", async () => {
@@ -249,5 +303,27 @@ describe.skipIf(!configured)("rankDigest (integration)", () => {
     // though scoring never completed — the digest is `failed`, not silently emptied.
     const clusters = await clustersFor(db, digest.id);
     expect(clusters).toHaveLength(2);
+  });
+
+  it("a translation failure fails the digest, after ranking already persisted", async () => {
+    const digest = await freshRankingDigest(db);
+    await insertArticles(db, digest.id, ["Solo A", "Solo B"]);
+    const { transport } = fakeTransport({
+      groupOf: (t) => t,
+      tierOf: () => ({ tier: "catalonia", score: 90 }),
+      translateFails: true,
+    });
+
+    const result = await rankDigest(transport, db, digest, { ceilingUsd: 100 });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.digest.status).toBe("failed");
+    expect(result.data.digest.last_error).toMatch(/translation malformed_output/);
+
+    // Ranking itself succeeded and was persisted before translation ran.
+    const clusters = await clustersFor(db, digest.id);
+    expect(clusters).toHaveLength(2);
+    expect(clusters.every((c) => c.rank !== null)).toBe(true);
   });
 });
