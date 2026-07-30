@@ -55,7 +55,9 @@ function article(id: string, lede: string | null = `lede ${id}`): TranslatableAr
 }
 
 /** A fake batch response translating the given ids. */
-function batchResponse(translations: { articleId: string; polishTitle: string; polishSummary: string | null }[]): string {
+function batchResponse(
+  translations: { articleId: string; polishTitle: string; polishSummary: string | null }[],
+): string {
   return JSON.stringify({ translations });
 }
 
@@ -98,7 +100,10 @@ describe.skipIf(!configured)("translateShortlist (integration)", () => {
     const articles = [article("a1")];
     const llm = fakeLlmTransport([
       fakeMessage({ text: "not json at all", usage }), // first attempt fails schema
-      fakeMessage({ text: batchResponse([{ articleId: "a1", polishTitle: "Tytuł 1", polishSummary: "Streszczenie 1" }]), usage }),
+      fakeMessage({
+        text: batchResponse([{ articleId: "a1", polishTitle: "Tytuł 1", polishSummary: "Streszczenie 1" }]),
+        usage,
+      }),
     ]);
 
     const result = await translateShortlist(llm, db, id, articles, CEILING);
@@ -113,7 +118,10 @@ describe.skipIf(!configured)("translateShortlist (integration)", () => {
     const id = await freshDigest(db);
     const articles = [article("a1"), article("a2")];
     const llm = fakeLlmTransport([
-      fakeMessage({ text: batchResponse([{ articleId: "a1", polishTitle: "Tytuł 1", polishSummary: "Streszczenie 1" }]), usage }),
+      fakeMessage({
+        text: batchResponse([{ articleId: "a1", polishTitle: "Tytuł 1", polishSummary: "Streszczenie 1" }]),
+        usage,
+      }),
     ]);
 
     const result = await translateShortlist(llm, db, id, articles, CEILING);
@@ -128,7 +136,10 @@ describe.skipIf(!configured)("translateShortlist (integration)", () => {
     const id = await freshDigest(db);
     await db.rpc("increment_digest_cost", { p_digest_id: id, p_delta: 1 });
     const llm = fakeLlmTransport([
-      fakeMessage({ text: batchResponse([{ articleId: "a1", polishTitle: "Tytuł 1", polishSummary: "Streszczenie 1" }]), usage }),
+      fakeMessage({
+        text: batchResponse([{ articleId: "a1", polishTitle: "Tytuł 1", polishSummary: "Streszczenie 1" }]),
+        usage,
+      }),
     ]);
 
     const result = await translateShortlist(llm, db, id, [article("a1")], { ceilingUsd: 1 });

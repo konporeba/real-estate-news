@@ -1,22 +1,52 @@
 ---
 import Layout from "@/layouts/Layout.astro";
+import OperatorHeader from "@/components/OperatorHeader.astro";
+import { createServiceClient } from "@/lib/supabase-admin";
+
+const client = createServiceClient();
+
+const digests = client
+  ? ((
+      await client
+        .from("digest")
+        .select("id, window_start, window_end, status")
+        .order("window_start", { ascending: false })
+        .limit(25)
+    ).data ?? [])
+  : [];
 ---
 
 <Layout title="Dashboard">
-  <div class="bg-cosmic flex min-h-screen items-center justify-center p-4">
-    <div class="rounded-2xl border border-white/10 bg-white/10 p-8 text-center text-white backdrop-blur-xl">
-      <h1 class="mb-4 bg-gradient-to-r from-blue-200 to-purple-200 bg-clip-text text-3xl font-bold text-transparent">
-        Operator Dashboard
-      </h1>
-      <p class="mt-2 text-sm text-blue-100/50">This page is only for authenticated users.</p>
-      <form method="POST" action="/api/auth/signout" class="mt-6">
-        <button
-          type="submit"
-          class="rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm transition-colors hover:bg-white/20"
-        >
-          Sign out
-        </button>
-      </form>
-    </div>
+  <div class="bg-cosmic min-h-screen p-4 text-white">
+    <OperatorHeader title="Operator Dashboard" />
+    <main class="mx-auto mt-6 max-w-3xl">
+      {
+        !client ? (
+          <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">
+            Supabase is not configured — digests cannot be loaded.
+          </p>
+        ) : digests.length === 0 ? (
+          <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">No digests yet.</p>
+        ) : (
+          <ul class="space-y-3">
+            {digests.map((digest) => (
+              <li>
+                <a
+                  href={`/dashboard/${digest.id}`}
+                  class="flex items-center justify-between rounded-xl border border-white/10 bg-white/10 p-4 transition-colors hover:bg-white/20"
+                >
+                  <span>
+                    {digest.window_start} – {digest.window_end}
+                  </span>
+                  <span class="rounded-full bg-white/10 px-3 py-1 text-xs tracking-wide text-blue-100/80 uppercase">
+                    {digest.status}
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </main>
   </div>
 </Layout>

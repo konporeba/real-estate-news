@@ -106,7 +106,7 @@ async function articlesFor(db: ServiceClient, digestId: string): Promise<Article
     .select("id, original_title, polish_title, polish_summary")
     .eq("digest_id", digestId);
   if (error) throw new Error(error.message);
-  return data as ArticleRow[];
+  return data;
 }
 
 const usage = { input_tokens: 500, output_tokens: 300 };
@@ -160,7 +160,11 @@ function fakeTransport(config: FakeConfig): { transport: LlmTransport; calls: un
           if (!idMatch) return null;
           const lines = block.split("\n").slice(1);
           const title = lines[0] ?? "";
-          return { articleId: idMatch[1], polishTitle: `PL: ${title}`, polishSummary: lines[1] ? `PL: ${lines[1]}` : null };
+          return {
+            articleId: idMatch[1],
+            polishTitle: `PL: ${title}`,
+            polishSummary: lines[1] ? `PL: ${lines[1]}` : null,
+          };
         })
         .filter((t): t is NonNullable<typeof t> => t !== null);
       const text = JSON.stringify({ translations });

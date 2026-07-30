@@ -223,30 +223,30 @@ None — `polish_title`, `polish_summary`, and `translation_completed_at` alread
 
 #### Automated
 
-- [x] 1.1 Type checking passes: `npm run lint`
-- [x] 1.2 Unit/integration tests pass: `SUPABASE_TEST_PROJECT=1 npm test`
-- [x] 1.3 `translate-shortlist.test.ts` covers batching, malformed/incomplete batch, ceiling, null lede, empty input
-- [x] 1.4 `rank.test.ts` fake transport extended; translation-failure test added
-- [x] 1.5 `translate-shortlist.live.test.ts` opt-in live smoke test added
+- [x] 1.1 Type checking passes: `npm run lint` — 1487ce7
+- [x] 1.2 Unit/integration tests pass: `SUPABASE_TEST_PROJECT=1 npm test` — 1487ce7
+- [x] 1.3 `translate-shortlist.test.ts` covers batching, malformed/incomplete batch, ceiling, null lede, empty input — 1487ce7
+- [x] 1.4 `rank.test.ts` fake transport extended; translation-failure test added — 1487ce7
+- [x] 1.5 `translate-shortlist.live.test.ts` opt-in live smoke test added — 1487ce7
 
 #### Manual
 
-- [x] 1.6 `npm run collect` + `npm run rank` against real articles completes and reaches `ready_for_selection`
-- [x] 1.7 Shortlisted representative articles show sensible Polish translations in the database
-- [x] 1.8 `digest.cost_usd` increased by a plausible small amount
+- [x] 1.6 `npm run collect` + `npm run rank` against real articles completes and reaches `ready_for_selection` — 1487ce7
+- [x] 1.7 Shortlisted representative articles show sensible Polish translations in the database — 1487ce7
+- [x] 1.8 `digest.cost_usd` increased by a plausible small amount — 1487ce7
 
 ### Phase 2: Dashboard digest list page
 
 #### Automated
 
-- [ ] 2.1 Type checking passes: `npm run lint`
-- [ ] 2.2 Build succeeds: `npm run build`
+- [x] 2.1 Type checking passes: `npm run lint`
+- [x] 2.2 Build succeeds: `npm run build`
 
 #### Manual
 
-- [ ] 2.3 `/dashboard` lists digests newest-first with correct statuses and working links
-- [ ] 2.4 Empty digest table renders an empty state, not an error
-- [ ] 2.5 Sign-out from the list page still redirects to `/auth/pin`
+- [x] 2.3 `/dashboard` lists digests newest-first with correct statuses and working links
+- [x] 2.4 Empty digest table renders an empty state, not an error
+- [x] 2.5 Sign-out from the list page still redirects to `/auth/pin`
 
 ### Phase 3: Dashboard shortlist detail page
 
