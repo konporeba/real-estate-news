@@ -5,15 +5,25 @@ import { createServiceClient } from "@/lib/supabase-admin";
 
 const client = createServiceClient();
 
-const digests = client
-  ? ((
-      await client
-        .from("digest")
-        .select("id, window_start, window_end, status")
-        .order("window_start", { ascending: false })
-        .limit(25)
-    ).data ?? [])
-  : [];
+let digests: { id: string; window_start: string; window_end: string; status: string }[] = [];
+let loadError = false;
+
+if (client) {
+  const { data, error } = await client
+    .from("digest")
+    .select("id, window_start, window_end, status")
+    .order("window_start", { ascending: false })
+    .limit(25);
+  if (error) {
+    console.error(`failed to load digests: ${error.code}: ${error.message}`);
+    loadError = true;
+    Astro.response.status = 500;
+  } else {
+    digests = data;
+  }
+} else {
+  Astro.response.status = 503;
+}
 ---
 
 <Layout title="Dashboard">
@@ -24,6 +34,10 @@ const digests = client
         !client ? (
           <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">
             Supabase is not configured — digests cannot be loaded.
+          </p>
+        ) : loadError ? (
+          <p class="rounded-xl border border-red-400/30 bg-red-500/10 p-6 text-sm text-red-200">
+            Couldn't load digests — please try again.
           </p>
         ) : digests.length === 0 ? (
           <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">No digests yet.</p>

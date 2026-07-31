@@ -15,17 +15,42 @@ const DEFAULT_TIER_STYLE = "border-white/20 bg-white/10 text-blue-100/60";
 /** Statuses reached before the ranking stage (and its translation sub-step) has run. */
 const NOT_READY_STATUSES: DigestStatus[] = ["collecting", "ranking"];
 
+/** Only http(s) links are rendered as clickable — blocks javascript:/data: URI schemes in a
+ * source_url sourced from scraped RSS content. Mirrors src/lib/email/layout.ts's isSafeUrl(),
+ * duplicated rather than imported since that module is worker-side-only. */
+function isSafeUrl(url: string): boolean {
+  return /^https?:\/\//i.test(url);
+}
+
+interface DigestSummary {
+  id: string;
+  window_start: string;
+  window_end: string;
+  status: DigestStatus;
+  last_error: string | null;
+}
+
 const { id } = Astro.params;
 const client = createServiceClient();
 
-const digest = client
-  ? (await client.from("digest").select("id, window_start, window_end, status, last_error").eq("id", id).maybeSingle())
-      .data
-  : null;
+let loadError = false;
+let digest: DigestSummary | null = null;
 
-if (client && !digest) {
-  Astro.response.status = 404;
-} else if (!client) {
+if (client) {
+  const { data, error } = await client
+    .from("digest")
+    .select("id, window_start, window_end, status, last_error")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) {
+    console.error(`failed to load digest ${id}: ${error.code}: ${error.message}`);
+    loadError = true;
+    Astro.response.status = 500;
+  } else {
+    digest = data;
+    if (!digest) Astro.response.status = 404;
+  }
+} else {
   Astro.response.status = 503;
 }
 
@@ -43,16 +68,23 @@ interface ShortlistItem {
 let shortlist: ShortlistItem[] = [];
 
 if (client && digest && !NOT_READY_STATUSES.includes(digest.status) && digest.status !== "failed") {
-  const { data: clusters } = await client
+  const { data: clusters, error: clustersError } = await client
     .from("cluster")
     .select("id, rank, coverage_count, scoring_detail")
     .eq("digest_id", digest.id)
     .not("rank", "is", null)
     .order("rank", { ascending: true });
+  if (clustersError) {
+    console.error(
+      `failed to load shortlist clusters for digest ${digest.id}: ${clustersError.code}: ${clustersError.message}`,
+    );
+    loadError = true;
+    Astro.response.status = 500;
+  }
 
   const clusterIds = (clusters ?? []).map((c) => c.id);
 
-  const { data: articles } =
+  const { data: articles, error: articlesError } =
     clusterIds.length > 0
       ? await client
           .from("article")
@@ -61,7 +93,14 @@ if (client && digest && !NOT_READY_STATUSES.includes(digest.status) && digest.st
           )
           .in("cluster_id", clusterIds)
           .order("published_at", { ascending: true })
-      : { data: [] };
+      : { data: [], error: null };
+  if (articlesError) {
+    console.error(
+      `failed to load shortlist articles for digest ${digest.id}: ${articlesError.code}: ${articlesError.message}`,
+    );
+    loadError = true;
+    Astro.response.status = 500;
+  }
 
   const articlesByCluster = new Map<string, NonNullable<typeof articles>>();
   for (const article of articles ?? []) {
@@ -101,6 +140,10 @@ if (client && digest && !NOT_READY_STATUSES.includes(digest.status) && digest.st
         !client ? (
           <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">
             Supabase is not configured — this digest cannot be loaded.
+          </p>
+        ) : loadError ? (
+          <p class="rounded-xl border border-red-400/30 bg-red-500/10 p-6 text-sm text-red-200">
+            Couldn't load this digest — please try again.
           </p>
         ) : !digest ? (
           <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">
@@ -142,7 +185,7 @@ if (client && digest && !NOT_READY_STATUSES.includes(digest.status) && digest.st
                     {item.coverageCount} source{item.coverageCount === 1 ? "" : "s"}
                   </span>
                   {!item.translated && <span class="text-amber-300">untranslated</span>}
-                  {item.sourceUrl && (
+                  {item.sourceUrl && isSafeUrl(item.sourceUrl) && (
                     <a
                       href={item.sourceUrl}
                       target="_blank"

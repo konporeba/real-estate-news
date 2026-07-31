@@ -1,7 +1,7 @@
 ---
 change_id: translated-shortlist-view
 title: Translated shortlist view
-status: implemented
+status: impl_reviewed
 created: 2026-07-30
 updated: 2026-07-30
 archived_at: null
