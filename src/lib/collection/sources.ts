@@ -3,10 +3,15 @@
 // table: adding one is a reviewable diff, not a migration, and the data model
 // deliberately has no source entity.
 //
-// Every feed URL below was verified against the live source on 2026-07-24 — see the
-// `verified` note on each entry. Do not add a source without checking that its feed
-// actually parses; three obvious candidates (Cinco Días, El Economista, Idealista) block
-// or 404 and are recorded here as disabled rather than silently omitted.
+// Every feed URL below was verified against the live source on the date in its `note` —
+// most on 2026-07-24, several re-verified/replaced 2026-07-31 in favor of feeds actually
+// scoped to real estate rather than a whole "Economía" section (the rubric's topic gate
+// discards off-topic economy news anyway, so a scoped feed avoids paying clustering/scoring
+// cost on content that was always going to be thrown away). Do not add a source without
+// checking that its feed actually parses; Cinco Días and El Economista block outright and
+// are recorded here as disabled rather than silently omitted. Idealista was long assumed
+// feedless (`/news/rss` and `/news/feed` both 404) until 2026-07-31 found its taxonomy-scoped
+// feed working — check a site's actual `<link rel="alternate">` tags, not just guessed paths.
 import { z } from "zod";
 
 /** Tier order from FR-002: a structured feed first, an API second, a rendered fetch last. */
@@ -20,11 +25,12 @@ export const SOURCE_TIERS = ["rss", "api", "rendered"] as const;
 export const SOURCE_ROLES = ["primary", "fallback"] as const;
 
 /**
- * Publication language. FR-013 specifies the translation stage as Spanish → Polish, but the
- * operator widened that scope on 2026-07-24 (roadmap OQ#1) to include Catalan: Ara and Nació
- * Digital are the best Catalonia coverage available, and Catalonia is exactly what the
- * geography-first rubric weights highest. S-02/S-03 must therefore handle `ca` as a source
- * language, not just `es` — the `language` field on each source is what tells them which.
+ * Publication language. FR-013 specifies the translation stage as Spanish → Polish. The
+ * operator widened that scope on 2026-07-24 (roadmap OQ#1) to include Catalan via Ara and
+ * Nació Digital, then reversed that decision on 2026-07-31 in favor of a real-estate-scoped,
+ * Spanish-language source list (see those two sources' notes below) — `ca` stays a valid
+ * value (disabled sources still carry it, and it may return) but no enabled source uses it
+ * today.
  */
 export const SOURCE_LANGUAGES = ["es", "ca"] as const;
 
@@ -67,29 +73,8 @@ export const MIN_POOL_SIZE = 20;
 export const MAX_ITEMS_PER_SOURCE = 50;
 
 export const SOURCES: SourceDefinition[] = sourceListSchema.parse([
-  // --- Catalonia / Barcelona: the editorial core (rubric scores these highest) ---
-  {
-    slug: "lavanguardia-economia",
-    name: "La Vanguardia — Economía",
-    tier: "rss",
-    role: "primary",
-    language: "es",
-    url: "https://www.lavanguardia.com/rss/economia.xml",
-    enabled: true,
-    note: "Verified 2026-07-24: 100 items. Note the /mvc/feed/rss/ path is 410 Gone; this one works.",
-  },
-  {
-    slug: "elperiodico-economia",
-    name: "El Periódico — Economía",
-    tier: "rss",
-    role: "primary",
-    language: "es",
-    url: "https://www.elperiodico.com/es/rss/economia/rss.xml",
-    enabled: true,
-    note: "Verified 2026-07-24: 50 items.",
-  },
-
-  // --- Spain-wide national: applies to Catalonia too, so it scores above other regions ---
+  // --- Real-estate-scoped primary sources (narrowed 2026-07-31 from whole-section
+  //     "Economía" feeds — see the file header note on why). ---
   {
     slug: "expansion-inmobiliario",
     name: "Expansión — Inmobiliario",
@@ -98,30 +83,62 @@ export const SOURCES: SourceDefinition[] = sourceListSchema.parse([
     language: "es",
     url: "https://e00-expansion.uecdn.es/rss/inmobiliario.xml",
     enabled: true,
-    note: "Verified 2026-07-24: 57 items. The only feed found that is real-estate specific.",
+    note: "Verified 2026-07-24: 57 items. Real-estate specific.",
   },
   {
-    slug: "expansion-economia",
-    name: "Expansión — Economía",
+    slug: "expansion-empresas-inmobiliario",
+    name: "Expansión — Empresas Inmobiliario",
     tier: "rss",
     role: "primary",
     language: "es",
-    url: "https://e00-expansion.uecdn.es/rss/economia.xml",
+    url: "https://e01-expansion.uecdn.es/rss/empresas/inmobiliario.xml",
     enabled: true,
-    note: "Verified 2026-07-24: 49 items.",
+    note:
+      "Verified 2026-07-31: 50 items. Real-estate-company-themed (a different feed/CDN path from " +
+      "expansion-inmobiliario above, not a duplicate); some non-real-estate company news mixed in.",
   },
   {
-    slug: "elpais-economia",
-    name: "El País — Economía",
+    slug: "elpais-vivienda",
+    name: "El País — Vivienda",
     tier: "rss",
     role: "primary",
     language: "es",
-    url: "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/economia/portada",
+    url: "https://elpais.com/rss/economia/vivienda.xml",
     enabled: true,
-    note: "Verified 2026-07-24: 39 items.",
+    note:
+      "Verified 2026-07-31: 25 items, real-estate specific. Replaces the former elpais-economia " +
+      "(whole Economía section, 39 items, mostly off-topic for this rubric) discovered by checking " +
+      'the vivienda page\'s own <link rel="alternate"> tag rather than the section-level feed.',
+  },
+  {
+    slug: "idealista-inmobiliario",
+    name: "Idealista — Inmobiliario",
+    tier: "rss",
+    role: "primary",
+    language: "es",
+    url: "https://www.idealista.com/news/taxonomy/term/60493/feed",
+    enabled: true,
+    note:
+      "Verified 2026-07-31: 15 items, real-estate specific (some noise: hotel expansion, A/C coverage). " +
+      "Long assumed feedless (see file header) — /news/rss and /news/feed 404, but this taxonomy-scoped " +
+      'feed, discovered via the /news/inmobiliario page\'s <link rel="alternate"> tag, works and is not ' +
+      "behind the bot-blocking that stopped fotocasa-blog below. Previously disabled as `idealista-news`.",
+  },
+  {
+    slug: "fotocasa-prensa",
+    name: "Fotocasa — Prensa",
+    tier: "rss",
+    role: "primary",
+    language: "es",
+    url: "https://prensa.fotocasa.es/feed/",
+    enabled: true,
+    note:
+      "Verified 2026-07-31: 5 items, real-estate specific (rental prices, agency data) — low volume but " +
+      "clean signal. A different Fotocasa property from fotocasa-blog below (prensa. subdomain, not " +
+      "blocked the way the blog is).",
   },
 
-  // --- Fallbacks: added only when the primary pool is thin (FR-003) ---
+  // --- Fallback: added only when the primary pool is thin (FR-003) ---
   {
     slug: "20minutos-vivienda",
     name: "20 Minutos — Vivienda",
@@ -144,13 +161,49 @@ export const SOURCES: SourceDefinition[] = sourceListSchema.parse([
       "Worked 2026-07-24 morning at /blog/feed/, then began blocking the same day — caught by the live " +
       "smoke test. /blog/feed/ now 301s to /fotocasa-life/feed/ (URL updated above), which serves 200 to a " +
       "browser User-Agent and 403 to ours. Deliberately NOT worked around by spoofing a browser: this is the " +
-      "same bot protection Idealista uses, and FR-002 treats that as a tier problem, not something to evade. " +
-      "Retiered to `rendered` accordingly.",
+      "same bot protection Idealista's own /news/ page used to trip on, and FR-002 treats that as a tier " +
+      "problem, not something to evade. Retiered to `rendered` accordingly.",
   },
 
-  // --- Catalan-language: the closest coverage to the target audience's geography.
-  //     Enabled by operator decision 2026-07-24, which widens FR-013's translation
-  //     scope from es->pl to {es,ca}->pl. See the SOURCE_LANGUAGES note above.
+  // --- Dropped 2026-07-31: general "Economía" section feeds and Catalan-language coverage.
+  //     Kept here disabled (not deleted) per this file's own convention of recording why a
+  //     candidate isn't in the active list. ---
+  {
+    slug: "lavanguardia-economia",
+    name: "La Vanguardia — Economía",
+    tier: "rss",
+    role: "primary",
+    language: "es",
+    url: "https://www.lavanguardia.com/rss/economia.xml",
+    enabled: false,
+    note:
+      "Verified working 2026-07-24: 100 items. Disabled 2026-07-31 — whole Economía section, not " +
+      "real-estate scoped; the rubric's topic gate would discard most of it anyway, at full clustering/" +
+      "scoring cost. No real-estate-specific feed found for this outlet.",
+  },
+  {
+    slug: "elperiodico-economia",
+    name: "El Periódico — Economía",
+    tier: "rss",
+    role: "primary",
+    language: "es",
+    url: "https://www.elperiodico.com/es/rss/economia/rss.xml",
+    enabled: false,
+    note: "Verified working 2026-07-24: 50 items. Disabled 2026-07-31 — same reason as lavanguardia-economia.",
+  },
+  {
+    slug: "expansion-economia",
+    name: "Expansión — Economía",
+    tier: "rss",
+    role: "primary",
+    language: "es",
+    url: "https://e00-expansion.uecdn.es/rss/economia.xml",
+    enabled: false,
+    note:
+      "Verified working 2026-07-24: 49 items. Disabled 2026-07-31 — whole Economía section, superseded " +
+      "by this outlet's two real-estate-scoped feeds above (expansion-inmobiliario, " +
+      "expansion-empresas-inmobiliario).",
+  },
   {
     slug: "ara-economia",
     name: "Ara — Economia",
@@ -158,8 +211,11 @@ export const SOURCES: SourceDefinition[] = sourceListSchema.parse([
     role: "primary",
     language: "ca",
     url: "https://www.ara.cat/rss/economia",
-    enabled: true,
-    note: "Verified 2026-07-24: 45 items. Catalan-language — requires ca->pl translation in S-03.",
+    enabled: false,
+    note:
+      "Verified working 2026-07-24: 45 items. Enabled 2026-07-24 (roadmap OQ#1) for Catalonia-language " +
+      "coverage; disabled 2026-07-31 by operator decision dropping Catalan-language sources in favor of " +
+      "a real-estate-scoped, Spanish-language list. Also whole Economía section, not real-estate scoped.",
   },
   {
     slug: "naciodigital-economia",
@@ -168,21 +224,11 @@ export const SOURCES: SourceDefinition[] = sourceListSchema.parse([
     role: "primary",
     language: "ca",
     url: "https://www.naciodigital.cat/rss/economia",
-    enabled: true,
-    note: "Verified 2026-07-24: 25 items. Catalan-language — requires ca->pl translation in S-03.",
+    enabled: false,
+    note: "Verified working 2026-07-24: 25 items. Disabled 2026-07-31 — same reason as ara-economia.",
   },
 
   // --- Blocked or feedless: recorded so nobody re-discovers them the hard way ---
-  {
-    slug: "idealista-news",
-    name: "Idealista — News",
-    tier: "rendered",
-    role: "primary",
-    language: "es",
-    url: "https://www.idealista.com/news/",
-    enabled: false,
-    note: "No feed: /news/rss and /news/feed both 404 (2026-07-24). FR-002 names Idealista as actively blocking automated fetching; needs the rendered tier.",
-  },
   {
     slug: "cincodias-portada",
     name: "Cinco Días — Portada",
@@ -201,7 +247,9 @@ export const SOURCES: SourceDefinition[] = sourceListSchema.parse([
     language: "es",
     url: "https://www.eleconomista.es/rss/rss-category.php?category=vivienda",
     enabled: false,
-    note: "Feed URL returns 403 (2026-07-24). Needs the api tier.",
+    note:
+      "Feed URL returns 403 (2026-07-24, re-confirmed 2026-07-31 along with three other El Economista " +
+      "section pages — all 403). Needs the api tier.",
   },
 ]);
 

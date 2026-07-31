@@ -56,13 +56,14 @@ describe("source registry", () => {
     }
   });
 
-  it("collects Catalan alongside Spanish, so downstream translation must handle both", () => {
-    // Operator decision 2026-07-24 (roadmap OQ#1) widened FR-013 from es->pl to {es,ca}->pl.
-    // If this fails because ca was disabled, S-02/S-03 translation scope changes with it.
+  it("collects at least Spanish", () => {
+    // Operator decision 2026-07-24 (roadmap OQ#1) widened FR-013 from es->pl to {es,ca}->pl by
+    // enabling two Catalan sources; operator decision 2026-07-31 reversed that (dropped in favor
+    // of a real-estate-scoped, Spanish-language list) — `ca` remains a valid SOURCE_LANGUAGES
+    // value (disabled sources still carry it) but is no longer asserted as currently enabled.
     const languages = new Set(sourcesForRole("primary").map((s) => s.language));
 
     expect(languages).toContain("es");
-    expect(languages).toContain("ca");
   });
 
   it("keeps the pool threshold above the shortlist size clustering must produce", () => {
