@@ -3,7 +3,7 @@ project: "Real Estate News"
 version: 1
 status: draft
 created: 2026-07-22
-updated: 2026-07-30
+updated: 2026-07-31
 prd_version: 1
 main_goal: quality
 top_blocker: none
@@ -27,35 +27,35 @@ A single real-estate professional serving Polish investors in Spain publishes no
 
 ## At a glance
 
-| ID   | Change ID                  | Outcome (user can …)                                              | Prerequisites        | PRD refs                         | Status   |
-| ---- | -------------------------- | ---------------------------------------------------------------- | -------------------- | -------------------------------- | -------- |
-| F-01 | durable-digest-run-state   | (foundation) durable digest state machine + core schema in place | —                    | NFR-durability, §Data, §State    | done     |
-| F-02 | operator-pin-access-gate   | (foundation) PIN gate + lockout replaces email/password auth     | —                    | US-22, NFR-access, §Access       | done     |
-| F-03 | llm-cost-ceiling-harness   | (foundation) budgeted, retry-safe LLM invocation wrapper         | —                    | FR-016, FR-017, NFR-cost         | done     |
-| F-04 | outbound-email-notifications | (foundation) system can email the operator                     | —                    | FR-010, FR-019, FR-021           | done     |
-| F-05 | reliable-scheduler-backbone | (foundation) DST-correct persistent scheduler primitive         | F-01                 | FR-027, FR-022, NFR-time         | done     |
-| S-01 | weekly-source-collection   | trigger/re-trigger a week's article collection                   | F-01                 | FR-001,002,003,018; US-01→04     | done     |
-| S-02 | geography-ranking-rubric   | (system) cluster + geography-rank the pool, gated by an eval harness | S-01, F-03       | FR-004→008,026; US-06,07,08,25   | done     |
-| S-03 | translated-shortlist-view  | view the ranked Polish shortlist on the dashboard ★              | S-02, F-02           | FR-008,009,009a,011; US-05,07,22 | proposed |
-| S-04 | story-selection-gate       | select 2–4 stories, format, and platforms                        | S-03, F-04           | FR-010,012; US-09,10             | proposed |
-| S-05 | polish-copy-generation     | get Polish social copy with a numeric-integrity gate             | S-04, F-03           | FR-013,014,016,017; US-11,12,15  | proposed |
-| S-06 | brand-visual-assets        | get per-platform visuals from brand templates                    | S-05                 | FR-015; US-13,14                 | proposed |
-| S-07 | content-approval-gate      | approve/reject before publish; get a Monday reminder             | S-05, S-06, F-04     | FR-019,020,021; US-16,17         | proposed |
-| S-08 | scheduled-publishing       | publish approved content on schedule, per platform               | S-07, F-05           | FR-022,023; US-18,19,20          | proposed |
-| S-09 | archive-and-learning-loop  | browse the archive; picks/passes refine the rubric               | S-08, S-02           | FR-024,025; US-10,21             | proposed |
-| S-10 | ops-heartbeat-and-catchup  | learn when nothing ran; missed windows are caught up             | F-05                 | FR-027,028; US-23,24             | proposed |
+| ID   | Change ID                    | Outcome (user can …)                                                 | Prerequisites    | PRD refs                         | Status   |
+| ---- | ---------------------------- | -------------------------------------------------------------------- | ---------------- | -------------------------------- | -------- |
+| F-01 | durable-digest-run-state     | (foundation) durable digest state machine + core schema in place     | —                | NFR-durability, §Data, §State    | done     |
+| F-02 | operator-pin-access-gate     | (foundation) PIN gate + lockout replaces email/password auth         | —                | US-22, NFR-access, §Access       | done     |
+| F-03 | llm-cost-ceiling-harness     | (foundation) budgeted, retry-safe LLM invocation wrapper             | —                | FR-016, FR-017, NFR-cost         | done     |
+| F-04 | outbound-email-notifications | (foundation) system can email the operator                           | —                | FR-010, FR-019, FR-021           | done     |
+| F-05 | reliable-scheduler-backbone  | (foundation) DST-correct persistent scheduler primitive              | F-01             | FR-027, FR-022, NFR-time         | done     |
+| S-01 | weekly-source-collection     | trigger/re-trigger a week's article collection                       | F-01             | FR-001,002,003,018; US-01→04     | done     |
+| S-02 | geography-ranking-rubric     | (system) cluster + geography-rank the pool, gated by an eval harness | S-01, F-03       | FR-004→008,026; US-06,07,08,25   | done     |
+| S-03 | translated-shortlist-view    | view the ranked Polish shortlist on the dashboard ★                  | S-02, F-02       | FR-008,009,009a,011; US-05,07,22 | done     |
+| S-04 | story-selection-gate         | select 2–4 stories, format, and platforms                            | S-03, F-04       | FR-010,012; US-09,10             | proposed |
+| S-05 | polish-copy-generation       | get Polish social copy with a numeric-integrity gate                 | S-04, F-03       | FR-013,014,016,017; US-11,12,15  | proposed |
+| S-06 | brand-visual-assets          | get per-platform visuals from brand templates                        | S-05             | FR-015; US-13,14                 | proposed |
+| S-07 | content-approval-gate        | approve/reject before publish; get a Monday reminder                 | S-05, S-06, F-04 | FR-019,020,021; US-16,17         | proposed |
+| S-08 | scheduled-publishing         | publish approved content on schedule, per platform                   | S-07, F-05       | FR-022,023; US-18,19,20          | proposed |
+| S-09 | archive-and-learning-loop    | browse the archive; picks/passes refine the rubric                   | S-08, S-02       | FR-024,025; US-10,21             | proposed |
+| S-10 | ops-heartbeat-and-catchup    | learn when nothing ran; missed windows are caught up                 | F-05             | FR-027,028; US-23,24             | proposed |
 
 ## Streams
 
 Navigation aid — groups items that share a Prerequisites chain. Canonical ordering still lives in the dependency graph below; this table is the proposed reading order across parallel tracks.
 
-| Stream | Theme                | Chain                                              | Note                                                                      |
-| ------ | -------------------- | -------------------------------------------------- | ------------------------------------------------------------------------- |
-| A      | Editorial brain (north star) | `F-01` → `S-01` → `S-02` → `S-03`          | The core bet; consumes `F-03` at `S-02`. Reaches the north star `S-03`.    |
-| B      | Access gate          | `F-02`                                             | Joins Stream A at `S-03` (the first auth-gated dashboard view).           |
-| C      | Publish loop         | `F-04` → `S-04` → `S-05` → `S-06` → `S-07` → `S-08` → `S-09` | Selection→generation→publish→archive; consumes `F-03` at `S-05`, `F-05` at `S-08`. |
-| D      | LLM safety harness   | `F-03`                                             | Standalone foundation; unlocks `S-02` (Stream A) and `S-05` (Stream C).   |
-| E      | Ops reliability      | `F-05` → `S-10`                                    | Independent track; `F-05` also enables automatic `S-01` and scheduled `S-08`. |
+| Stream | Theme                        | Chain                                                        | Note                                                                               |
+| ------ | ---------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| A      | Editorial brain (north star) | `F-01` → `S-01` → `S-02` → `S-03`                            | The core bet; consumes `F-03` at `S-02`. Reaches the north star `S-03`.            |
+| B      | Access gate                  | `F-02`                                                       | Joins Stream A at `S-03` (the first auth-gated dashboard view).                    |
+| C      | Publish loop                 | `F-04` → `S-04` → `S-05` → `S-06` → `S-07` → `S-08` → `S-09` | Selection→generation→publish→archive; consumes `F-03` at `S-05`, `F-05` at `S-08`. |
+| D      | LLM safety harness           | `F-03`                                                       | Standalone foundation; unlocks `S-02` (Stream A) and `S-05` (Stream C).            |
+| E      | Ops reliability              | `F-05` → `S-10`                                              | Independent track; `F-05` also enables automatic `S-01` and scheduled `S-08`.      |
 
 ## Baseline
 
@@ -108,7 +108,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Prerequisites:** —
 - **Parallel with:** F-01, F-02, F-04
 - **Blockers:** —
-- **Unknowns:** ~~Which model SDK/provider exposes the budget primitive (`maxBudgetUsd` / `maxCost`)~~ — **Resolved 2026-07-24: none does.** The Anthropic API has no USD-denominated budget parameter. The ceiling must be computed application-side from `usage` token counts × a per-model price table, checked before each call and accumulated after. `output_config.task_budget` (beta) is a *token* budget the model paces itself against — explicitly a suggestion, not a hard cap — so it cannot serve as the enforcement mechanism. This makes F-03 a larger slice than assumed: it owns the accounting, not just a wrapper. Detail in `context/changes/llm-cost-ceiling-harness/change.md`.
+- **Unknowns:** ~~Which model SDK/provider exposes the budget primitive (`maxBudgetUsd` / `maxCost`)~~ — **Resolved 2026-07-24: none does.** The Anthropic API has no USD-denominated budget parameter. The ceiling must be computed application-side from `usage` token counts × a per-model price table, checked before each call and accumulated after. `output_config.task_budget` (beta) is a _token_ budget the model paces itself against — explicitly a suggestion, not a hard cap — so it cannot serve as the enforcement mechanism. This makes F-03 a larger slice than assumed: it owns the accounting, not just a wrapper. Detail in `context/changes/llm-cost-ceiling-harness/change.md`.
 - **Scope note (2026-07-24):** FR-017's malformed-output recovery is largely obviated by structured outputs (`output_config.format` + `strict: true`), which constrain the shape rather than repairing it; staged recovery should be a narrow fallback. Transport retry/backoff already ships in the SDK (`maxRetries` default 2, covering 408/409/429/5xx). Two cost levers found during the same research and inherited by S-02: the **Message Batches API halves cost** on whole-pool scoring (asynchronous by nature), and **prompt caching** on the shared rubric prefix cuts repeat input to ~0.1× — subject to a model-dependent minimum cacheable prefix (4096 tokens on Opus 4.8, 2048 on Sonnet 5) below which it silently does not cache.
 - **Risk:** The first LLM call (S-02 scoring, over the whole article pool) is exactly the unattended failure mode this guards, so the harness precedes it. Minimal scope: budget enforcement + retry/recovery contract, not a general model-orchestration layer — each slice still owns its own prompts.
 - **Status:** done
@@ -165,7 +165,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Parallel with:** F-02, F-04, F-05
 - **Blockers:** —
 - **Unknowns:** —
-- **Risk:** This is the product. The rubric must separate where a story was *published* from where its *effects* land (a national announcement made in Madrid is national, not "Madrid news") — the PRD flags this as the most likely misjudgment. Shipping the rubric together with its eval harness is the quality-first bet: the regression gate must exist before the rubric is tuned.
+- **Risk:** This is the product. The rubric must separate where a story was _published_ from where its _effects_ land (a national announcement made in Madrid is national, not "Madrid news") — the PRD flags this as the most likely misjudgment. Shipping the rubric together with its eval harness is the quality-first bet: the regression gate must exist before the rubric is tuned.
 - **Status:** done (shipped 2026-07-27, commits `2ae85c4`…`6ace8e6`)
 - **Delivered:** the `ranking` stage end to end — score schema + eval harness gating the rubric (Phase 1), the zero-shot geography rubric and batched scoring function (Phase 2), LLM clustering with partition validation (Phase 3), the ranking orchestrator composing cluster→score→order→persist→transition (Phase 4), and the `npm run rank` worker entrypoint (Phase 5). Verified against a real ~368-article digest: 250 clusters, top-15 correctly geography-ordered (Catalonia tier above national).
 - **Carried forward:** real-pool verification surfaced three fixes the mocked test suite couldn't — see `src/lib/ranking/cluster.ts` and `src/lib/llm/invoke.ts`. (1) Clustering echoes article ids into the model's response; a real UUID costs far more output tokens than a short local index, so ids are now localized to array-position strings for the prompt/response and mapped back after parsing. (2) Sonnet 5 runs adaptive thinking by default when `thinking` is omitted from a request — a silent behavior change from earlier models — and `invoke()`'s `maxTokens` caps thinking plus output combined, so hidden reasoning tokens were silently consuming the budget meant for the JSON output. `invoke()` now accepts a `thinking` flag; clustering disables it. Any future `invoke()` caller on Sonnet 5 with a tight `maxTokens` should consider the same. (3) At real pool size the model occasionally mis-partitions (drops or duplicates an id) on the single-pass whole-pool grouping; `clusterArticles` now does one corrective retry, mirroring `invoke()`'s own schema-validation retry pattern. The impl-review (`reviews/impl-review.md`) found a fourth issue: the persist path wrote one row at a time in a loop (~500 sequential round trips on the real pool) — fixed with two new Postgres RPC functions (`assign_articles_to_clusters`, `persist_cluster_rankings`, migration `20260727150000_bulk_ranking_writes.sql`) since PostgREST's `.upsert()` can't express a partial-row bulk update, the same "make it a function" precedent as `increment_digest_cost`.
@@ -181,7 +181,9 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Unknowns:** —
 - **Scope note (2026-07-24):** the source list resolved under OQ#1 ships two Catalan-language feeds, so the translation stage is `{es,ca}→pl`, not the `es→pl` FR-013 declares. Each article carries its source `language`; the "original alongside" requirement (FR-009a) means a Catalan original is displayed as Catalan.
 - **Risk:** The validation milestone — first point where the editorial brain is visible to the operator. Batch translation (FR-009) is idempotent and runs once here via the F-03 harness; retaining both languages (FR-009a) is a hard requirement, not a nicety, so an odd translation can be checked against the source.
-- **Status:** proposed
+- **Status:** done (shipped 2026-07-30, commits `1487ce7`…`58a4c56`; impl-review fixes `1e920ef`, translation model swap `7bb3b97`)
+- **Delivered:** the translation stage in the ranking worker (`translateShortlist`, Spanish/Catalan → Polish on the shortlisted clusters' representative articles), the digest list page (`src/pages/dashboard.astro`) and shortlist detail page (`src/pages/dashboard/[id].astro`) behind the F-02 PIN gate, each shortlist item showing Polish title/summary with the original alongside (language-flagged) and a coverage count for multi-source stories.
+- **Carried forward:** the impl-review (`context/changes/translated-shortlist-view/reviews/impl-review.md`, initial verdict REJECTED on one critical) found `source_url` rendered as a clickable link with no scheme check (F1, fixed — `isSafeUrl()` guard) and Supabase query errors silently rendering as an empty-state rather than a distinct failure (F2, fixed). F3 remains an **open verification gap, not a defect**: the literal "operator opens a `ready_for_selection` digest and sees real Polish text" path has still not been eyeballed live — the only real digest in the database predates this feature, and a live re-run to close the gap was deferred (cost/budget considerations on that specific digest, plus a collection-window quirk when attempting a fresh one). Translation was also switched from Sonnet 5 to Haiku 4.5 post-review as a cost optimization (bounded, mechanical task with an existing completeness check) — validated safe by `RANKING_EVAL` showing Haiku is *not* safe for the scoring stage (misjudges tier on held-out examples), so clustering/scoring stay on Sonnet 5.
 
 ### S-04: Story selection gate (human gate 1)
 
@@ -273,23 +275,23 @@ Foundations below assume these are present and do NOT re-scaffold them.
 
 ## Backlog Handoff
 
-| Roadmap ID | Change ID                    | Suggested issue title                                   | Ready for `/10x-plan` | Notes                                   |
-| ---------- | ---------------------------- | ------------------------------------------------------ | --------------------- | --------------------------------------- |
-| F-01       | durable-digest-run-state     | Durable digest run-state & core schema                 | shipped               | Shipped 2026-07-24; see impl-review F1  |
-| F-02       | operator-pin-access-gate     | PIN access gate replacing scaffold auth                | yes                   | Independent; enables the dashboard      |
-| F-03       | llm-cost-ceiling-harness     | Budgeted, retry-safe LLM invocation harness            | shipped               | Shipped & reviewed 2026-07-25; unblocks S-02 |
-| F-04       | outbound-email-notifications | Outbound email notification capability                 | shipped               | Shipped 2026-07-28; reviewed (impl-review APPROVED, 2 low-impact fixes applied) |
-| F-05       | reliable-scheduler-backbone  | DST-correct persistent scheduler primitive             | yes                   | F-01 shipped; unblocked                 |
-| S-01       | weekly-source-collection     | Weekly source collection (tiered, resilient)           | shipped               | Shipped 2026-07-24; 234 articles on first run |
-| S-02       | geography-ranking-rubric     | Geography-ranking rubric + eval harness                | shipped               | Shipped 2026-07-27; verified against a real 368-article pool |
-| S-03       | translated-shortlist-view    | Translated shortlist dashboard view ★                  | yes                   | North star; S-02 shipped — unblocked    |
-| S-04       | story-selection-gate         | Story selection gate (human gate 1)                    | no                    | Needs S-03; F-04 shipped — unblocked on that side |
-| S-05       | polish-copy-generation       | Polish copy generation + numeric-integrity gate        | no                    | Needs S-04, F-03                        |
-| S-06       | brand-visual-assets          | Per-platform brand visual assets                       | no                    | Needs S-05; file Canva access (OQ#2)    |
-| S-07       | content-approval-gate        | Content approval gate (human gate 2) + reminder        | no                    | Needs S-05, S-06; F-04 shipped — unblocked on that side |
-| S-08       | scheduled-publishing         | Scheduled per-platform publishing + missed-deadline    | no                    | Needs S-07, F-05; reuses publish integ. |
-| S-09       | archive-and-learning-loop    | Full-fidelity archive + rubric learning loop           | no                    | Needs S-08, S-02                        |
-| S-10       | ops-heartbeat-and-catchup    | Ops heartbeat alert + missed-run catch-up              | no                    | Needs F-05                              |
+| Roadmap ID | Change ID                    | Suggested issue title                               | Ready for `/10x-plan` | Notes                                                                           |
+| ---------- | ---------------------------- | --------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------- |
+| F-01       | durable-digest-run-state     | Durable digest run-state & core schema              | shipped               | Shipped 2026-07-24; see impl-review F1                                          |
+| F-02       | operator-pin-access-gate     | PIN access gate replacing scaffold auth             | yes                   | Independent; enables the dashboard                                              |
+| F-03       | llm-cost-ceiling-harness     | Budgeted, retry-safe LLM invocation harness         | shipped               | Shipped & reviewed 2026-07-25; unblocks S-02                                    |
+| F-04       | outbound-email-notifications | Outbound email notification capability              | shipped               | Shipped 2026-07-28; reviewed (impl-review APPROVED, 2 low-impact fixes applied) |
+| F-05       | reliable-scheduler-backbone  | DST-correct persistent scheduler primitive          | yes                   | F-01 shipped; unblocked                                                         |
+| S-01       | weekly-source-collection     | Weekly source collection (tiered, resilient)        | shipped               | Shipped 2026-07-24; 234 articles on first run                                   |
+| S-02       | geography-ranking-rubric     | Geography-ranking rubric + eval harness             | shipped               | Shipped 2026-07-27; verified against a real 368-article pool                    |
+| S-03       | translated-shortlist-view    | Translated shortlist dashboard view ★               | shipped               | Shipped 2026-07-30; reviewed (1 critical fixed); F3 live-translation check open |
+| S-04       | story-selection-gate         | Story selection gate (human gate 1)                 | yes                   | S-03 and F-04 both shipped — unblocked                                          |
+| S-05       | polish-copy-generation       | Polish copy generation + numeric-integrity gate     | no                    | Needs S-04, F-03                                                                |
+| S-06       | brand-visual-assets          | Per-platform brand visual assets                    | no                    | Needs S-05; file Canva access (OQ#2)                                            |
+| S-07       | content-approval-gate        | Content approval gate (human gate 2) + reminder     | no                    | Needs S-05, S-06; F-04 shipped — unblocked on that side                         |
+| S-08       | scheduled-publishing         | Scheduled per-platform publishing + missed-deadline | no                    | Needs S-07, F-05; reuses publish integ.                                         |
+| S-09       | archive-and-learning-loop    | Full-fidelity archive + rubric learning loop        | no                    | Needs S-08, S-02                                                                |
+| S-10       | ops-heartbeat-and-catchup    | Ops heartbeat alert + missed-run catch-up           | no                    | Needs F-05                                                                      |
 
 ## Open Roadmap Questions
 
@@ -315,7 +317,8 @@ Foundations below assume these are present and do NOT re-scaffold them.
 
 - **F-02: (foundation) the dashboard is gated by a 6-digit PIN with lockout-after-~5-attempts and rate limiting, reachable only over a private path (Cloudflare Tunnel) — replacing the scaffold's email/password auth, which is the wrong mechanism for this product.** — Archived 2026-07-27 → `context/archive/2026-07-27-operator-pin-access-gate/`. Lesson: —.
 - **S-02: (system) the week's articles are semantically clustered (coverage count as a ranking boost, not redundancy) and each cluster is scored by the geography-first rubric from title + lede — with an eval harness that gates any rubric change against known-correct examples.** — Archived 2026-07-27 → `context/archive/2026-07-25-geography-ranking-rubric/`. Lesson: real-pool verification (a live ~368-article digest) surfaced three failure modes no mocked test could — a real UUID costs far more output tokens than expected to echo back, Sonnet 5 runs adaptive thinking by default and silently eats the `maxTokens` budget meant for output, and a single-pass whole-pool LLM call occasionally mis-partitions at scale. All three are now handled (local-id indirection, an explicit `thinking: false` opt-out threaded through F-03's harness, and a corrective retry) — but the lesson generalizes: an LLM call sized and tested only against small mocked inputs can behave qualitatively differently at real production scale, and that gap only shows up by actually running against real data before calling a slice done.
-- **F-03: (foundation) a shared wrapper around every model call that enforces a hard per-run cost ceiling and halts on reaching it, with staged malformed-output recovery and bounded backoff retries — so an unattended run can never bill quietly overnight.** — Archived 2026-07-25 → `context/archive/2026-07-24-llm-cost-ceiling-harness/`. Lesson: the vendor exposes no USD budget primitive, so the ceiling is application-side accounting (token `usage` × a price table) — and because the check and the increment are separate round trips, the ceiling is *soft*: under concurrency the overshoot bound is `concurrency × per-call cost`, not one call. S-02's scoring loop must cap its fan-out accordingly.
+- **F-03: (foundation) a shared wrapper around every model call that enforces a hard per-run cost ceiling and halts on reaching it, with staged malformed-output recovery and bounded backoff retries — so an unattended run can never bill quietly overnight.** — Archived 2026-07-25 → `context/archive/2026-07-24-llm-cost-ceiling-harness/`. Lesson: the vendor exposes no USD budget primitive, so the ceiling is application-side accounting (token `usage` × a price table) — and because the check and the increment are separate round trips, the ceiling is _soft_: under concurrency the overshoot bound is `concurrency × per-call cost`, not one call. S-02's scoring loop must cap its fan-out accordingly.
 - **S-01: operator can trigger (or the scheduler can auto-run) a week's collection, pulling articles from a configured source list — resilient to a blocked source and to a thin news week.** — Archived 2026-07-24 → `context/archive/2026-07-24-weekly-source-collection/`. Lesson: the opt-in live smoke test found a real regression within minutes of existing — a source that verified working in the morning was blocking by the afternoon. Fixtures cannot see that class of failure; every slice depending on third-party feeds should ship one.
 - **F-01: (foundation) the digest state machine (`collecting → ranking → ready_for_selection → generating → ready_for_approval → approved → published`, plus `skipped`/`failed`) is persisted with per-stage checkpoints, and the core `digest`/`article`/`cluster` tables exist — enough for a multi-day run to survive a machine restart.** — Archived 2026-07-24 → `context/archive/2026-07-22-durable-digest-run-state/`. Lesson: —.
 - **F-05: (foundation) a persistent scheduling primitive that fires jobs at a named-zone (`Europe/Warsaw`) wall-clock time correctly across the DST transition and replays a window missed while the machine was off — the timing mechanism the automatic Sunday collection and Tuesday publish plug into.** — Archived 2026-07-30 → `context/archive/2026-07-29-reliable-scheduler-backbone/`. Lesson: —.
+- **S-03: operator opens the dashboard and sees the top-15 ranked, translated Polish shortlist (Spanish/Catalan originals alongside) ★ — the north star.** — Not yet archived (open item below); still at `context/changes/translated-shortlist-view/`. Lesson: the impl-review caught a real gap unit tests didn't — scraped `source_url` rendered as a raw clickable link with no scheme check, and a Supabase query error silently rendering identically to "no data." Both are now standard-shape risks (untrusted external content reaching the DOM, error vs. empty-state conflation) worth checking on every new page that queries the DB directly, not just this one. **Open:** F3 — the literal "operator sees real Polish text on a real digest" path is still unverified live; the only real digest predates this feature and a live re-run was deferred on cost grounds. Close this before archiving.
