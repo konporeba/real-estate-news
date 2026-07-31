@@ -6,9 +6,14 @@ import { z } from "zod";
 
 import type { LlmTransport } from "@/lib/llm/client";
 import { invoke } from "@/lib/llm/invoke";
-import { DEFAULT_MODEL } from "@/lib/llm/pricing";
 import type { ServiceClient } from "@/lib/supabase-service";
 import type { LlmResult } from "@/types";
+
+// Haiku 4.5, not DEFAULT_MODEL (Sonnet 5): a bounded (<=SHORTLIST_SIZE), mechanical
+// faithful-translation task with an explicit completeness check on the output (below) —
+// a good fit for the cheaper model, unlike clustering/scoring where correctness stakes
+// and reliability at whole-pool scale argue for keeping Sonnet.
+const TRANSLATION_MODEL = "claude-haiku-4-5";
 
 /** Output-token budget per article in the batch, plus a fixed floor — a translation is short. */
 const MAX_TOKENS_PER_ARTICLE = 300;
@@ -65,7 +70,7 @@ export async function translateShortlist(
     db,
     digestId,
     {
-      model: DEFAULT_MODEL,
+      model: TRANSLATION_MODEL,
       system: TRANSLATION_SYSTEM,
       messages: [{ role: "user", content: buildTranslationPrompt(articles) }],
       maxTokens: articles.length * MAX_TOKENS_PER_ARTICLE + MAX_TOKENS_FLOOR,
