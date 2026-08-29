@@ -22,6 +22,9 @@
 //     `claim_scheduled_job` under public.Functions (SETOF return; a scalar composite
 //     would misrepresent "no row claimed" as an all-null-fields object)
 //     (20260729180000_scheduled_job_state.sql)
+//   - `selection`, `selection_item` under public.Tables, `selection_format` and
+//     `selection_platform` under public.Enums, `confirm_selection` under public.Functions
+//     (20260829120000_selection_gate.sql)
 export type Json =
   | string
   | number
@@ -254,6 +257,80 @@ export type Database = {
         }
         Relationships: []
       }
+      selection: {
+        Row: {
+          confirmed_at: string
+          created_at: string
+          digest_id: string
+          format: Database["public"]["Enums"]["selection_format"]
+          id: string
+          platforms: Database["public"]["Enums"]["selection_platform"][]
+        }
+        Insert: {
+          confirmed_at?: string
+          created_at?: string
+          digest_id: string
+          format: Database["public"]["Enums"]["selection_format"]
+          id?: string
+          platforms: Database["public"]["Enums"]["selection_platform"][]
+        }
+        Update: {
+          confirmed_at?: string
+          created_at?: string
+          digest_id?: string
+          format?: Database["public"]["Enums"]["selection_format"]
+          id?: string
+          platforms?: Database["public"]["Enums"]["selection_platform"][]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "selection_digest_id_fkey"
+            columns: ["digest_id"]
+            isOneToOne: true
+            referencedRelation: "digest"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      selection_item: {
+        Row: {
+          cluster_id: string
+          created_at: string
+          id: string
+          picked: boolean
+          selection_id: string
+        }
+        Insert: {
+          cluster_id: string
+          created_at?: string
+          id?: string
+          picked: boolean
+          selection_id: string
+        }
+        Update: {
+          cluster_id?: string
+          created_at?: string
+          id?: string
+          picked?: boolean
+          selection_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "selection_item_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "cluster"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "selection_item_selection_id_fkey"
+            columns: ["selection_id"]
+            isOneToOne: false
+            referencedRelation: "selection"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -315,6 +392,19 @@ export type Database = {
           locked_until: string | null
         }[]
       }
+      confirm_selection: {
+        Args: {
+          p_digest_id: string
+          p_shortlist_cluster_ids: string[]
+          p_picked_cluster_ids: string[]
+          p_format: Database["public"]["Enums"]["selection_format"]
+          p_platforms: Database["public"]["Enums"]["selection_platform"][]
+        }
+        // The new selection's id. Never null on success: every failure path inside the
+        // function raises (SG001..SG005, or 23505 on a second confirm), so PostgREST
+        // surfaces an error rather than a null return.
+        Returns: string
+      }
     }
     Enums: {
       digest_status:
@@ -328,6 +418,8 @@ export type Database = {
         | "skipped"
         | "failed"
       scheduled_job_status: "idle" | "running"
+      selection_format: "single_post" | "carousel"
+      selection_platform: "instagram" | "linkedin" | "facebook"
     }
     CompositeTypes: {
       [_ in never]: never
