@@ -443,31 +443,31 @@ No rollback is destructive — both new tables are additive and cascade from `di
 
 #### Automated
 
-- [x] 3.1 Lint passes: `npm run lint`
-- [x] 3.2 Type check and build pass: `npm run build`
-- [x] 3.3 Rules suite passes: `npm test`
+- [x] 3.1 Lint passes: `npm run lint` — babbdc2
+- [x] 3.2 Type check and build pass: `npm run build` — babbdc2
+- [x] 3.3 Rules suite passes: `npm test` — babbdc2
 
 #### Manual
 
-- [x] 3.4 `POST /api/selection/confirm` with no session cookie returns 401 JSON, not a redirect
-- [x] 3.5 A valid request against a real `ready_for_selection` digest returns 200 and moves it to `generating`
-- [x] 3.6 Re-posting the same request returns 409, not 500
+- [x] 3.4 `POST /api/selection/confirm` with no session cookie returns 401 JSON, not a redirect — babbdc2
+- [x] 3.5 A valid request against a real `ready_for_selection` digest returns 200 and moves it to `generating` — babbdc2
+- [x] 3.6 Re-posting the same request returns 409, not 500 — babbdc2
 
 ### Phase 4: Selection UI island & post-confirm view
 
 #### Automated
 
-- [ ] 4.1 Lint passes on `.tsx` and `.astro`: `npm run lint`
-- [ ] 4.2 Type check and build pass, with the island bundled: `npm run build`
-- [ ] 4.3 No test regressions: `npm test`
+- [x] 4.1 Lint passes on `.tsx` and `.astro`: `npm run lint`
+- [x] 4.2 Type check and build pass, with the island bundled: `npm run build`
+- [x] 4.3 No test regressions: `npm test`
 
 #### Manual
 
-- [ ] 4.4 Submit is disabled at 0–1 picks, enabled at 2, disabled again at 5
-- [ ] 4.5 The review step lists exactly the chosen titles, format, and platforms
-- [ ] 4.6 Confirming moves the digest to `generating` and re-renders read-only with picks marked
-- [ ] 4.7 A digest past `ready_for_selection` shows no controls
-- [ ] 4.8 A rejected confirm shows the message inline and leaves choices intact
+- [x] 4.4 Submit is disabled at 0–1 picks, enabled at 2, disabled again at 5
+- [x] 4.5 The review step lists exactly the chosen titles, format, and platforms
+- [x] 4.6 Confirming moves the digest to `generating` and re-renders read-only with picks marked
+- [x] 4.7 A digest past `ready_for_selection` shows no controls
+- [x] 4.8 A rejected confirm shows the message inline and leaves choices intact
 
 ### Phase 5: FR-010 digest-ready email
 

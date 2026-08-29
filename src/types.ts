@@ -89,6 +89,28 @@ export interface EmailError {
 
 export type EmailResult = { ok: true } | EmailError;
 
+/**
+ * One shortlisted story as the dashboard renders it — a view DTO assembled from a cluster and
+ * its representative article, shared by the Astro page and the React card so the selectable and
+ * read-only renderings cannot drift apart.
+ */
+export interface ShortlistItem {
+  clusterId: string;
+  rank: number;
+  tier: string | null;
+  coverageCount: number;
+  /** Null until the translation stage has run over this cluster's representative. */
+  polishTitle: string | null;
+  polishSummary: string | null;
+  /** FR-009a: always present, and always rendered — as the second language when a translation
+   * exists, as the only one when it does not. */
+  originalTitle: string;
+  originalLede: string | null;
+  originalLanguage: string | null;
+  sourceUrl: string | null;
+  translated: boolean;
+}
+
 /** A confirmed story selection — the operator's choice for one digest (S-04, FR-012). */
 export type SelectionRow = Database["public"]["Tables"]["selection"]["Row"];
 

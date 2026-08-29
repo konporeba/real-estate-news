@@ -1,32 +1,14 @@
 ---
 import Layout from "@/layouts/Layout.astro";
 import OperatorHeader from "@/components/OperatorHeader.astro";
+import { SelectionForm } from "@/components/SelectionForm";
+import { ShortlistCard } from "@/components/ShortlistCard";
+import { FORMAT_LABELS, PLATFORM_LABELS } from "@/lib/selection/rules";
 import { createServiceClient } from "@/lib/supabase-admin";
-import type { DigestStatus } from "@/types";
-
-const TIER_STYLES: Record<string, string> = {
-  catalonia: "border-green-400/40 bg-green-500/20 text-green-300",
-  national: "border-amber-400/40 bg-amber-500/20 text-amber-300",
-  global: "border-sky-400/40 bg-sky-500/20 text-sky-300",
-  discard: "border-white/20 bg-white/10 text-blue-100/60",
-};
-const DEFAULT_TIER_STYLE = "border-white/20 bg-white/10 text-blue-100/60";
-
-/** FR-009a: each side of a shortlist card is language-flagged, so an odd translation can be
- * checked against its source. Null `article.language` (a source collected before the column
- * existed, or one added without a backfill) renders with no flag rather than a wrong one. */
-const LANGUAGE_CHIP =
-  "rounded border border-white/15 bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-blue-100/70";
+import type { DigestStatus, SelectionFormat, SelectionPlatform, ShortlistItem } from "@/types";
 
 /** Statuses reached before the ranking stage (and its translation sub-step) has run. */
 const NOT_READY_STATUSES: DigestStatus[] = ["collecting", "ranking"];
-
-/** Only http(s) links are rendered as clickable — blocks javascript:/data: URI schemes in a
- * source_url sourced from scraped RSS content. Mirrors src/lib/email/layout.ts's isSafeUrl(),
- * duplicated rather than imported since that module is worker-side-only. */
-function isSafeUrl(url: string): boolean {
-  return /^https?:\/\//i.test(url);
-}
 
 interface DigestSummary {
   id: string;
@@ -60,24 +42,11 @@ if (client) {
   Astro.response.status = 503;
 }
 
-interface ShortlistItem {
-  clusterId: string;
-  rank: number;
-  tier: string | null;
-  coverageCount: number;
-  /** Null until the translation stage has run over this cluster's representative. */
-  polishTitle: string | null;
-  polishSummary: string | null;
-  /** FR-009a: always present, and always rendered — as the second language when a translation
-   * exists, as the only one when it does not. */
-  originalTitle: string;
-  originalLede: string | null;
-  originalLanguage: string | null;
-  sourceUrl: string | null;
-  translated: boolean;
-}
-
 let shortlist: ShortlistItem[] = [];
+
+/** The confirmed selection, when this digest is past the gate. Null while selection is open. */
+let selection: { format: SelectionFormat; platforms: SelectionPlatform[] } | null = null;
+let pickedClusterIds = new Set<string>();
 
 if (client && digest && !NOT_READY_STATUSES.includes(digest.status) && digest.status !== "failed") {
   const { data: clusters, error: clustersError } = await client
@@ -144,7 +113,44 @@ if (client && digest && !NOT_READY_STATUSES.includes(digest.status) && digest.st
       translated: Boolean(representative.polish_title),
     };
   });
+
+  // The selection drives which rendering the page shows: its absence is what "the gate is still
+  // open" means. A query failure here follows S-03 impl-review F2 — surface it as a distinct
+  // failure rather than letting it read as "no selection yet", which would wrongly re-offer an
+  // irreversible action on a digest that has already passed the gate.
+  const { data: selectionRow, error: selectionError } = await client
+    .from("selection")
+    .select("id, format, platforms")
+    .eq("digest_id", digest.id)
+    .maybeSingle();
+  if (selectionError) {
+    console.error(
+      `failed to load selection for digest ${digest.id}: ${selectionError.code}: ${selectionError.message}`,
+    );
+    loadError = true;
+    Astro.response.status = 500;
+  } else if (selectionRow) {
+    selection = { format: selectionRow.format, platforms: selectionRow.platforms };
+
+    const { data: items, error: itemsError } = await client
+      .from("selection_item")
+      .select("cluster_id, picked")
+      .eq("selection_id", selectionRow.id)
+      .eq("picked", true);
+    if (itemsError) {
+      console.error(
+        `failed to load selection items for digest ${digest.id}: ${itemsError.code}: ${itemsError.message}`,
+      );
+      loadError = true;
+      Astro.response.status = 500;
+    } else {
+      pickedClusterIds = new Set(items.map((item) => item.cluster_id));
+    }
+  }
 }
+
+/** The gate is open only while the digest awaits selection and none has been recorded. */
+const selectionOpen = digest?.status === "ready_for_selection" && !selection && !loadError;
 ---
 
 <Layout title="Digest">
@@ -176,70 +182,23 @@ if (client && digest && !NOT_READY_STATUSES.includes(digest.status) && digest.st
           <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">
             No shortlisted stories for this digest.
           </p>
+        ) : selectionOpen ? (
+          <SelectionForm client:load digestId={digest.id} items={shortlist} />
         ) : (
-          <ul class="space-y-3">
-            {shortlist.map((item) => (
-              <li class="rounded-xl border border-white/10 bg-white/10 p-4">
-                <div class="flex items-start justify-between gap-3">
-                  <span class="text-blue-100/50">#{item.rank}</span>
-                  {item.tier && (
-                    <span
-                      class:list={[
-                        "rounded-full border px-3 py-1 text-xs tracking-wide uppercase",
-                        TIER_STYLES[item.tier] ?? DEFAULT_TIER_STYLE,
-                      ]}
-                    >
-                      {item.tier}
-                    </span>
-                  )}
-                </div>
-                {item.translated ? (
-                  <Fragment>
-                    <div class="mt-2 flex items-start gap-2">
-                      <span class:list={LANGUAGE_CHIP}>PL</span>
-                      <h2 class="text-lg font-semibold">{item.polishTitle}</h2>
-                    </div>
-                    {item.polishSummary && <p class="mt-1 text-sm text-blue-100/70">{item.polishSummary}</p>}
-                    <div class="mt-3 border-t border-white/10 pt-3">
-                      <div class="flex items-start gap-2">
-                        {item.originalLanguage && (
-                          <span class:list={LANGUAGE_CHIP}>{item.originalLanguage.toUpperCase()}</span>
-                        )}
-                        <h3 class="text-sm font-medium text-blue-100/80">{item.originalTitle}</h3>
-                      </div>
-                      {item.originalLede && <p class="mt-1 text-sm text-blue-100/50">{item.originalLede}</p>}
-                    </div>
-                  </Fragment>
-                ) : (
-                  <Fragment>
-                    <div class="mt-2 flex items-start gap-2">
-                      {item.originalLanguage && (
-                        <span class:list={LANGUAGE_CHIP}>{item.originalLanguage.toUpperCase()}</span>
-                      )}
-                      <h2 class="text-lg font-semibold">{item.originalTitle}</h2>
-                    </div>
-                    {item.originalLede && <p class="mt-1 text-sm text-blue-100/70">{item.originalLede}</p>}
-                  </Fragment>
-                )}
-                <div class="mt-3 flex items-center gap-3 text-xs text-blue-100/60">
-                  <span>
-                    {item.coverageCount} source{item.coverageCount === 1 ? "" : "s"}
-                  </span>
-                  {!item.translated && <span class="text-amber-300">untranslated</span>}
-                  {item.sourceUrl && isSafeUrl(item.sourceUrl) && (
-                    <a
-                      href={item.sourceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="text-blue-300 hover:underline"
-                    >
-                      Read original →
-                    </a>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
+          <Fragment>
+            {selection && (
+              <p class="mb-4 rounded-xl border border-purple-400/30 bg-purple-500/10 p-4 text-sm text-blue-100/80">
+                Selection confirmed — <span class="font-semibold">{pickedClusterIds.size}</span> stories going out as{" "}
+                <span class="font-semibold">{FORMAT_LABELS[selection.format]}</span> content for{" "}
+                <span class="font-semibold">{selection.platforms.map((p) => PLATFORM_LABELS[p]).join(", ")}</span>.
+              </p>
+            )}
+            <ul class="space-y-3">
+              {shortlist.map((item) => (
+                <ShortlistCard item={item} picked={pickedClusterIds.has(item.clusterId)} />
+              ))}
+            </ul>
+          </Fragment>
         )
       }
     </main>
