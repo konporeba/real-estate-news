@@ -429,29 +429,29 @@ No rollback is destructive — both new tables are additive and cascade from `di
 
 #### Automated
 
-- [x] 2.1 Lint passes: `npm run lint`
-- [x] 2.2 Type check and build pass: `npm run build`
-- [x] 2.3 Collection suite still passes: `npm test`
+- [x] 2.1 Lint passes: `npm run lint` — 7625131
+- [x] 2.2 Type check and build pass: `npm run build` — 7625131
+- [x] 2.3 Collection suite still passes: `npm test` — 7625131
 
 #### Manual
 
-- [x] 2.4 A shortlisted story shows Polish and original text simultaneously, each flagged
-- [x] 2.5 A Catalan-source story is flagged `CA`, not `ES`
-- [x] 2.6 An untranslated cluster renders once, not twice, and keeps its `untranslated` marker
+- [x] 2.4 A shortlisted story shows Polish and original text simultaneously, each flagged — 7625131
+- [x] 2.5 A Catalan-source story is flagged `CA`, not `ES` — 7625131
+- [x] 2.6 An untranslated cluster renders once, not twice, and keeps its `untranslated` marker — 7625131
 
 ### Phase 3: Selection rules module & confirm API route
 
 #### Automated
 
-- [ ] 3.1 Lint passes: `npm run lint`
-- [ ] 3.2 Type check and build pass: `npm run build`
-- [ ] 3.3 Rules suite passes: `npm test`
+- [x] 3.1 Lint passes: `npm run lint`
+- [x] 3.2 Type check and build pass: `npm run build`
+- [x] 3.3 Rules suite passes: `npm test`
 
 #### Manual
 
-- [ ] 3.4 `POST /api/selection/confirm` with no session cookie returns 401 JSON, not a redirect
-- [ ] 3.5 A valid request against a real `ready_for_selection` digest returns 200 and moves it to `generating`
-- [ ] 3.6 Re-posting the same request returns 409, not 500
+- [x] 3.4 `POST /api/selection/confirm` with no session cookie returns 401 JSON, not a redirect
+- [x] 3.5 A valid request against a real `ready_for_selection` digest returns 200 and moves it to `generating`
+- [x] 3.6 Re-posting the same request returns 409, not 500
 
 ### Phase 4: Selection UI island & post-confirm view
 

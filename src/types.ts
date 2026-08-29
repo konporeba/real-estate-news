@@ -89,6 +89,51 @@ export interface EmailError {
 
 export type EmailResult = { ok: true } | EmailError;
 
+/** A confirmed story selection — the operator's choice for one digest (S-04, FR-012). */
+export type SelectionRow = Database["public"]["Tables"]["selection"]["Row"];
+
+/** One shortlisted cluster's label: picked or passed (US-10). */
+export type SelectionItemRow = Database["public"]["Tables"]["selection_item"]["Row"];
+
+/** FR-012's output format; mirrors the `selection_format` Postgres enum. */
+export type SelectionFormat = Database["public"]["Enums"]["selection_format"];
+
+/** FR-012's target platforms; mirrors the `selection_platform` Postgres enum. */
+export type SelectionPlatform = Database["public"]["Enums"]["selection_platform"];
+
+/**
+ * Why confirming a selection did not succeed. Mirrors {@link RunStateErrorReason}: these are
+ * expected results the caller handles, not exceptions. Each maps from a SQLSTATE raised by
+ * `confirm_selection` (see the migration's header) except the first two, which the API route
+ * decides before reaching the database.
+ *
+ * - `unauthorized` — no operator session; the route answers 401 rather than redirecting
+ * - `invalid_request` — malformed body, or a pick set the rules reject (SG003, SG004)
+ * - `wrong_status` — the digest is not in `ready_for_selection` (SG002)
+ * - `stale_shortlist` — the shortlist sent no longer matches the digest's ranked clusters (SG005)
+ * - `already_confirmed` — a selection for this digest exists (23505 on selection.digest_id)
+ * - `not_found` — no digest with that id (SG001)
+ * - `not_configured` — no Supabase service client
+ * - `database_error` — anything else Postgres reported
+ */
+export type SelectionErrorReason =
+  | "unauthorized"
+  | "invalid_request"
+  | "wrong_status"
+  | "stale_shortlist"
+  | "already_confirmed"
+  | "not_found"
+  | "not_configured"
+  | "database_error";
+
+export interface SelectionError {
+  ok: false;
+  reason: SelectionErrorReason;
+  message: string;
+}
+
+export type SelectionResult<T> = { ok: true; data: T } | SelectionError;
+
 /** A named job's scheduling state — is it running, when did it last fire/complete. */
 export type ScheduledJobRow = Database["public"]["Tables"]["scheduled_job"]["Row"];
 
