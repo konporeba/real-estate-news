@@ -25,6 +25,8 @@
 //   - `selection`, `selection_item` under public.Tables, `selection_format` and
 //     `selection_platform` under public.Enums, `confirm_selection` under public.Functions
 //     (20260829120000_selection_gate.sql)
+//   - `article.language: string | null` in Row/Insert/Update
+//     (20260829130000_article_language.sql)
 export type Json =
   | string
   | number
@@ -72,6 +74,7 @@ export type Database = {
           created_at: string
           digest_id: string
           id: string
+          language: string | null
           original_lede: string | null
           original_title: string
           polish_summary: string | null
@@ -85,6 +88,7 @@ export type Database = {
           created_at?: string
           digest_id: string
           id?: string
+          language?: string | null
           original_lede?: string | null
           original_title: string
           polish_summary?: string | null
@@ -98,6 +102,7 @@ export type Database = {
           created_at?: string
           digest_id?: string
           id?: string
+          language?: string | null
           original_lede?: string | null
           original_title?: string
           polish_summary?: string | null

@@ -152,6 +152,9 @@ async function insertCandidates(
       published_at: candidate.publishedAt?.toISOString() ?? null,
       original_title: candidate.title,
       original_lede: candidate.lede,
+      // FR-009a: denormalised from the registry so the dashboard can flag the original
+      // alongside its Polish translation without importing worker-side code.
+      language: source.language,
     }));
 
   // upsert + ignoreDuplicates is ON CONFLICT DO NOTHING; `insert` has no such option.

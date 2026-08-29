@@ -12,6 +12,12 @@ const TIER_STYLES: Record<string, string> = {
 };
 const DEFAULT_TIER_STYLE = "border-white/20 bg-white/10 text-blue-100/60";
 
+/** FR-009a: each side of a shortlist card is language-flagged, so an odd translation can be
+ * checked against its source. Null `article.language` (a source collected before the column
+ * existed, or one added without a backfill) renders with no flag rather than a wrong one. */
+const LANGUAGE_CHIP =
+  "rounded border border-white/15 bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-blue-100/70";
+
 /** Statuses reached before the ranking stage (and its translation sub-step) has run. */
 const NOT_READY_STATUSES: DigestStatus[] = ["collecting", "ranking"];
 
@@ -59,8 +65,14 @@ interface ShortlistItem {
   rank: number;
   tier: string | null;
   coverageCount: number;
-  title: string;
-  summary: string | null;
+  /** Null until the translation stage has run over this cluster's representative. */
+  polishTitle: string | null;
+  polishSummary: string | null;
+  /** FR-009a: always present, and always rendered — as the second language when a translation
+   * exists, as the only one when it does not. */
+  originalTitle: string;
+  originalLede: string | null;
+  originalLanguage: string | null;
   sourceUrl: string | null;
   translated: boolean;
 }
@@ -89,7 +101,7 @@ if (client && digest && !NOT_READY_STATUSES.includes(digest.status) && digest.st
       ? await client
           .from("article")
           .select(
-            "id, cluster_id, source_url, published_at, original_title, original_lede, polish_title, polish_summary",
+            "id, cluster_id, source_url, published_at, original_title, original_lede, polish_title, polish_summary, language",
           )
           .in("cluster_id", clusterIds)
           .order("published_at", { ascending: true })
@@ -123,8 +135,11 @@ if (client && digest && !NOT_READY_STATUSES.includes(digest.status) && digest.st
       rank: cluster.rank,
       tier,
       coverageCount: cluster.coverage_count,
-      title: representative.polish_title ?? representative.original_title,
-      summary: representative.polish_summary ?? representative.original_lede,
+      polishTitle: representative.polish_title,
+      polishSummary: representative.polish_summary,
+      originalTitle: representative.original_title,
+      originalLede: representative.original_lede,
+      originalLanguage: representative.language,
       sourceUrl: representative.source_url,
       translated: Boolean(representative.polish_title),
     };
@@ -178,8 +193,34 @@ if (client && digest && !NOT_READY_STATUSES.includes(digest.status) && digest.st
                     </span>
                   )}
                 </div>
-                <h2 class="mt-2 text-lg font-semibold">{item.title}</h2>
-                {item.summary && <p class="mt-1 text-sm text-blue-100/70">{item.summary}</p>}
+                {item.translated ? (
+                  <Fragment>
+                    <div class="mt-2 flex items-start gap-2">
+                      <span class:list={LANGUAGE_CHIP}>PL</span>
+                      <h2 class="text-lg font-semibold">{item.polishTitle}</h2>
+                    </div>
+                    {item.polishSummary && <p class="mt-1 text-sm text-blue-100/70">{item.polishSummary}</p>}
+                    <div class="mt-3 border-t border-white/10 pt-3">
+                      <div class="flex items-start gap-2">
+                        {item.originalLanguage && (
+                          <span class:list={LANGUAGE_CHIP}>{item.originalLanguage.toUpperCase()}</span>
+                        )}
+                        <h3 class="text-sm font-medium text-blue-100/80">{item.originalTitle}</h3>
+                      </div>
+                      {item.originalLede && <p class="mt-1 text-sm text-blue-100/50">{item.originalLede}</p>}
+                    </div>
+                  </Fragment>
+                ) : (
+                  <Fragment>
+                    <div class="mt-2 flex items-start gap-2">
+                      {item.originalLanguage && (
+                        <span class:list={LANGUAGE_CHIP}>{item.originalLanguage.toUpperCase()}</span>
+                      )}
+                      <h2 class="text-lg font-semibold">{item.originalTitle}</h2>
+                    </div>
+                    {item.originalLede && <p class="mt-1 text-sm text-blue-100/70">{item.originalLede}</p>}
+                  </Fragment>
+                )}
                 <div class="mt-3 flex items-center gap-3 text-xs text-blue-100/60">
                   <span>
                     {item.coverageCount} source{item.coverageCount === 1 ? "" : "s"}

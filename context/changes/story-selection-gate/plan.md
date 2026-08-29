@@ -414,30 +414,30 @@ No rollback is destructive — both new tables are additive and cascade from `di
 
 #### Automated
 
-- [x] 1.1 Lint passes: `npm run lint`
-- [x] 1.2 Type check and build pass: `npm run build`
-- [x] 1.3 Selection integration suite passes: `SUPABASE_TEST_PROJECT=1 npm test`
-- [x] 1.4 Full suite passes with no regression in the state-machine drift guard: `npm test`
+- [x] 1.1 Lint passes: `npm run lint` — 50f6515
+- [x] 1.2 Type check and build pass: `npm run build` — 50f6515
+- [x] 1.3 Selection integration suite passes: `SUPABASE_TEST_PROJECT=1 npm test` — 50f6515
+- [x] 1.4 Full suite passes with no regression in the state-machine drift guard: `npm test` — 50f6515
 
 #### Manual
 
-- [x] 1.5 Migration applied through the Supabase SQL Editor without error
-- [x] 1.6 `confirm_selection` called directly from the SQL Editor produces the expected rows and transition
-- [x] 1.7 Both new tables reject a direct read through the publishable (anon) key
+- [x] 1.5 Migration applied through the Supabase SQL Editor without error — 50f6515
+- [x] 1.6 `confirm_selection` called directly from the SQL Editor produces the expected rows and transition — 50f6515
+- [x] 1.7 Both new tables reject a direct read through the publishable (anon) key — 50f6515
 
 ### Phase 2: Show the original alongside the translation (FR-009a)
 
 #### Automated
 
-- [ ] 2.1 Lint passes: `npm run lint`
-- [ ] 2.2 Type check and build pass: `npm run build`
-- [ ] 2.3 Collection suite still passes: `npm test`
+- [x] 2.1 Lint passes: `npm run lint`
+- [x] 2.2 Type check and build pass: `npm run build`
+- [x] 2.3 Collection suite still passes: `npm test`
 
 #### Manual
 
-- [ ] 2.4 A shortlisted story shows Polish and original text simultaneously, each flagged
-- [ ] 2.5 A Catalan-source story is flagged `CA`, not `ES`
-- [ ] 2.6 An untranslated cluster renders once, not twice, and keeps its `untranslated` marker
+- [x] 2.4 A shortlisted story shows Polish and original text simultaneously, each flagged
+- [x] 2.5 A Catalan-source story is flagged `CA`, not `ES`
+- [x] 2.6 An untranslated cluster renders once, not twice, and keeps its `untranslated` marker
 
 ### Phase 3: Selection rules module & confirm API route
 
