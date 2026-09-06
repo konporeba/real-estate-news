@@ -415,27 +415,27 @@ Two schema changes, both additive: a new `generated_copy` table and a nullable `
 
 #### Automated
 
-- [x] 1.1 Lint passes: `npm run lint`
-- [x] 1.2 Type check and build pass: `npm run build`
-- [x] 1.3 No test regressions: `npm test`
+- [x] 1.1 Lint passes: `npm run lint` — fc94d5c
+- [x] 1.2 Type check and build pass: `npm run build` — fc94d5c
+- [x] 1.3 No test regressions: `npm test` — fc94d5c
 
 #### Manual
 
-- [x] 1.4 The migration applies cleanly through the Supabase SQL Editor
-- [x] 1.5 `generated_copy` is readable with the service role and denied with the anon key
-- [x] 1.6 A duplicate `(digest_id, cluster_id)` insert is rejected
+- [x] 1.4 The migration applies cleanly through the Supabase SQL Editor — fc94d5c
+- [x] 1.5 `generated_copy` is readable with the service role and denied with the anon key — fc94d5c
+- [x] 1.6 A duplicate `(digest_id, cluster_id)` insert is rejected — fc94d5c
 
 ### Phase 2: Numeric-integrity module (FR-014)
 
 #### Automated
 
-- [ ] 2.1 Lint passes: `npm run lint`
-- [ ] 2.2 Type check and build pass: `npm run build`
-- [ ] 2.3 Numeral suite passes: `npm test`
+- [x] 2.1 Lint passes: `npm run lint`
+- [x] 2.2 Type check and build pass: `npm run build`
+- [x] 2.3 Numeral suite passes: `npm test`
 
 #### Manual
 
-- [ ] 2.4 `extractFigures` on a real Spanish article yields the story's key numbers and no page furniture
+- [x] 2.4 `extractFigures` on a real Spanish article yields the story's key numbers and no page furniture
 
 ### Phase 3: Article text extraction
 
