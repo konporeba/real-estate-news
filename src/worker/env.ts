@@ -20,6 +20,10 @@ const workerEnvSchema = z.object({
   GMAIL_USER: z.email("GMAIL_USER must be a valid email address").optional(),
   GMAIL_APP_PASSWORD: z.string().min(1, "GMAIL_APP_PASSWORD must not be empty").optional(),
   OPERATOR_EMAIL: z.email("OPERATOR_EMAIL must be a valid email address").optional(),
+  // S-04/FR-010: where the dashboard is reachable, for the digest-ready email's link. The worker
+  // has no other way to know — it never serves the app. Optional like the Gmail credentials: an
+  // unset value sends the notification without a button rather than one pointing nowhere.
+  DASHBOARD_BASE_URL: z.url("DASHBOARD_BASE_URL must be a valid URL").optional(),
 });
 
 export type WorkerEnv = z.infer<typeof workerEnvSchema>;

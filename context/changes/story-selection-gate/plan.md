@@ -457,29 +457,39 @@ No rollback is destructive — both new tables are additive and cascade from `di
 
 #### Automated
 
-- [x] 4.1 Lint passes on `.tsx` and `.astro`: `npm run lint`
-- [x] 4.2 Type check and build pass, with the island bundled: `npm run build`
-- [x] 4.3 No test regressions: `npm test`
+- [x] 4.1 Lint passes on `.tsx` and `.astro`: `npm run lint` — 2c6c167
+- [x] 4.2 Type check and build pass, with the island bundled: `npm run build` — 2c6c167
+- [x] 4.3 No test regressions: `npm test` — 2c6c167
 
 #### Manual
 
-- [x] 4.4 Submit is disabled at 0–1 picks, enabled at 2, disabled again at 5
-- [x] 4.5 The review step lists exactly the chosen titles, format, and platforms
-- [x] 4.6 Confirming moves the digest to `generating` and re-renders read-only with picks marked
-- [x] 4.7 A digest past `ready_for_selection` shows no controls
-- [x] 4.8 A rejected confirm shows the message inline and leaves choices intact
+- [x] 4.4 Submit is disabled at 0–1 picks, enabled at 2, disabled again at 5 — 2c6c167
+- [x] 4.5 The review step lists exactly the chosen titles, format, and platforms — 2c6c167
+- [x] 4.6 Confirming moves the digest to `generating` and re-renders read-only with picks marked — 2c6c167
+- [x] 4.7 A digest past `ready_for_selection` shows no controls — 2c6c167
+- [x] 4.8 A rejected confirm shows the message inline and leaves choices intact — 2c6c167
 
 ### Phase 5: FR-010 digest-ready email
 
 #### Automated
 
-- [ ] 5.1 Lint passes: `npm run lint`
-- [ ] 5.2 Type check and build pass: `npm run build`
-- [ ] 5.3 Email builder suite passes: `npm test`
+- [x] 5.1 Lint passes: `npm run lint`
+- [x] 5.2 Type check and build pass: `npm run build`
+- [x] 5.3 Email builder suite passes: `npm test`
 
 #### Manual
 
-- [ ] 5.4 `npm run rank` on a real digest delivers the email to `OPERATOR_EMAIL`
-- [ ] 5.5 All 15 stories appear as cards with tier-appropriate colors
-- [ ] 5.6 The CTA opens the correct digest page through the tunnel hostname
-- [ ] 5.7 With Gmail credentials unset, `npm run rank` completes normally and logs that email is not configured
+- [x] 5.4 `npm run rank` on a real digest delivers the email to `OPERATOR_EMAIL` — 2026-09-06: closed
+      through the real entrypoint. `npm run rank --digest=c92aa3c5` on a fresh 108-article digest
+      transitioned it to `ready_for_selection` ($0.3618) and sent the notification, exit 0.
+- [x] 5.5 All 15 stories appear as cards with tier-appropriate colors — 2026-09-06: digest `c92aa3c5`
+      yields 15 cards, 8 `catalonia` → green pill (`#dcfce7`/`#15803d`) and 7 `national` → amber
+      (`#fef3c7`/`#b45309`). Two distinct tier colors confirmed in the delivered HTML.
+- [ ] 5.6 The CTA opens the correct digest page through the tunnel hostname — partially: the CTA renders
+      and carries the right digest id, verified at `http://localhost:4321`. Not yet re-sent with
+      `DASHBOARD_BASE_URL` pointing at the real Cloudflare Tunnel host — the tunnel is not stood up yet,
+      so this is deferred rather than failing.
+- [x] 5.7 With Gmail credentials unset, `npm run rank` completes normally and logs that email is not
+      configured — covered against the real database by `notifyDigestReady (integration)` in
+      `src/worker/rank.test.ts` ("resolves quietly when email is not configured", plus a transport-failure
+      and an empty-cluster case). The `main()` wrapper itself was not run credential-less.

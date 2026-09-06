@@ -6,6 +6,9 @@
 // eslint.config.js enforces both directions of that boundary.
 import { pathToFileURL } from "node:url";
 
+import { createEmailClient, type EmailTransport } from "@/lib/email/client";
+import { buildDigestReadyEmail, type DigestReadyItem } from "@/lib/email/digest-ready";
+import { sendEmail } from "@/lib/email/send";
 import { createLlmClient } from "@/lib/llm/client";
 import { resumeDigest } from "@/lib/digest/run-state";
 import { rankDigest } from "@/lib/ranking/rank";
@@ -74,7 +77,8 @@ export async function resolveTargetDigest(client: ServiceClient, digestId: strin
   return digest;
 }
 
-interface ShortlistRow {
+export interface ShortlistRow {
+  id: string;
   rank: number;
   relevance_score: number | null;
   coverage_count: number;
@@ -84,12 +88,65 @@ interface ShortlistRow {
 async function fetchShortlist(client: ServiceClient, digestId: string): Promise<ShortlistRow[]> {
   const { data, error } = await client
     .from("cluster")
-    .select("rank, relevance_score, coverage_count, scoring_detail")
+    .select("id, rank, relevance_score, coverage_count, scoring_detail")
     .eq("digest_id", digestId)
     .not("rank", "is", null)
     .order("rank", { ascending: true });
   if (error) throw new Error(`${error.code}: ${error.message}`);
   return data as ShortlistRow[];
+}
+
+/**
+ * Join each shortlisted cluster to the article the operator will actually read, so the FR-010
+ * email shows the same text the dashboard does. The representative rule is the one
+ * src/pages/dashboard/[id].astro uses: whichever article carries a Polish translation (at most
+ * one per cluster, per translateShortlist's scope), else the earliest published.
+ */
+async function fetchDigestReadyItems(
+  client: ServiceClient,
+  digestId: string,
+  shortlist: ShortlistRow[],
+): Promise<DigestReadyItem[]> {
+  if (shortlist.length === 0) return [];
+
+  const { data, error } = await client
+    .from("article")
+    .select("cluster_id, source_url, original_title, original_lede, polish_title, polish_summary")
+    .in(
+      "cluster_id",
+      shortlist.map((row) => row.id),
+    )
+    .order("published_at", { ascending: true });
+  if (error) throw new Error(`${error.code}: ${error.message}`);
+
+  const byCluster = new Map<string, typeof data>();
+  for (const article of data) {
+    if (!article.cluster_id) continue;
+    const list = byCluster.get(article.cluster_id) ?? [];
+    list.push(article);
+    byCluster.set(article.cluster_id, list);
+  }
+
+  return shortlist.flatMap((row): DigestReadyItem[] => {
+    const articles = byCluster.get(row.id) ?? [];
+    // .at(0) rather than [0]: an empty list is typed away by the index signature but is real.
+    const representative = articles.find((a) => a.polish_title) ?? articles.at(0);
+    // A shortlisted cluster with no articles cannot happen (clusters are built from articles),
+    // but the email is not worth a crash if it ever does — drop the row instead.
+    if (!representative) return [];
+    return [
+      {
+        rank: row.rank,
+        tier: row.scoring_detail?.tier ?? null,
+        coverageCount: row.coverage_count,
+        polishTitle: representative.polish_title,
+        polishSummary: representative.polish_summary,
+        originalTitle: representative.original_title,
+        originalLede: representative.original_lede,
+        sourceUrl: representative.source_url,
+      },
+    ];
+  });
 }
 
 function summarize(rows: ShortlistRow[]): string {
@@ -136,7 +193,61 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
   const shortlist = await fetchShortlist(client, digest.id);
   console.log(`shortlist (${shortlist.length} of ${outcome.data.clusterCount} clusters):`);
   console.log(summarize(shortlist));
+
+  const transport = createEmailClient(
+    env.GMAIL_USER && env.GMAIL_APP_PASSWORD ? { user: env.GMAIL_USER, appPassword: env.GMAIL_APP_PASSWORD } : null,
+  );
+  await notifyDigestReady(client, transport, digest, shortlist, {
+    recipient: env.OPERATOR_EMAIL,
+    baseUrl: env.DASHBOARD_BASE_URL,
+  });
   return 0;
+}
+
+/**
+ * FR-010: tell the operator the selection gate is open.
+ *
+ * Composed at the entrypoint rather than inside rankDigest(), mirroring how scheduled-run.ts
+ * chains collect and rank: the ranking library stays free of side effects that aren't ranking.
+ *
+ * Never fails the run. Ranking has already succeeded and been persisted by this point, so a
+ * missing credential or a refused SMTP connection must not turn a good digest into a failed job —
+ * runCollectionJob() in scheduled-run.ts reads this function's exit code as the job's outcome.
+ */
+export async function notifyDigestReady(
+  client: ServiceClient,
+  transport: EmailTransport | null,
+  digest: DigestRun,
+  shortlist: ShortlistRow[],
+  options: { recipient?: string; baseUrl?: string } = {},
+): Promise<void> {
+  // Every failure path below returns rather than throws. sendEmail() already promises never to
+  // throw; the read and the build do not, so they are guarded here.
+  let items: DigestReadyItem[];
+  try {
+    items = await fetchDigestReadyItems(client, digest.id, shortlist);
+  } catch (error: unknown) {
+    console.error(`digest-ready email skipped: could not read the shortlist articles: ${String(error)}`);
+    return;
+  }
+
+  let request;
+  try {
+    request = buildDigestReadyEmail(digest, items, options.baseUrl);
+  } catch (error: unknown) {
+    console.error(`digest-ready email skipped: could not build the message: ${String(error)}`);
+    return;
+  }
+
+  const result = await sendEmail(transport, options.recipient, request);
+
+  if (result.ok) {
+    console.log(`digest-ready email sent to ${options.recipient ?? "?"}`);
+  } else if (result.reason === "not_configured") {
+    console.log("digest-ready email not sent: email is not configured (GMAIL_USER/GMAIL_APP_PASSWORD/OPERATOR_EMAIL)");
+  } else {
+    console.error(`digest-ready email failed: ${result.reason}: ${result.message}`);
+  }
 }
 
 // Only run when executed directly, so the tests can import the helpers above.

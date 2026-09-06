@@ -9,8 +9,8 @@
 // pass the first assertion and fail the second.
 //
 // Target: whatever SUPABASE_URL points at, using the service-role key from `.env`. Every row is
-// written into synthetic 2998 week windows (a year of its own — the other integration suites use
-// 1970, 1971 and 2991-2997) and purged before and after the run, so no real digest is touched.
+// written into synthetic 2999 week windows (a year of its own — the other integration suites use
+// 1970, 1971 and 2991-2998) and purged before and after the run, so no real digest is touched.
 //
 // Running requires an explicit opt-in — SUPABASE_TEST_PROJECT=1 on top of the key — so that
 // pointing an RLS-bypassing write suite at a project is always a deliberate act.
@@ -26,9 +26,9 @@ const configured = Boolean(
   process.env.SUPABASE_TEST_PROJECT === "1" && process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY,
 );
 
-/** Synthetic weeks live in 2998 so they can never collide with a real digest or another suite. */
-const TEST_WINDOW_FIRST = "2998-01-01";
-const TEST_WINDOW_LAST = "2998-12-31";
+/** Synthetic weeks live in 2999 so they can never collide with a real digest or another suite. */
+const TEST_WINDOW_FIRST = "2999-01-01";
+const TEST_WINDOW_LAST = "2999-12-31";
 
 let weekIndex = 0;
 
@@ -41,8 +41,8 @@ function nextWindow(): DigestWindow {
   const offset = weekIndex * 7;
   weekIndex += 1;
   return {
-    start: isoDate(new Date(Date.UTC(2998, 0, 5 + offset))),
-    end: isoDate(new Date(Date.UTC(2998, 0, 11 + offset))),
+    start: isoDate(new Date(Date.UTC(2999, 0, 5 + offset))),
+    end: isoDate(new Date(Date.UTC(2999, 0, 11 + offset))),
   };
 }
 

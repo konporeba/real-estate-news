@@ -7,7 +7,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createDigest, transitionDigest } from "@/lib/digest/run-state";
 import { createServiceClient, type ServiceClient } from "@/lib/supabase-service";
-import { parseDigestFlag, RankRefused, resolveTargetDigest } from "@/worker/rank";
+import { fakeEmailTransport } from "@/lib/email/testing";
+import { notifyDigestReady, parseDigestFlag, RankRefused, resolveTargetDigest, type ShortlistRow } from "@/worker/rank";
 import type { RunStateResult } from "@/types";
 
 describe("parseDigestFlag", () => {
@@ -129,5 +130,92 @@ describe.skipIf(!configured)("resolveTargetDigest (integration)", () => {
 
     await expect(resolveTargetDigest(db, collecting.id)).rejects.toThrow(RankRefused);
     await expect(resolveTargetDigest(db, collecting.id)).rejects.toThrow(/not "ranking"/);
+  });
+});
+
+// FR-010: the digest-ready notification. The contract worth testing is not that mail goes out —
+// F-04's own suite covers the harness — but that this step can NEVER fail the ranking run.
+// runCollectionJob() in scheduled-run.ts reads rank's exit code as the job's outcome, so an
+// exception escaping here would turn a good digest into a failed weekly job.
+describe.skipIf(!configured)("notifyDigestReady (integration)", () => {
+  beforeAll(async () => {
+    db = serviceClient();
+    await purgeSynthetic();
+  });
+  afterAll(purgeSynthetic);
+
+  /** A digest with `size` ranked clusters, each carrying one translated article. */
+  async function shortlistedDigest(size: number) {
+    const digest = await rankingDigest(db);
+    const rows: ShortlistRow[] = [];
+
+    for (let i = 0; i < size; i += 1) {
+      const { data: cluster } = await db
+        .from("cluster")
+        .insert({ digest_id: digest.id, rank: i + 1, coverage_count: 1, scoring_detail: { tier: "catalonia" } })
+        .select("id, rank, relevance_score, coverage_count, scoring_detail")
+        .single();
+      await db.from("article").insert({
+        digest_id: digest.id,
+        cluster_id: cluster?.id,
+        source_name: "Test Source",
+        source_url: `https://example.test/notify/${digest.id}/${String(i)}`,
+        original_title: `Original ${String(i)}`,
+        original_lede: "Lede.",
+        polish_title: `Polski ${String(i)}`,
+        polish_summary: "Streszczenie.",
+        language: "es",
+      });
+      rows.push(cluster as unknown as ShortlistRow);
+    }
+    return { digest, rows };
+  }
+
+  it("sends one message carrying the week and the shortlist", async () => {
+    const { digest, rows } = await shortlistedDigest(3);
+    const transport = fakeEmailTransport([true]);
+
+    await notifyDigestReady(db, transport, digest, rows, {
+      recipient: "operator@example.test",
+      baseUrl: "https://news.example",
+    });
+
+    expect(transport.calls).toHaveLength(1);
+    const sent = transport.calls[0] as { to: string; subject: string; html: string };
+    expect(sent.to).toBe("operator@example.test");
+    expect(sent.subject).toContain(digest.window_start);
+    expect(sent.html).toContain("Polski 0");
+    expect(sent.html).toContain(`https://news.example/dashboard/${digest.id}`);
+  });
+
+  it("resolves quietly when email is not configured", async () => {
+    const { digest, rows } = await shortlistedDigest(2);
+
+    await expect(notifyDigestReady(db, null, digest, rows, {})).resolves.toBeUndefined();
+  });
+
+  it("does not throw when the transport fails", async () => {
+    const { digest, rows } = await shortlistedDigest(2);
+    const transport = fakeEmailTransport([new Error("smtp refused the connection")]);
+
+    await expect(
+      notifyDigestReady(db, transport, digest, rows, { recipient: "operator@example.test" }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("does not throw when a shortlisted cluster has no articles", async () => {
+    const digest = await rankingDigest(db);
+    const { data: cluster } = await db
+      .from("cluster")
+      .insert({ digest_id: digest.id, rank: 1 })
+      .select("id, rank, relevance_score, coverage_count, scoring_detail")
+      .single();
+    const transport = fakeEmailTransport([true]);
+
+    await expect(
+      notifyDigestReady(db, transport, digest, [cluster as unknown as ShortlistRow], {
+        recipient: "operator@example.test",
+      }),
+    ).resolves.toBeUndefined();
   });
 });
