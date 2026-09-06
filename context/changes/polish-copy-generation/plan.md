@@ -429,27 +429,27 @@ Two schema changes, both additive: a new `generated_copy` table and a nullable `
 
 #### Automated
 
-- [x] 2.1 Lint passes: `npm run lint`
-- [x] 2.2 Type check and build pass: `npm run build`
-- [x] 2.3 Numeral suite passes: `npm test`
+- [x] 2.1 Lint passes: `npm run lint` — 7dd0aed
+- [x] 2.2 Type check and build pass: `npm run build` — 7dd0aed
+- [x] 2.3 Numeral suite passes: `npm test` — 7dd0aed
 
 #### Manual
 
-- [x] 2.4 `extractFigures` on a real Spanish article yields the story's key numbers and no page furniture
+- [x] 2.4 `extractFigures` on a real Spanish article yields the story's key numbers and no page furniture — 7dd0aed
 
 ### Phase 3: Article text extraction
 
 #### Automated
 
-- [ ] 3.1 Lint passes: `npm run lint`
-- [ ] 3.2 Type check and build pass with the new dependencies: `npm run build`
-- [ ] 3.3 Extraction suite passes: `npm test`
+- [x] 3.1 Lint passes: `npm run lint`
+- [x] 3.2 Type check and build pass with the new dependencies: `npm run build`
+- [x] 3.3 Extraction suite passes: `npm test`
 
 #### Manual
 
-- [ ] 3.4 A real article URL extracts body text without nav, cookie banner, or related links
-- [ ] 3.5 An Idealista URL degrades to a typed failure rather than hanging or throwing
-- [ ] 3.6 Figures found in real extracted text contain no page-furniture numerals
+- [x] 3.4 A real article URL extracts body text without nav, cookie banner, or related links
+- [x] 3.5 An Idealista URL degrades to a typed failure rather than hanging or throwing
+- [x] 3.6 Figures found in real extracted text contain no page-furniture numerals
 
 ### Phase 4: Copy generation
 
