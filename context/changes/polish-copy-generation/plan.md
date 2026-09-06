@@ -455,26 +455,26 @@ Two schema changes, both additive: a new `generated_copy` table and a nullable `
 
 #### Automated
 
-- [x] 4.1 Lint passes: `npm run lint`
-- [x] 4.2 Type check and build pass: `npm run build`
-- [x] 4.3 Generation suite passes: `npm test`
+- [x] 4.1 Lint passes: `npm run lint` — c8291f9
+- [x] 4.2 Type check and build pass: `npm run build` — c8291f9
+- [x] 4.3 Generation suite passes: `npm test` — c8291f9
 
 #### Manual
 
-- [x] 4.4 One real call produces Polish that reads as native social copy, not translated Spanish
-- [x] 4.5 The pulled-out statistics correspond to figures actually in the source
+- [x] 4.4 One real call produces Polish that reads as native social copy, not translated Spanish — c8291f9
+- [x] 4.5 The pulled-out statistics correspond to figures actually in the source — c8291f9
 
 ### Phase 5: Generation orchestrator
 
 #### Automated
 
-- [ ] 5.1 Lint passes: `npm run lint`
-- [ ] 5.2 Type check and build pass: `npm run build`
-- [ ] 5.3 Orchestrator suite passes: `npm test`
+- [x] 5.1 Lint passes: `npm run lint`
+- [x] 5.2 Type check and build pass: `npm run build`
+- [x] 5.3 Orchestrator suite passes: `npm test`
 
 #### Manual
 
-- [ ] 5.4 A digest whose sources all fetch cleanly produces rows with `source_text_origin = 'article'`
+- [x] 5.4 A digest whose sources all fetch cleanly produces rows with `source_text_origin = 'article'`
 
 ### Phase 6: `npm run generate` entrypoint
 
