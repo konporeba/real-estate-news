@@ -144,20 +144,27 @@ describe("vocabulary", () => {
 // helpers read them straight out of the SQL so changing one side without the other fails here
 // rather than in production, where the island would enable a submit the database then rejects.
 
-function readSelectionMigration(): string {
+function readMigrations(marker: string, pick: "first" | "latest"): string {
   const dir = fileURLToPath(new URL("../../../supabase/migrations/", import.meta.url));
   const migrations = readdirSync(dir)
     .filter((file) => file.endsWith(".sql"))
     .sort()
     .map((file) => readFileSync(dir + file, "utf8"))
-    .filter((sql) => sql.includes("function public.confirm_selection"));
+    .filter((sql) => sql.includes(marker));
 
-  const latest = migrations.at(-1);
-  if (!latest) throw new Error("no migration defining confirm_selection() was found");
-  return latest;
+  const chosen = pick === "latest" ? migrations.at(-1) : migrations.at(0);
+  if (!chosen) throw new Error(`no migration containing "${marker}" was found`);
+  return chosen;
 }
 
-const migrationSql = readSelectionMigration();
+// The function body is read from the LATEST migration that defines it: `create or replace
+// function` means a later migration supersedes the original, and the bounds this guard checks
+// must come from whichever definition the database actually holds.
+const migrationSql = readMigrations("function public.confirm_selection", "latest");
+
+// The enums are declared exactly once and never replaced, so they are read from the FIRST
+// migration that creates them rather than from whatever file last touched the function.
+const enumSql = readMigrations("create type selection_format", "first");
 
 describe("drift guard: the SQL and this module must agree", () => {
   it("uses the same pick bounds as confirm_selection()", () => {
@@ -176,8 +183,8 @@ describe("drift guard: the SQL and this module must agree", () => {
   });
 
   it("declares the same format and platform values as the enums in the migration", () => {
-    const formats = /create type selection_format as enum \(([^)]+)\)/.exec(migrationSql);
-    const platforms = /create type selection_platform as enum \(([^)]+)\)/.exec(migrationSql);
+    const formats = /create type selection_format as enum \(([^)]+)\)/.exec(enumSql);
+    const platforms = /create type selection_platform as enum \(([^)]+)\)/.exec(enumSql);
     if (!formats?.[1] || !platforms?.[1]) throw new Error("could not parse the selection enums");
 
     const values = (list: string) =>

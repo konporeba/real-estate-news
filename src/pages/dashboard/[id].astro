@@ -91,27 +91,35 @@ if (client && digest && !NOT_READY_STATUSES.includes(digest.status) && digest.st
     articlesByCluster.set(article.cluster_id, list);
   }
 
-  shortlist = (clusters ?? []).map((cluster): ShortlistItem => {
+  shortlist = (clusters ?? []).flatMap((cluster): ShortlistItem[] => {
     const clusterArticles = articlesByCluster.get(cluster.id) ?? [];
     // The representative is whichever article carries a Polish translation (per translateShortlist's
     // scope, at most one per cluster); a cluster from before this feature shipped falls back to its
-    // earliest-published article, still shown in the original language. Every shortlisted cluster has
-    // at least one article — clusters are built from articles, never created empty.
-    const representative = clusterArticles.find((a) => a.polish_title) ?? clusterArticles[0];
+    // earliest-published article, still shown in the original language.
+    //
+    // .at(0) rather than [0], and a flatMap rather than a map: a shortlisted cluster with no
+    // articles should not happen (clusters are built from articles), but the article query above
+    // can FAIL — and it sets loadError without returning, so this runs with an empty map. Indexing
+    // would throw here and replace the 500 view with an unhandled crash. Same call
+    // fetchDigestReadyItems in src/worker/rank.ts makes for the identical edge.
+    const representative = clusterArticles.find((a) => a.polish_title) ?? clusterArticles.at(0);
+    if (!representative) return [];
     const tier = (cluster.scoring_detail as { tier?: string } | null)?.tier ?? null;
-    return {
-      clusterId: cluster.id,
-      rank: cluster.rank,
-      tier,
-      coverageCount: cluster.coverage_count,
-      polishTitle: representative.polish_title,
-      polishSummary: representative.polish_summary,
-      originalTitle: representative.original_title,
-      originalLede: representative.original_lede,
-      originalLanguage: representative.language,
-      sourceUrl: representative.source_url,
-      translated: Boolean(representative.polish_title),
-    };
+    return [
+      {
+        clusterId: cluster.id,
+        rank: cluster.rank,
+        tier,
+        coverageCount: cluster.coverage_count,
+        polishTitle: representative.polish_title,
+        polishSummary: representative.polish_summary,
+        originalTitle: representative.original_title,
+        originalLede: representative.original_lede,
+        originalLanguage: representative.language,
+        sourceUrl: representative.source_url,
+        translated: Boolean(representative.polish_title),
+      },
+    ];
   });
 
   // The selection drives which rendering the page shows: its absence is what "the gate is still

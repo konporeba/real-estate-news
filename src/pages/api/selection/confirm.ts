@@ -28,13 +28,16 @@ export const prerender = false;
  * SQLSTATE is a real possibility (a future migration, or a constraint firing that this route does
  * not know about), and an index signature would type that miss away.
  */
-const RPC_ERRORS = new Map<string, { reason: SelectionErrorReason; status: number }>([
-  ["SG001", { reason: "not_found", status: 404 }],
-  ["SG002", { reason: "wrong_status", status: 409 }],
-  ["SG003", { reason: "invalid_request", status: 400 }],
-  ["SG004", { reason: "invalid_request", status: 400 }],
-  ["SG005", { reason: "stale_shortlist", status: 409 }],
-  ["23505", { reason: "already_confirmed", status: 409 }],
+const RPC_ERRORS = new Map<string, { reason: SelectionErrorReason; status: number; message: string }>([
+  ["SG001", { reason: "not_found", status: 404, message: "that digest no longer exists" }],
+  ["SG002", { reason: "wrong_status", status: 409, message: "this digest is no longer awaiting selection" }],
+  ["SG003", { reason: "invalid_request", status: 400, message: "select between 2 and 4 distinct stories" }],
+  ["SG004", { reason: "invalid_request", status: 400, message: "every selected story must be on the shortlist" }],
+  [
+    "SG005",
+    { reason: "stale_shortlist", status: 409, message: "the shortlist changed — reload the page and try again" },
+  ],
+  ["23505", { reason: "already_confirmed", status: 409, message: "this digest has already been confirmed" }],
 ]);
 
 function fail(status: number, reason: SelectionErrorReason, message: string): Response {
@@ -94,7 +97,11 @@ export const POST: APIRoute = async (context) => {
     // An unmapped code is a genuine surprise: report it as a server error and keep the raw
     // Postgres message out of the response, matching how the dashboard pages log-and-generalise.
     if (!mapped) return fail(500, "database_error", "could not confirm the selection");
-    return fail(mapped.status, mapped.reason, error.message);
+    // The mapped branch is held to the same rule. confirm_selection's own SG0xx messages are
+    // written for a human, but 23505 is Postgres's, and it names the table and constraint that
+    // collided — the island renders this text verbatim, so the response carries our wording and
+    // the console.error above keeps the database's.
+    return fail(mapped.status, mapped.reason, mapped.message);
   }
 
   return Response.json({ ok: true, selectionId: data }, { status: 200 });

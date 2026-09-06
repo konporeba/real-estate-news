@@ -273,6 +273,21 @@ describe.skipIf(!configured)("confirm_selection (integration)", () => {
       expect(error?.code).toBe("SG005");
       await expectUnchanged(shortlist);
     });
+
+    // impl-review F4. Every id being a ranked cluster is not enough: the set must also be whole.
+    // A truncated shortlist would confirm successfully and write a label for only the clusters it
+    // named, quietly costing S-09 the passes it never heard about — the one thing selection_item
+    // exists to preserve (US-10).
+    it("rejects a shortlist that omits some of the digest's ranked clusters", async () => {
+      const shortlist = await seedShortlist(6);
+
+      const { error } = await confirm(shortlist, shortlist.clusterIds.slice(0, 2), {
+        shortlistIds: shortlist.clusterIds.slice(0, 4),
+      });
+
+      expect(error?.code).toBe("SG005");
+      await expectUnchanged(shortlist);
+    });
   });
 
   describe("digest state", () => {

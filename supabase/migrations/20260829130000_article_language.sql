@@ -25,9 +25,15 @@ comment on column article.language is
   'S-04/FR-009a: the source publication''s language, denormalised from the collection source registry so the dashboard can flag the original alongside its Polish translation without importing worker-side code.';
 
 -- Backfill from source_name so digests collected before this migration render correctly too,
--- not just future ones. Two of the enabled sources publish in Catalan (Open Roadmap Question #1
--- resolved 2026-07-24: the operator enabled Ara and Nacio Digital, widening the translation
--- scope from es->pl to {es,ca}->pl); every other source in the registry is Spanish.
+-- not just future ones. Two sources publish in Catalan -- Ara and Nacio Digital, enabled when
+-- Open Roadmap Question #1 was resolved on 2026-07-24; every other source is Spanish.
+--
+-- CORRECTION (impl-review F5, 2026-09-06): both Catalan sources were DISABLED on 2026-07-31 by
+-- commit 9fcaa75, which narrowed the registry to real-estate-scoped feeds. This backfill was
+-- still correct and useful -- 111 articles collected before that change carry language = 'ca' --
+-- but no NEW collection produces one while they stay disabled, so the 'ca' branch below is
+-- historical rather than forward-looking. Re-enabling them in src/lib/collection/sources.ts is
+-- the only thing needed to make it live again; nothing here changes.
 update article
    set language = case
                     when source_name in ('Ara — Economia', 'Nació Digital — Economia') then 'ca'
