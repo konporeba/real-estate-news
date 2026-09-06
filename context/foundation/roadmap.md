@@ -287,8 +287,8 @@ Foundations below assume these are present and do NOT re-scaffold them.
 | S-01       | weekly-source-collection     | Weekly source collection (tiered, resilient)        | shipped               | Shipped 2026-07-24; 234 articles on first run                                   |
 | S-02       | geography-ranking-rubric     | Geography-ranking rubric + eval harness             | shipped               | Shipped 2026-07-27; verified against a real 368-article pool                    |
 | S-03       | translated-shortlist-view    | Translated shortlist dashboard view ★               | shipped               | Shipped 2026-07-30; reviewed (1 critical fixed); F3 live-translation check open |
-| S-04       | story-selection-gate         | Story selection gate (human gate 1)                 | yes                   | S-03 and F-04 both shipped — unblocked                                          |
-| S-05       | polish-copy-generation       | Polish copy generation + numeric-integrity gate     | no                    | Needs S-04, F-03                                                                |
+| S-04       | story-selection-gate         | Story selection gate (human gate 1)                 | shipped               | Shipped 2026-09-06; reviewed (APPROVED, 1 warning + 4 observations, all fixed)   |
+| S-05       | polish-copy-generation       | Polish copy generation + numeric-integrity gate     | yes                   | S-04 and F-03 both shipped — unblocked; digest `c92aa3c5` waits in `generating`  |
 | S-06       | brand-visual-assets          | Per-platform brand visual assets                    | no                    | Needs S-05; file Canva access (OQ#2)                                            |
 | S-07       | content-approval-gate        | Content approval gate (human gate 2) + reminder     | no                    | Needs S-05, S-06; F-04 shipped — unblocked on that side                         |
 | S-08       | scheduled-publishing         | Scheduled per-platform publishing + missed-deadline | no                    | Needs S-07, F-05; reuses publish integ.                                         |
