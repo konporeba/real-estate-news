@@ -36,6 +36,7 @@ const STAGE_CHECKPOINT: Record<DigestStage, (at: string) => DigestUpdate> = {
   collection: (at) => ({ collection_completed_at: at }),
   ranking: (at) => ({ ranking_completed_at: at }),
   translation: (at) => ({ translation_completed_at: at }),
+  generation: (at) => ({ generation_completed_at: at }),
 };
 
 function fail(reason: RunStateError["reason"], message: string): RunStateError {

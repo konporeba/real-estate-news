@@ -27,6 +27,8 @@
 //     (20260829120000_selection_gate.sql)
 //   - `article.language: string | null` in Row/Insert/Update
 //     (20260829130000_article_language.sql)
+//   - `generated_copy` under public.Tables, `digest.generation_completed_at: string | null`
+//     in Row/Insert/Update (20260906150000_generated_copy.sql)
 export type Json =
   | string
   | number
@@ -172,6 +174,7 @@ export type Database = {
           collection_report: Json | null
           cost_usd: number
           created_at: string
+          generation_completed_at: string | null
           id: string
           last_error: string | null
           ranking_completed_at: string | null
@@ -186,6 +189,7 @@ export type Database = {
           collection_report?: Json | null
           cost_usd?: number
           created_at?: string
+          generation_completed_at?: string | null
           id?: string
           last_error?: string | null
           ranking_completed_at?: string | null
@@ -200,6 +204,7 @@ export type Database = {
           collection_report?: Json | null
           cost_usd?: number
           created_at?: string
+          generation_completed_at?: string | null
           id?: string
           last_error?: string | null
           ranking_completed_at?: string | null
@@ -210,6 +215,60 @@ export type Database = {
           window_start?: string
         }
         Relationships: []
+      }
+      generated_copy: {
+        Row: {
+          body_copy: string
+          caption_summary: string
+          cluster_id: string
+          created_at: string
+          digest_id: string
+          id: string
+          key_statistics: Json
+          polish_title: string
+          source_char_count: number | null
+          source_text_origin: string
+        }
+        Insert: {
+          body_copy: string
+          caption_summary: string
+          cluster_id: string
+          created_at?: string
+          digest_id: string
+          id?: string
+          key_statistics: Json
+          polish_title: string
+          source_char_count?: number | null
+          source_text_origin: string
+        }
+        Update: {
+          body_copy?: string
+          caption_summary?: string
+          cluster_id?: string
+          created_at?: string
+          digest_id?: string
+          id?: string
+          key_statistics?: Json
+          polish_title?: string
+          source_char_count?: number | null
+          source_text_origin?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_copy_digest_id_fkey"
+            columns: ["digest_id"]
+            isOneToOne: false
+            referencedRelation: "digest"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_copy_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "cluster"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pin_lockout_state: {
         Row: {

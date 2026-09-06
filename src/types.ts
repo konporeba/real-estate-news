@@ -9,7 +9,7 @@ export type DigestRun = Database["public"]["Tables"]["digest"]["Row"];
 export type DigestStatus = Database["public"]["Enums"]["digest_status"];
 
 /** Pipeline stages that record a completion checkpoint on `digest`. */
-export type DigestStage = "collection" | "ranking" | "translation";
+export type DigestStage = "collection" | "ranking" | "translation" | "generation";
 
 /** The ISO week a digest covers, as `YYYY-MM-DD` date strings. */
 export interface DigestWindow {
@@ -155,6 +155,30 @@ export interface SelectionError {
 }
 
 export type SelectionResult<T> = { ok: true; data: T } | SelectionError;
+
+/** One Polish social adaptation of a selected story (S-05, FR-013). */
+export type GeneratedCopyRow = Database["public"]["Tables"]["generated_copy"]["Row"];
+
+/**
+ * One pulled-out figure from a story — FR-013's "key statistics". Stored as a jsonb array on
+ * `generated_copy.key_statistics`; the column is typed `Json`, so this is the shape the
+ * generation schema validates and every reader should parse back into.
+ */
+export interface KeyStatistic {
+  /** What the figure measures, in Polish — e.g. "Wzrost cen w Barcelonie". */
+  label: string;
+  /** The figure as it should be rendered — e.g. "8,3%". Kept as text: it is display copy. */
+  value: string;
+}
+
+/**
+ * Which source material a generated adaptation rests on.
+ *
+ * - `article` — the story's page was fetched and its body extracted
+ * - `lede` — that failed (blocked source, paywall, unparseable layout) and generation fell back
+ *   to the stored title + lede, so the copy is thinner and the numeric gate saw fewer figures
+ */
+export type SourceTextOrigin = "article" | "lede";
 
 /** A named job's scheduling state — is it running, when did it last fire/complete. */
 export type ScheduledJobRow = Database["public"]["Tables"]["scheduled_job"]["Row"];
