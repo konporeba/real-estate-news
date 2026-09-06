@@ -1,10 +1,10 @@
 ---
 change_id: story-selection-gate
 title: Story selection gate
-status: impl_reviewed
+status: archived
 created: 2026-08-01
 updated: 2026-09-06
-archived_at: null
+archived_at: 2026-09-06T12:32:24Z
 ---
 
 ## Notes

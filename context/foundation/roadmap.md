@@ -3,7 +3,7 @@ project: "Real Estate News"
 version: 1
 status: draft
 created: 2026-07-22
-updated: 2026-08-01
+updated: 2026-09-06
 prd_version: 1
 main_goal: quality
 top_blocker: none
@@ -37,7 +37,7 @@ A single real-estate professional serving Polish investors in Spain publishes no
 | S-01 | weekly-source-collection     | trigger/re-trigger a week's article collection                       | F-01             | FR-001,002,003,018; US-01→04     | done     |
 | S-02 | geography-ranking-rubric     | (system) cluster + geography-rank the pool, gated by an eval harness | S-01, F-03       | FR-004→008,026; US-06,07,08,25   | done     |
 | S-03 | translated-shortlist-view    | view the ranked Polish shortlist on the dashboard ★                  | S-02, F-02       | FR-008,009,009a,011; US-05,07,22 | done     |
-| S-04 | story-selection-gate         | select 2–4 stories, format, and platforms                            | S-03, F-04       | FR-010,012; US-09,10             | proposed |
+| S-04 | story-selection-gate         | select 2–4 stories, format, and platforms                            | S-03, F-04       | FR-010,012; US-09,10             | done     |
 | S-05 | polish-copy-generation       | get Polish social copy with a numeric-integrity gate                 | S-04, F-03       | FR-013,014,016,017; US-11,12,15  | proposed |
 | S-06 | brand-visual-assets          | get per-platform visuals from brand templates                        | S-05             | FR-015; US-13,14                 | proposed |
 | S-07 | content-approval-gate        | approve/reject before publish; get a Monday reminder                 | S-05, S-06, F-04 | FR-019,020,021; US-16,17         | proposed |
@@ -194,10 +194,11 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Prerequisites:** S-03, F-04
 - **Parallel with:** F-05, S-10
 - **Blockers:** —
-- **Unknowns:**
-  - Selection granularity: when picking a multi-source cluster, does the operator pick the cluster (system chooses source material) or a specific article within it — Owner: operator. Block: no. (PRD Open Question #4.)
+- **Unknowns:** — (OQ#4 resolved in the plan: the **cluster** is the unit of selection, not an article within it.)
 - **Risk:** Capturing passes as well as picks (US-10) is what makes the later learning loop (S-09) possible, so the storage shape is decided here even though its consumer comes later.
-- **Status:** proposed
+- **Status:** done (shipped 2026-09-06, commits `50f6515`…`b933aea`; impl-review fixes `955315b`)
+- **Delivered:** the `selection`/`selection_item` schema with the atomic `confirm_selection` RPC (validate + write both tables + transition, one transaction), `article.language` so FR-009a can flag the original alongside the translation, a shared `src/lib/selection/rules.ts` the API route and the island both validate against (with a drift guard parsing the migration so the SQL and TS bounds cannot diverge), the app's first domain API route (`POST /api/selection/confirm`) and first hydrated React island, the post-confirm read-only view, and the FR-010 digest-ready email — the first real caller of the F-04 harness. Verified end to end on a fresh 108-article digest (100 clusters, 15 shortlisted, $0.3618): `npm run rank` delivered the email with 8 `catalonia` and 7 `national` tier pills.
+- **Carried forward:** the impl-review (`reviews/impl-review.md`, verdict APPROVED, 0 critical / 1 warning / 4 observations) found and fixed all five. The warning generalises: an error branch that sets a flag **without returning** let the happy path run on empty data and crash — worth checking wherever a page handles a query error by setting state rather than returning, especially since `astro/tsconfigs/strict` omits `noUncheckedIndexedAccess` and the compiler cannot see the resulting index access. Two items remain open, neither owned by this slice: **5.6** (the digest-ready email's CTA verified against `localhost`, not the Cloudflare Tunnel — no tunnel host exists yet), and the **`supabase migration repair`** debt inherited from F-01, now four migrations wide (`20260829120000`, `20260829130000`, `20260906140000`, `20260906141000` were all applied by hand through the SQL Editor and are absent from `supabase_migrations.schema_migrations`).
 
 ### S-05: Polish copy generation (with numeric-integrity gate)
 
@@ -316,6 +317,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 
 ## Done
 
+- **S-04: operator can select 2–4 stories, a format (single post or carousel), and target platforms; the digest moves to `generating`, and both the picks and the passes are stored as labeled examples.** — Archived 2026-09-06 → `context/archive/2026-08-01-story-selection-gate/`. Lesson: the review found a crash hiding *inside* careful error handling — the article query's failure branch set `loadError` and a 500 status but did not return, so the code below it ran on an empty result and threw before the error view could render. The same file handled the same edge correctly one function away. Two lessons generalise: an error branch that sets state rather than returning leaves the happy path armed, and `astro/tsconfigs/strict` does not enable `noUncheckedIndexedAccess`, so `arr[0]` is typed as always-present and the compiler will not catch the dereference that follows.
 - **F-02: (foundation) the dashboard is gated by a 6-digit PIN with lockout-after-~5-attempts and rate limiting, reachable only over a private path (Cloudflare Tunnel) — replacing the scaffold's email/password auth, which is the wrong mechanism for this product.** — Archived 2026-07-27 → `context/archive/2026-07-27-operator-pin-access-gate/`. Lesson: —.
 - **S-02: (system) the week's articles are semantically clustered (coverage count as a ranking boost, not redundancy) and each cluster is scored by the geography-first rubric from title + lede — with an eval harness that gates any rubric change against known-correct examples.** — Archived 2026-07-27 → `context/archive/2026-07-25-geography-ranking-rubric/`. Lesson: real-pool verification (a live ~368-article digest) surfaced three failure modes no mocked test could — a real UUID costs far more output tokens than expected to echo back, Sonnet 5 runs adaptive thinking by default and silently eats the `maxTokens` budget meant for output, and a single-pass whole-pool LLM call occasionally mis-partitions at scale. All three are now handled (local-id indirection, an explicit `thinking: false` opt-out threaded through F-03's harness, and a corrective retry) — but the lesson generalizes: an LLM call sized and tested only against small mocked inputs can behave qualitatively differently at real production scale, and that gap only shows up by actually running against real data before calling a slice done.
 - **F-03: (foundation) a shared wrapper around every model call that enforces a hard per-run cost ceiling and halts on reaching it, with staged malformed-output recovery and bounded backoff retries — so an unattended run can never bill quietly overnight.** — Archived 2026-07-25 → `context/archive/2026-07-24-llm-cost-ceiling-harness/`. Lesson: the vendor exposes no USD budget primitive, so the ceiling is application-side accounting (token `usage` × a price table) — and because the check and the increment are separate round trips, the ceiling is _soft_: under concurrency the overshoot bound is `concurrency × per-call cost`, not one call. S-02's scoring loop must cap its fan-out accordingly.
