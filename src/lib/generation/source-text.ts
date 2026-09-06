@@ -95,6 +95,41 @@ export function extractArticleText(html: string): SourceTextResult {
   return { ok: true, text, origin: "article" };
 }
 
+/**
+ * Decode a fetched page using the charset it actually declares.
+ *
+ * `Response.text()` ALWAYS decodes as UTF-8 — the Fetch spec says so, and it ignores the
+ * Content-Type charset entirely. Spanish news sites are still widely served as ISO-8859-1/15:
+ * expansion.com sends `charset=iso-8859-15`, and decoding that page as UTF-8 produced 245
+ * replacement characters in a single article.
+ *
+ * That is not cosmetic. `m²` decoded as UTF-8 becomes `m�`, so the numeric gate's UNIT
+ * pattern stops matching and every area figure silently drops out of the assertion set — the gate
+ * quietly stops policing exactly the figures FR-014 names.
+ *
+ * Order of authority follows the HTML spec: the transport's charset wins, then a `<meta>`
+ * declaration, then UTF-8. The meta sniff decodes the head as latin1 first because that maps
+ * every byte to a character without loss, so the tag is findable whatever the real encoding is.
+ */
+function decodeHtml(buffer: ArrayBuffer, contentType: string): string {
+  const fromHeader = /charset=["']?([\w-]+)/i.exec(contentType)?.[1];
+
+  let label = fromHeader;
+  if (!label) {
+    const head = Buffer.from(buffer.slice(0, 4096)).toString("latin1");
+    label =
+      /<meta[^>]*charset=["']?([\w-]+)/i.exec(head)?.[1] ??
+      /<meta[^>]*content=["'][^"']*charset=([\w-]+)/i.exec(head)?.[1];
+  }
+
+  try {
+    return new TextDecoder(label ?? "utf-8").decode(buffer);
+  } catch {
+    // An unknown or malformed charset label is not worth failing the fetch over.
+    return new TextDecoder("utf-8").decode(buffer);
+  }
+}
+
 /** Map a non-2xx response onto the failure taxonomy. */
 function statusFailure(status: number): SourceTextFailure {
   if (status === 401 || status === 403 || status === 429) return "blocked";
@@ -125,7 +160,7 @@ export async function fetchArticleText(url: string, options: FetchArticleOptions
       redirect: "follow",
     });
     if (!response.ok) return { ok: false, reason: statusFailure(response.status) };
-    html = await response.text();
+    html = decodeHtml(await response.arrayBuffer(), response.headers.get("content-type") ?? "");
   } catch {
     // AbortSignal.timeout rejects with a TimeoutError; DNS/TLS failures reject too. Both are
     // "we could not get the page", which is the same decision for the caller.

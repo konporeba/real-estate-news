@@ -26,16 +26,28 @@ const ARTICLE_PAGE = page(
    <footer>Copyright 2024. Todos los derechos reservados. 3 comentarios</footer>`,
 );
 
-/** A fetch stub, mirroring how the LLM and email harnesses take an injectable transport. */
-function fakeFetch(outcome: { status?: number; body?: string } | Error): typeof fetch {
+/**
+ * A fetch stub, mirroring how the LLM and email harnesses take an injectable transport.
+ *
+ * It serves an ArrayBuffer and a Content-Type, not a decoded string, because charset handling is
+ * part of what is under test — a stub that returned text would decode the bytes for us and hide
+ * the very bug these tests exist to pin.
+ */
+function fakeFetch(
+  outcome: { status?: number; body?: string; charset?: BufferEncoding; contentType?: string } | Error,
+): typeof fetch {
   return () => {
     if (outcome instanceof Error) return Promise.reject(outcome);
     const status = outcome.status ?? 200;
+    const bytes = Buffer.from(outcome.body ?? "", outcome.charset ?? "utf8");
     return Promise.resolve({
       ok: status >= 200 && status < 300,
       status,
-      text: () => Promise.resolve(outcome.body ?? ""),
-    } as Response);
+      headers: {
+        get: (name: string) => (name.toLowerCase() === "content-type" ? (outcome.contentType ?? null) : null),
+      },
+      arrayBuffer: () => Promise.resolve(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)),
+    } as unknown as Response);
   };
 }
 
@@ -175,11 +187,69 @@ describe("fetchArticleText — failure taxonomy", () => {
     expect(result).toEqual({ ok: false, reason: "network" });
   });
 
+  // Response.text() always decodes as UTF-8 per the Fetch spec, ignoring the declared charset.
+  // expansion.com serves ISO-8859-15; decoding one of its articles as UTF-8 produced 245
+  // replacement characters, and "m²" became "m<FFFD>" — which silently stops the numeric gate's
+  // UNIT pattern from matching, dropping every area figure out of the assertion set.
+  describe("charset handling", () => {
+    const accented = page(
+      `<article><h1>Vivienda</h1><p>Una superficie de 120 m² con acceso estándar al interés medio. ${"Texto adicional para superar el mínimo de caracteres. ".repeat(12)}</p></article>`,
+    );
+
+    it("decodes using the charset declared in Content-Type", async () => {
+      const result = await fetchArticleText("https://e.test/a", {
+        fetchImpl: fakeFetch({ body: accented, charset: "latin1", contentType: "text/html; charset=iso-8859-15" }),
+      });
+
+      if (!result.ok) throw new Error(result.reason);
+      expect(result.text).toContain("120 m²");
+      expect(result.text).toContain("estándar");
+      expect(result.text).not.toContain("�");
+    });
+
+    it("keeps area figures extractable after a latin1 decode", async () => {
+      const result = await fetchArticleText("https://e.test/a", {
+        fetchImpl: fakeFetch({ body: accented, charset: "latin1", contentType: "text/html; charset=iso-8859-1" }),
+      });
+
+      if (!result.ok) throw new Error(result.reason);
+      expect(extractFigures(result.text).map((figure) => figure.value)).toContain(120);
+    });
+
+    it("falls back to a meta charset when the header declares none", async () => {
+      const withMeta = `<!doctype html><html><head><meta charset="iso-8859-15"></head><body>${accented}</body></html>`;
+      const result = await fetchArticleText("https://e.test/a", {
+        fetchImpl: fakeFetch({ body: withMeta, charset: "latin1", contentType: "text/html" }),
+      });
+
+      if (!result.ok) throw new Error(result.reason);
+      expect(result.text).toContain("estándar");
+    });
+
+    it("defaults to UTF-8 when nothing declares a charset", async () => {
+      const result = await fetchArticleText("https://e.test/a", {
+        fetchImpl: fakeFetch({ body: accented, charset: "utf8", contentType: "text/html" }),
+      });
+
+      if (!result.ok) throw new Error(result.reason);
+      expect(result.text).toContain("120 m²");
+    });
+
+    it("falls back to UTF-8 rather than failing on an unknown charset label", async () => {
+      const result = await fetchArticleText("https://e.test/a", {
+        fetchImpl: fakeFetch({ body: accented, charset: "utf8", contentType: "text/html; charset=not-a-charset" }),
+      });
+
+      expect(result.ok).toBe(true);
+    });
+  });
+
   it("sends an honest User-Agent rather than spoofing a browser", async () => {
     let sent: string | undefined;
-    const spy = ((_url: string, init?: RequestInit) => {
+    const serve = fakeFetch({ body: ARTICLE_PAGE });
+    const spy = ((url: string, init?: RequestInit) => {
       sent = (init?.headers as Record<string, string> | undefined)?.["User-Agent"];
-      return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(ARTICLE_PAGE) } as Response);
+      return serve(url, init);
     }) as typeof fetch;
 
     await fetchArticleText("https://e.test/a", { fetchImpl: spy });

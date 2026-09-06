@@ -441,28 +441,28 @@ Two schema changes, both additive: a new `generated_copy` table and a nullable `
 
 #### Automated
 
-- [x] 3.1 Lint passes: `npm run lint`
-- [x] 3.2 Type check and build pass with the new dependencies: `npm run build`
-- [x] 3.3 Extraction suite passes: `npm test`
+- [x] 3.1 Lint passes: `npm run lint` — d1f4b81
+- [x] 3.2 Type check and build pass with the new dependencies: `npm run build` — d1f4b81
+- [x] 3.3 Extraction suite passes: `npm test` — d1f4b81
 
 #### Manual
 
-- [x] 3.4 A real article URL extracts body text without nav, cookie banner, or related links
-- [x] 3.5 An Idealista URL degrades to a typed failure rather than hanging or throwing
-- [x] 3.6 Figures found in real extracted text contain no page-furniture numerals
+- [x] 3.4 A real article URL extracts body text without nav, cookie banner, or related links — d1f4b81
+- [x] 3.5 An Idealista URL degrades to a typed failure rather than hanging or throwing — d1f4b81
+- [x] 3.6 Figures found in real extracted text contain no page-furniture numerals — d1f4b81
 
 ### Phase 4: Copy generation
 
 #### Automated
 
-- [ ] 4.1 Lint passes: `npm run lint`
-- [ ] 4.2 Type check and build pass: `npm run build`
-- [ ] 4.3 Generation suite passes: `npm test`
+- [x] 4.1 Lint passes: `npm run lint`
+- [x] 4.2 Type check and build pass: `npm run build`
+- [x] 4.3 Generation suite passes: `npm test`
 
 #### Manual
 
-- [ ] 4.4 One real call produces Polish that reads as native social copy, not translated Spanish
-- [ ] 4.5 The pulled-out statistics correspond to figures actually in the source
+- [x] 4.4 One real call produces Polish that reads as native social copy, not translated Spanish
+- [x] 4.5 The pulled-out statistics correspond to figures actually in the source
 
 ### Phase 5: Generation orchestrator
 
