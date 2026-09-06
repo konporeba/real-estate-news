@@ -473,18 +473,18 @@ No rollback is destructive — both new tables are additive and cascade from `di
 
 #### Automated
 
-- [x] 5.1 Lint passes: `npm run lint`
-- [x] 5.2 Type check and build pass: `npm run build`
-- [x] 5.3 Email builder suite passes: `npm test`
+- [x] 5.1 Lint passes: `npm run lint` — b933aea
+- [x] 5.2 Type check and build pass: `npm run build` — b933aea
+- [x] 5.3 Email builder suite passes: `npm test` — b933aea
 
 #### Manual
 
 - [x] 5.4 `npm run rank` on a real digest delivers the email to `OPERATOR_EMAIL` — 2026-09-06: closed
       through the real entrypoint. `npm run rank --digest=c92aa3c5` on a fresh 108-article digest
-      transitioned it to `ready_for_selection` ($0.3618) and sent the notification, exit 0.
+      transitioned it to `ready_for_selection` ($0.3618) and sent the notification, exit 0. — b933aea
 - [x] 5.5 All 15 stories appear as cards with tier-appropriate colors — 2026-09-06: digest `c92aa3c5`
       yields 15 cards, 8 `catalonia` → green pill (`#dcfce7`/`#15803d`) and 7 `national` → amber
-      (`#fef3c7`/`#b45309`). Two distinct tier colors confirmed in the delivered HTML.
+      (`#fef3c7`/`#b45309`). Two distinct tier colors confirmed in the delivered HTML. — b933aea
 - [ ] 5.6 The CTA opens the correct digest page through the tunnel hostname — partially: the CTA renders
       and carries the right digest id, verified at `http://localhost:4321`. Not yet re-sent with
       `DASHBOARD_BASE_URL` pointing at the real Cloudflare Tunnel host — the tunnel is not stood up yet,
@@ -492,4 +492,4 @@ No rollback is destructive — both new tables are additive and cascade from `di
 - [x] 5.7 With Gmail credentials unset, `npm run rank` completes normally and logs that email is not
       configured — covered against the real database by `notifyDigestReady (integration)` in
       `src/worker/rank.test.ts` ("resolves quietly when email is not configured", plus a transport-failure
-      and an empty-cluster case). The `main()` wrapper itself was not run credential-less.
+      and an empty-cluster case). The `main()` wrapper itself was not run credential-less. — b933aea
