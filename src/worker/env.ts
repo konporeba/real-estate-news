@@ -24,6 +24,25 @@ const workerEnvSchema = z.object({
   // has no other way to know — it never serves the app. Optional like the Gmail credentials: an
   // unset value sends the notification without a button rather than one pointing nowhere.
   DASHBOARD_BASE_URL: z.url("DASHBOARD_BASE_URL must be a valid URL").optional(),
+  // S-06/FR-015: the Google Slides rendering stage. All optional, like the Gmail block — a worker
+  // with no Slides config still collects, ranks and generates; only `npm run visuals` needs these,
+  // and createSlidesClient() returns null without them so the stage reports `not_configured`
+  // rather than dying on an auth error mid-run.
+  //
+  // The private key is BASE64-ENCODED, not raw PEM. A service-account key contains literal
+  // newlines, and this project has already lost time to dotenv mangling a secret (F-02's
+  // PIN_PEPPER, silently truncated at a `#`). Base64 has no character dotenv treats specially, so
+  // it survives both .env and .dev.vars parsing unchanged. Encode with:
+  //   base64 -w0 service-account.json | ...   (or see .env.example)
+  GOOGLE_SA_EMAIL: z.email("GOOGLE_SA_EMAIL must be a valid email address").optional(),
+  GOOGLE_SA_PRIVATE_KEY_B64: z.string().min(1, "GOOGLE_SA_PRIVATE_KEY_B64 must not be empty").optional(),
+  // Presentation ids of the operator's two template decks, taken from the Slides URL:
+  // docs.google.com/presentation/d/<THIS PART>/edit
+  SLIDES_DECK_SINGLE_POST: z.string().min(1, "SLIDES_DECK_SINGLE_POST must not be empty").optional(),
+  SLIDES_DECK_CAROUSEL: z.string().min(1, "SLIDES_DECK_CAROUSEL must not be empty").optional(),
+  // Where rendered PNGs are stored. Defaulted rather than optional: the bucket is created by
+  // migration 20260908140000, so the name is a deployment detail, not a missing capability.
+  SUPABASE_ASSET_BUCKET: z.string().min(1).default("digest-assets"),
 });
 
 export type WorkerEnv = z.infer<typeof workerEnvSchema>;

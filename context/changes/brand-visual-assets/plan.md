@@ -643,25 +643,25 @@ renders them as an empty strip rather than an error, and no backfill is attempte
 
 #### Automated
 
-- [x] 1.1 Type checking passes: `npm run build`
-- [x] 1.2 Linting passes: `npm run lint`
-- [x] 1.3 State-machine drift guard passes
-- [x] 1.4 Full suite passes: `npm test`
+- [x] 1.1 Type checking passes: `npm run build` — 1fb6a9c
+- [x] 1.2 Linting passes: `npm run lint` — 1fb6a9c
+- [x] 1.3 State-machine drift guard passes — 1fb6a9c
+- [x] 1.4 Full suite passes: `npm test` — 1fb6a9c
 
 #### Manual
 
-- [x] 1.5 Both migrations applied; migration-repair debt cleared or re-recorded
-- [x] 1.6 `digest-assets` bucket exists and is private
-- [x] 1.7 `generating → rendering → ready_for_approval` works by hand; the old direct move is rejected
+- [x] 1.5 Both migrations applied; migration-repair debt cleared or re-recorded — 1fb6a9c
+- [x] 1.6 `digest-assets` bucket exists and is private — 1fb6a9c
+- [x] 1.7 `generating → rendering → ready_for_approval` works by hand; the old direct move is rejected — 1fb6a9c
 
 ### Phase 2: Slides client, template spec, and validator
 
 #### Automated
 
-- [ ] 2.1 Type checking passes: `npm run build`
-- [ ] 2.2 Linting passes: `npm run lint`
-- [ ] 2.3 Client unit tests pass against a fake transport
-- [ ] 2.4 Validator reports every seeded defect on fixture payloads
+- [x] 2.1 Type checking passes: `npm run build`
+- [x] 2.2 Linting passes: `npm run lint`
+- [x] 2.3 Client unit tests pass against a fake transport
+- [x] 2.4 Validator reports every seeded defect on fixture payloads
 
 #### Manual
 
@@ -700,7 +700,7 @@ renders them as an empty strip rather than an error, and no backfill is attempte
 #### Automated
 
 - [ ] 5.1 Flag parsing and refusal behaviour covered
-- [x] 5.2 Generation now transitions to `rendering`
+- [x] 5.2 Generation now transitions to `rendering` — 1fb6a9c
 - [ ] 5.3 Linting passes: `npm run lint`
 - [ ] 5.4 Full suite passes: `npm test`
 
