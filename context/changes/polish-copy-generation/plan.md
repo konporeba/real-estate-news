@@ -480,12 +480,12 @@ Two schema changes, both additive: a new `generated_copy` table and a nullable `
 
 #### Automated
 
-- [ ] 6.1 Lint passes: `npm run lint`
-- [ ] 6.2 Type check and build pass: `npm run build`
-- [ ] 6.3 Full suite passes: `npm test`
+- [x] 6.1 Lint passes: `npm run lint` — cdd143f
+- [x] 6.2 Type check and build pass: `npm run build` — cdd143f
+- [x] 6.3 Full suite passes: `npm test` — cdd143f
 
 #### Manual
 
 - [ ] 6.4 `npm run generate` produces 2–4 posts and leaves the digest in `ready_for_approval`
-- [ ] 6.5 `npm run generate` on a digest not in `generating` exits 2 with a clear message
+- [x] 6.5 `npm run generate` on a digest not in `generating` exits 2 with a clear message — cdd143f
 - [ ] 6.6 The copy reads as publishable Polish, and every figure is traceable to the source
