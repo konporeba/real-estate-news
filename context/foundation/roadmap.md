@@ -3,7 +3,7 @@ project: "Real Estate News"
 version: 1
 status: draft
 created: 2026-07-22
-updated: 2026-09-06
+updated: 2026-09-08
 prd_version: 1
 main_goal: quality
 top_blocker: none
@@ -38,7 +38,7 @@ A single real-estate professional serving Polish investors in Spain publishes no
 | S-02 | geography-ranking-rubric     | (system) cluster + geography-rank the pool, gated by an eval harness | S-01, F-03       | FR-004→008,026; US-06,07,08,25   | done     |
 | S-03 | translated-shortlist-view    | view the ranked Polish shortlist on the dashboard ★                  | S-02, F-02       | FR-008,009,009a,011; US-05,07,22 | done     |
 | S-04 | story-selection-gate         | select 2–4 stories, format, and platforms                            | S-03, F-04       | FR-010,012; US-09,10             | done     |
-| S-05 | polish-copy-generation       | get Polish social copy with a numeric-integrity gate                 | S-04, F-03       | FR-013,014,016,017; US-11,12,15  | proposed |
+| S-05 | polish-copy-generation       | get Polish social copy with a numeric-integrity gate                 | S-04, F-03       | FR-013,014,016,017; US-11,12,15  | done     |
 | S-06 | brand-visual-assets          | get per-platform visuals from brand templates                        | S-05             | FR-015; US-13,14                 | proposed |
 | S-07 | content-approval-gate        | approve/reject before publish; get a Monday reminder                 | S-05, S-06, F-04 | FR-019,020,021; US-16,17         | proposed |
 | S-08 | scheduled-publishing         | publish approved content on schedule, per platform                   | S-07, F-05       | FR-022,023; US-18,19,20          | proposed |
@@ -210,7 +210,9 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Numeric integrity (FR-014) is a deterministic check, not a prompt promise — a mismatch blocks the run. Only the 2–4 selected stories get this expensive treatment, and the F-03 ceiling bounds the retry loop.
-- **Status:** proposed
+- **Status:** done (shipped 2026-09-08, commits `fc94d5c`…`cdd143f`; impl-review fixes `568fa61`)
+- **Delivered:** the `generating` stage end to end — the `generated_copy` schema and the `generation_completed_at` checkpoint (p1); the deterministic numeric-integrity gate, normalising Spanish/Catalan and Polish number formats to a canonical value so `3,5 millones` and `3,5 mln` compare equal (p2); Readability-based article-body extraction with charset-correct decoding and a typed failure taxonomy that falls back to the stored title + lede rather than failing the week (p3); the Polish copywriting call through the F-03 harness, thinking left ON and `maxTokens` sized around it (p4); the orchestrator composing fetch → generate → gate → persist → transition with one corrective retry per story (p5); and the `npm run generate` entrypoint (p6). Verified on the live digest `c92aa3c5`: four picked stories, every one generated from fetched article text rather than the lede fallback, \$0.2957, digest left in `ready_for_approval` — the operator confirmed the Polish reads as publishable social copy, and every figure was separately traced back to its source.
+- **Carried forward:** the impl-review (`reviews/impl-review.md`, verdict REJECTED on one critical; all six findings triaged, five fixed) found that **the gate itself could fail a correct run**: the percentage classifier searched an unanchored 12-character lookahead, so `en 2025 (+8,2%)` extracted the *year* as a percentage figure and `euros/m2 (+4,2%)` extracted the `2` of `m2`. Either phantom came from the source, so FR-014 then demanded it in the Polish copy, a faithful rendering could not contain it, and the whole digest failed — unrecoverably, because `failed` could only move back to `collecting`. Both are fixed (the percent test is anchored like the currency test; migration `20260908120000` adds `failed → generating` so a generation failure retries in place, keeping the confirmed selection and the ranking spend). Also fixed: scraped page text is now framed as data rather than instructions in the prompt, and the article fetch refuses a body over 8 MB. **The `supabase migration repair` debt inherited from F-01 is now six migrations wide** — `20260829120000`, `20260829130000`, `20260906140000`, `20260906141000`, `20260906150000`, `20260908120000` were all applied by hand through the SQL Editor and are absent from `supabase_migrations.schema_migrations`.
 
 ### S-06: Brand visual assets
 
@@ -288,9 +290,9 @@ Foundations below assume these are present and do NOT re-scaffold them.
 | S-02       | geography-ranking-rubric     | Geography-ranking rubric + eval harness             | shipped               | Shipped 2026-07-27; verified against a real 368-article pool                    |
 | S-03       | translated-shortlist-view    | Translated shortlist dashboard view ★               | shipped               | Shipped 2026-07-30; reviewed (1 critical fixed); F3 live-translation check open |
 | S-04       | story-selection-gate         | Story selection gate (human gate 1)                 | shipped               | Shipped 2026-09-06; reviewed (APPROVED, 1 warning + 4 observations, all fixed)   |
-| S-05       | polish-copy-generation       | Polish copy generation + numeric-integrity gate     | yes                   | S-04 and F-03 both shipped — unblocked; digest `c92aa3c5` waits in `generating`  |
-| S-06       | brand-visual-assets          | Per-platform brand visual assets                    | no                    | Needs S-05; file Canva access (OQ#2)                                            |
-| S-07       | content-approval-gate        | Content approval gate (human gate 2) + reminder     | no                    | Needs S-05, S-06; F-04 shipped — unblocked on that side                         |
+| S-05       | polish-copy-generation       | Polish copy generation + numeric-integrity gate     | shipped               | Shipped 2026-09-08; reviewed (1 critical + 4 others fixed); verified on `c92aa3c5` |
+| S-06       | brand-visual-assets          | Per-platform brand visual assets                    | yes                   | S-05 shipped — unblocked; file Canva access (OQ#2) now                          |
+| S-07       | content-approval-gate        | Content approval gate (human gate 2) + reminder     | no                    | Needs S-06; S-05 and F-04 shipped — unblocked on those sides                    |
 | S-08       | scheduled-publishing         | Scheduled per-platform publishing + missed-deadline | no                    | Needs S-07, F-05; reuses publish integ.                                         |
 | S-09       | archive-and-learning-loop    | Full-fidelity archive + rubric learning loop        | no                    | Needs S-08, S-02                                                                |
 | S-10       | ops-heartbeat-and-catchup    | Ops heartbeat alert + missed-run catch-up           | no                    | Needs F-05                                                                      |
@@ -316,6 +318,8 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Fully autonomous publishing** — Why parked: PRD §Non-Goals; both human gates (selection, approval) are permanent product properties, not scaffolding.
 
 ## Done
+
+- **S-05: operator's selected stories get full Spanish→Polish social adaptation — compelling title, caption-ready summary, body copy for the chosen format, and pulled-out key statistics — with every source numeral deterministically asserted present in the output or the run fails.** — Archived 2026-09-08 → `context/archive/2026-09-06-polish-copy-generation/`. Lesson: a deterministic safety gate is only as good as the heuristic that feeds it, and that heuristic is a correctness surface in its own right. The numeral extractor was tested exhaustively on what it should *catch* and barely on what it should *ignore next to a qualifier*, so an unanchored percentage lookahead quietly turned nearby years and unit digits into figures the copy was then required to reproduce — converting a gate that exists to block wrong numbers into a generator of false failures on correct ones. It surfaced only by running the extractor backwards over real published output (does every figure in the copy trace to the source?), a direction the gate itself never checks. Second lesson: a stage that can fail needs a recovery path proportional to its cost — a cents-sized generation failure could only be recovered by re-running the whole dollar-sized pipeline, and nobody noticed until the review asked what happens after `failed`.
 
 - **S-04: operator can select 2–4 stories, a format (single post or carousel), and target platforms; the digest moves to `generating`, and both the picks and the passes are stored as labeled examples.** — Archived 2026-09-06 → `context/archive/2026-08-01-story-selection-gate/`. Lesson: the review found a crash hiding *inside* careful error handling — the article query's failure branch set `loadError` and a 500 status but did not return, so the code below it ran on an empty result and threw before the error view could render. The same file handled the same edge correctly one function away. Two lessons generalise: an error branch that sets state rather than returning leaves the happy path armed, and `astro/tsconfigs/strict` does not enable `noUncheckedIndexedAccess`, so `arr[0]` is typed as always-present and the compiler will not catch the dereference that follows.
 - **F-02: (foundation) the dashboard is gated by a 6-digit PIN with lockout-after-~5-attempts and rate limiting, reachable only over a private path (Cloudflare Tunnel) — replacing the scaffold's email/password auth, which is the wrong mechanism for this product.** — Archived 2026-07-27 → `context/archive/2026-07-27-operator-pin-access-gate/`. Lesson: —.
