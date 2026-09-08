@@ -1,5 +1,5 @@
 // WORKER-SIDE. The generation stage: everything between "a digest exists in `generating`" and
-// "the digest is in `ready_for_approval` or `failed`". Composes source-text fetching (Phase 3),
+// "the digest is in `rendering` or `failed`". Composes source-text fetching (Phase 3),
 // copy generation (Phase 4) and the numeric gate (Phase 2), persists the result, and transitions
 // the digest — mirroring the ranking stage's orchestrator (`src/lib/ranking/rank.ts`).
 //
@@ -294,7 +294,9 @@ export async function generateDigest(
   const checkpointed = await markStageComplete(client, digest.id, "generation");
   if (!checkpointed.ok) return checkpointed;
 
-  const transitioned = await transitionDigest(client, digest.id, "ready_for_approval");
+  // S-06: the approval gate reviews the complete post, copy AND visuals, so generation hands off
+  // to the rendering stage rather than straight to `ready_for_approval`.
+  const transitioned = await transitionDigest(client, digest.id, "rendering");
   if (!transitioned.ok) return transitioned;
 
   return { ok: true, data: { digest: transitioned.data, storyCount: results.length } };

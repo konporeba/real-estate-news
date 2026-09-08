@@ -208,8 +208,8 @@ describe.skipIf(!configured)("resolveTargetDigest (integration)", () => {
   // week already generated. It must refuse rather than silently regenerate approved-adjacent copy.
   it("refuses a digest already past generation", async () => {
     const done = await generatingDigest(db);
-    unwrap(await transitionDigest(db, done.id, "ready_for_approval"));
+    unwrap(await transitionDigest(db, done.id, "rendering"));
 
-    await expect(resolveTargetDigest(db, done.id)).rejects.toThrow(/is in "ready_for_approval"/);
+    await expect(resolveTargetDigest(db, done.id)).rejects.toThrow(/is in "rendering"/);
   });
 });

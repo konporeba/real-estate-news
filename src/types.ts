@@ -9,7 +9,7 @@ export type DigestRun = Database["public"]["Tables"]["digest"]["Row"];
 export type DigestStatus = Database["public"]["Enums"]["digest_status"];
 
 /** Pipeline stages that record a completion checkpoint on `digest`. */
-export type DigestStage = "collection" | "ranking" | "translation" | "generation";
+export type DigestStage = "collection" | "ranking" | "translation" | "generation" | "rendering";
 
 /** The ISO week a digest covers, as `YYYY-MM-DD` date strings. */
 export interface DigestWindow {
@@ -179,6 +179,15 @@ export interface KeyStatistic {
  *   to the stored title + lede, so the copy is thinner and the numeric gate saw fewer figures
  */
 export type SourceTextOrigin = "article" | "lede";
+
+/**
+ * One rendered image for a published slide (S-06, FR-015).
+ *
+ * The unit is a slide, not a story: a carousel's cover slide belongs to the digest as a whole,
+ * which is why `cluster_id` is nullable. `storage_path` addresses an object in the private
+ * `digest-assets` bucket — never a URL, because the Slides export URLs it came from expire.
+ */
+export type GeneratedAssetRow = Database["public"]["Tables"]["generated_asset"]["Row"];
 
 /** A named job's scheduling state — is it running, when did it last fire/complete. */
 export type ScheduledJobRow = Database["public"]["Tables"]["scheduled_job"]["Row"];

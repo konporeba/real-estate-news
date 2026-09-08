@@ -191,7 +191,7 @@ describe.skipIf(!configured)("generateDigest (integration)", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error(result.message);
     expect(result.data.storyCount).toBe(2);
-    expect(result.data.digest.status).toBe("ready_for_approval");
+    expect(result.data.digest.status).toBe("rendering");
     expect(result.data.digest.generation_completed_at).not.toBeNull();
     expect(await copyRows(digest.id)).toHaveLength(2);
   });
@@ -218,7 +218,7 @@ describe.skipIf(!configured)("generateDigest (integration)", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error(result.message);
-    expect(result.data.digest.status).toBe("ready_for_approval");
+    expect(result.data.digest.status).toBe("rendering");
 
     const rows = await copyRows(digest.id);
     expect(rows[0].source_text_origin).toBe("lede");
@@ -239,7 +239,7 @@ describe.skipIf(!configured)("generateDigest (integration)", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error(result.message);
-    expect(result.data.digest.status).toBe("ready_for_approval");
+    expect(result.data.digest.status).toBe("rendering");
 
     // The retry must NAME what went missing, otherwise it is a re-roll, not a correction.
     const retryPrompt = (llm.calls[1] as { messages: { content: string }[] }).messages[0].content;

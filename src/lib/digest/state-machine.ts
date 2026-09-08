@@ -14,15 +14,18 @@ export const TRANSITIONS: Record<DigestStatus, readonly DigestStatus[]> = {
   collecting: ["ranking", "failed"],
   ranking: ["ready_for_selection", "failed"],
   ready_for_selection: ["generating", "skipped", "failed"],
-  generating: ["ready_for_approval", "failed"],
+  // S-06: generation hands off to the rendering stage, not straight to the approval gate.
+  generating: ["rendering", "failed"],
+  rendering: ["ready_for_approval", "failed"],
   ready_for_approval: ["approved", "skipped", "failed"],
   approved: ["published", "skipped", "failed"],
   // US-19: a missed-deadline digest stays manually publishable.
   skipped: ["published"],
-  // FR-018: re-trigger a failed run in place -- from the top for a collection failure, or
-  // from the selection gate's output for a generation failure (S-05 impl-review F2), which
-  // would otherwise discard the confirmed selection and re-pay the whole ranking stage.
-  failed: ["collecting", "generating"],
+  // FR-018: re-trigger a failed run in place -- from the top for a collection failure, from
+  // the selection gate's output for a generation failure (S-05 impl-review F2), which would
+  // otherwise discard the confirmed selection and re-pay the whole ranking stage, or from the
+  // generated copy for a render failure (S-06), which costs nothing to redo.
+  failed: ["collecting", "generating", "rendering"],
   published: [],
 };
 

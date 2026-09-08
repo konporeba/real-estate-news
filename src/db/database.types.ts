@@ -29,6 +29,10 @@
 //     (20260829130000_article_language.sql)
 //   - `generated_copy` under public.Tables, `digest.generation_completed_at: string | null`
 //     in Row/Insert/Update (20260906150000_generated_copy.sql)
+//   - `"rendering"` in the `digest_status` enum and in Constants.public.Enums.digest_status
+//     (20260908130000_rendering_status_enum.sql)
+//   - `generated_asset` under public.Tables, `digest.rendering_completed_at: string | null`
+//     in Row/Insert/Update (20260908140000_visual_assets.sql)
 export type Json =
   | string
   | number
@@ -178,6 +182,7 @@ export type Database = {
           id: string
           last_error: string | null
           ranking_completed_at: string | null
+          rendering_completed_at: string | null
           status: Database["public"]["Enums"]["digest_status"]
           translation_completed_at: string | null
           updated_at: string
@@ -193,6 +198,7 @@ export type Database = {
           id?: string
           last_error?: string | null
           ranking_completed_at?: string | null
+          rendering_completed_at?: string | null
           status?: Database["public"]["Enums"]["digest_status"]
           translation_completed_at?: string | null
           updated_at?: string
@@ -208,6 +214,7 @@ export type Database = {
           id?: string
           last_error?: string | null
           ranking_completed_at?: string | null
+          rendering_completed_at?: string | null
           status?: Database["public"]["Enums"]["digest_status"]
           translation_completed_at?: string | null
           updated_at?: string
@@ -215,6 +222,57 @@ export type Database = {
           window_start?: string
         }
         Relationships: []
+      }
+      generated_asset: {
+        Row: {
+          cluster_id: string | null
+          created_at: string
+          digest_id: string
+          format: Database["public"]["Enums"]["selection_format"]
+          height: number | null
+          id: string
+          slide_index: number
+          storage_path: string
+          width: number | null
+        }
+        Insert: {
+          cluster_id?: string | null
+          created_at?: string
+          digest_id: string
+          format: Database["public"]["Enums"]["selection_format"]
+          height?: number | null
+          id?: string
+          slide_index: number
+          storage_path: string
+          width?: number | null
+        }
+        Update: {
+          cluster_id?: string | null
+          created_at?: string
+          digest_id?: string
+          format?: Database["public"]["Enums"]["selection_format"]
+          height?: number | null
+          id?: string
+          slide_index?: number
+          storage_path?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_asset_digest_id_fkey"
+            columns: ["digest_id"]
+            isOneToOne: false
+            referencedRelation: "digest"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_asset_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "cluster"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       generated_copy: {
         Row: {
@@ -476,6 +534,7 @@ export type Database = {
         | "ranking"
         | "ready_for_selection"
         | "generating"
+        | "rendering"
         | "ready_for_approval"
         | "approved"
         | "published"
@@ -619,6 +678,7 @@ export const Constants = {
         "ranking",
         "ready_for_selection",
         "generating",
+        "rendering",
         "ready_for_approval",
         "approved",
         "published",
