@@ -488,4 +488,4 @@ Two schema changes, both additive: a new `generated_copy` table and a nullable `
 
 - [x] 6.4 `npm run generate` produces 2–4 posts and leaves the digest in `ready_for_approval` — verified live on digest c92aa3c5 (4 stories, all `article` origin, $0.2957)
 - [x] 6.5 `npm run generate` on a digest not in `generating` exits 2 with a clear message — cdd143f
-- [ ] 6.6 The copy reads as publishable Polish, and every figure is traceable to the source
+- [x] 6.6 The copy reads as publishable Polish, and every figure is traceable to the source — operator confirmed the Polish reads well; figures traced output→source on all four stories
