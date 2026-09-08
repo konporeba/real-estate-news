@@ -468,13 +468,13 @@ Two schema changes, both additive: a new `generated_copy` table and a nullable `
 
 #### Automated
 
-- [x] 5.1 Lint passes: `npm run lint`
-- [x] 5.2 Type check and build pass: `npm run build`
-- [x] 5.3 Orchestrator suite passes: `npm test`
+- [x] 5.1 Lint passes: `npm run lint` — 9e44226
+- [x] 5.2 Type check and build pass: `npm run build` — 9e44226
+- [x] 5.3 Orchestrator suite passes: `npm test` — 9e44226
 
 #### Manual
 
-- [x] 5.4 A digest whose sources all fetch cleanly produces rows with `source_text_origin = 'article'`
+- [x] 5.4 A digest whose sources all fetch cleanly produces rows with `source_text_origin = 'article'` — 9e44226
 
 ### Phase 6: `npm run generate` entrypoint
 
