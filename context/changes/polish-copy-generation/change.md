@@ -1,9 +1,9 @@
 ---
 change_id: polish-copy-generation
 title: Polish copy generation
-status: implementing
+status: impl_reviewed
 created: 2026-09-06
-updated: 2026-09-06
+updated: 2026-09-08
 archived_at: null
 ---
 
