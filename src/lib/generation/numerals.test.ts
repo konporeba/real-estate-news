@@ -89,6 +89,17 @@ describe("extractFigures — what qualifies as significant", () => {
     expect(values("referencia 987654321 del registro")).toEqual([]);
   });
 
+  // A percentage BINDS to the number it follows. Before the percent test was anchored, any `%`
+  // within a dozen characters qualified the preceding number, so a year or the `2` of `m2` became
+  // a figure the gate then demanded in the Polish copy, failing a correct run unrecoverably.
+  it("ignores a year standing before a parenthesised percentage", () => {
+    expect(values("El precio subió en 2025 (+8,2%) hasta 6.624 euros")).toEqual([8.2, 6624]);
+  });
+
+  it("ignores the digit of a unit abbreviation before a percentage", () => {
+    expect(values("el metro cuadrado alcanzó 5.375 euros/m2 (+4,2%)")).toEqual([5375, 4.2]);
+  });
+
   it("returns nothing for empty or numeral-free text", () => {
     expect(extractFigures("")).toEqual([]);
     expect(extractFigures("El mercado inmobiliario catalán sigue activo")).toEqual([]);

@@ -179,6 +179,31 @@ describe.skipIf(!configured)("resolveTargetDigest (integration)", () => {
     await expect(resolveTargetDigest(db, collecting.id)).rejects.toThrow(/not "generating"/);
   });
 
+  // impl-review F2: a generation failure must be retryable in place, or a single bad figure costs
+  // the whole week (re-collect, re-rank, re-translate, re-select). The confirmed selection is what
+  // says the failure happened AFTER the S-04 gate.
+  it("puts a failed digest with a confirmed selection back into generating", async () => {
+    const failed = await generatingDigest(db);
+    unwrap(await transitionDigest(db, failed.id, "failed", { lastError: "numeric integrity failed" }));
+    const { error } = await db
+      .from("selection")
+      .insert({ digest_id: failed.id, format: "single_post", platforms: ["instagram"] });
+    if (error) throw new Error(error.message);
+
+    const digest = await resolveTargetDigest(db, failed.id);
+
+    expect(digest.id).toBe(failed.id);
+    expect(digest.status).toBe("generating");
+  });
+
+  // A digest that failed BEFORE the gate never had picks, so there is nothing to regenerate from.
+  it("refuses a failed digest that never passed the selection gate", async () => {
+    const failed = unwrap(await createDigest(db, nextWeek()));
+    unwrap(await transitionDigest(db, failed.id, "failed", { lastError: "empty pool" }));
+
+    await expect(resolveTargetDigest(db, failed.id)).rejects.toThrow(/no confirmed selection/);
+  });
+
   // The far more likely operator mistake than a still-collecting digest: re-running generate on a
   // week already generated. It must refuse rather than silently regenerate approved-adjacent copy.
   it("refuses a digest already past generation", async () => {

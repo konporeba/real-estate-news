@@ -154,7 +154,13 @@ function classify(text: string, match: RegExpExecArray): Candidate {
   const multiplier = magnitudeOf(after);
 
   // Percent first: `%` binds tighter than anything else and a percentage is never a price.
-  if (PERCENT.test(after.slice(0, 12).replace(/^[\s\u00A0\u202F\u2009]+/, ""))) {
+  //
+  // ANCHORED, like the currency test below. An unanchored search over a lookahead window lets a
+  // `%` several characters away qualify the wrong number: `en 2025 (+8,2%)` made the YEAR a
+  // percentage figure, and `euros/m2 (+4,2%)` made the `2` of `m2` one. Either phantom is then a
+  // figure FR-014 requires in the Polish copy, which a faithful rendering does not contain, so
+  // the gate fails a good run and the corrective retry cannot satisfy it.
+  if (new RegExp(`^(?:${PERCENT.source})`, "i").test(after.replace(/^[\s\u00A0\u202F\u2009]+/, ""))) {
     return { raw, value: base, kind: "percentage", start, end };
   }
 

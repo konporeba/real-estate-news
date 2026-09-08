@@ -132,6 +132,10 @@ async function fetchPickedStories(
  * let a prompt or model change produce a digest whose stories were written by different
  * configurations, and that inconsistency is invisible until the operator reads it. At 2-4 stories
  * the re-paid cost is cents.
+ *
+ * Called IMMEDIATELY BEFORE the insert, not at the top of the stage. Since a failed generation can
+ * now be retried in place (impl-review F2), clearing first would let a retry that fails again
+ * leave the digest with no copy at all -- destroying a previous good run to produce nothing.
  */
 async function clearExistingCopy(client: ServiceClient, digestId: string): Promise<RunStateResult<void>> {
   const { error } = await client.from("generated_copy").delete().eq("digest_id", digestId);
@@ -274,15 +278,15 @@ export async function generateDigest(
     return failDigest(client, digest.id, "no confirmed selection with picked stories; nothing to generate");
   }
 
-  const cleared = await clearExistingCopy(client, digest.id);
-  if (!cleared.ok) return cleared;
-
   const results: StoryResult[] = [];
   for (const story of picked.data.stories) {
     const generated = await generateStory(llm, client, digest.id, story, picked.data.format, options);
     if (!generated.ok) return failDigest(client, digest.id, generated.message);
     results.push(generated.data);
   }
+
+  const cleared = await clearExistingCopy(client, digest.id);
+  if (!cleared.ok) return cleared;
 
   const persisted = await persistCopy(client, digest.id, results);
   if (!persisted.ok) return persisted;

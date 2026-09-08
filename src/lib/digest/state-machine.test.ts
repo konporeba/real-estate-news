@@ -12,16 +12,16 @@ const ALL_STATUSES = Constants.public.Enums.digest_status;
 // The database trigger is authoritative. These helpers read the allowed map straight out
 // of the SQL so a change to one side without the other fails the suite.
 
-function readTriggerMigration(): string {
+function latestMigrationDefining(needle: string): string {
   const dir = fileURLToPath(new URL("../../../supabase/migrations/", import.meta.url));
   const migrations = readdirSync(dir)
     .filter((file) => file.endsWith(".sql"))
     .sort()
     .map((file) => readFileSync(dir + file, "utf8"))
-    .filter((sql) => sql.includes("enforce_digest_transition"));
+    .filter((sql) => sql.includes(needle));
 
   const latest = migrations.at(-1);
-  if (!latest) throw new Error("no migration defining enforce_digest_transition() was found");
+  if (!latest) throw new Error(`no migration defining ${needle} was found`);
   return latest;
 }
 
@@ -44,7 +44,13 @@ function parseIndexTerminalStates(sql: string): string[] {
   return match[1].split(",").map((value) => value.trim().replace(/'/g, ""));
 }
 
-const migrationSql = readTriggerMigration();
+// The trigger and the partial index are defined in DIFFERENT migrations once either is
+// replaced, so each is resolved to the latest file that defines it rather than assumed to
+// share one.
+const migrationSql = latestMigrationDefining("enforce_digest_transition");
+// Matched on the predicate rather than the index name: a later migration may MENTION the index
+// in a comment without redefining it, and the latest definition is the one that counts.
+const indexSql = latestMigrationDefining("where status not in");
 const migrationTransitions = parseAllowedTransitions(migrationSql);
 
 describe("TRANSITIONS", () => {
@@ -109,11 +115,17 @@ describe("canTransition", () => {
     expect(canTransition("skipped", "published")).toBe(true);
     expect(canTransition("failed", "collecting")).toBe(true);
   });
+
+  // A generation failure must not cost the whole week: the confirmed selection and the ranking
+  // spend survive, and `npm run generate` can run again (S-05 impl-review F2).
+  it("allows a failed generation to be retried in place", () => {
+    expect(canTransition("failed", "generating")).toBe(true);
+  });
 });
 
 describe("TERMINAL_STATES", () => {
   it("matches the states excluded from the partial unique index", () => {
-    expect([...TERMINAL_STATES].sort()).toEqual(parseIndexTerminalStates(migrationSql).sort());
+    expect([...TERMINAL_STATES].sort()).toEqual(parseIndexTerminalStates(indexSql).sort());
   });
 
   it("classifies statuses correctly", () => {

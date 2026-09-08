@@ -19,8 +19,10 @@ export const TRANSITIONS: Record<DigestStatus, readonly DigestStatus[]> = {
   approved: ["published", "skipped", "failed"],
   // US-19: a missed-deadline digest stays manually publishable.
   skipped: ["published"],
-  // FR-018: re-trigger a failed run in place.
-  failed: ["collecting"],
+  // FR-018: re-trigger a failed run in place -- from the top for a collection failure, or
+  // from the selection gate's output for a generation failure (S-05 impl-review F2), which
+  // would otherwise discard the confirmed selection and re-pay the whole ranking stage.
+  failed: ["collecting", "generating"],
   published: [],
 };
 

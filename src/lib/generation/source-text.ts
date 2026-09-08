@@ -47,6 +47,17 @@ export const MIN_ARTICLE_CHARS = 600;
 const FETCH_TIMEOUT_MS = 15_000;
 
 /**
+ * A news article page, markup and all, is a few hundred kilobytes; this is an order of magnitude
+ * above that. Anything larger is not an article, and buffering it whole would be the one way a
+ * single source could exhaust the worker's memory.
+ *
+ * The `content-length` check is the real guard, since it refuses before the body is read. The
+ * post-read check only catches a chunked response that declared no length -- by then the bytes
+ * have arrived, and the timeout is what bounded them.
+ */
+const MAX_RESPONSE_BYTES = 8_000_000;
+
+/**
  * Identify ourselves honestly — the same agent string the RSS tier uses.
  *
  * `src/lib/collection/sources.ts` records that a source returning 403 to us is "deliberately NOT
@@ -160,7 +171,14 @@ export async function fetchArticleText(url: string, options: FetchArticleOptions
       redirect: "follow",
     });
     if (!response.ok) return { ok: false, reason: statusFailure(response.status) };
-    html = decodeHtml(await response.arrayBuffer(), response.headers.get("content-type") ?? "");
+
+    const declared = Number(response.headers.get("content-length") ?? "");
+    if (Number.isFinite(declared) && declared > MAX_RESPONSE_BYTES) return { ok: false, reason: "unparseable" };
+
+    const body = await response.arrayBuffer();
+    if (body.byteLength > MAX_RESPONSE_BYTES) return { ok: false, reason: "unparseable" };
+
+    html = decodeHtml(body, response.headers.get("content-type") ?? "");
   } catch {
     // AbortSignal.timeout rejects with a TimeoutError; DNS/TLS failures reject too. Both are
     // "we could not get the page", which is the same decision for the caller.

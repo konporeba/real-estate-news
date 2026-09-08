@@ -10,7 +10,7 @@
 // way S-01 and S-02 shipped before F-05 automated them.
 import { pathToFileURL } from "node:url";
 
-import { resumeDigest } from "@/lib/digest/run-state";
+import { resumeDigest, transitionDigest } from "@/lib/digest/run-state";
 import { generateDigest } from "@/lib/generation/generate";
 import { createLlmClient } from "@/lib/llm/client";
 import { createServiceClient, type ServiceClient } from "@/lib/supabase-service";
@@ -53,6 +53,13 @@ async function newestInGenerating(client: ServiceClient): Promise<DigestRun | nu
   return data;
 }
 
+/** Whether the S-04 gate was ever passed for this digest -- one row per digest, unique on digest_id. */
+async function hasConfirmedSelection(client: ServiceClient, digestId: string): Promise<boolean> {
+  const { data, error } = await client.from("selection").select("id").eq("digest_id", digestId).maybeSingle();
+  if (error) throw new Error(`${error.code}: ${error.message}`);
+  return data !== null;
+}
+
 /**
  * Resolve which digest this run works on.
  *
@@ -60,10 +67,32 @@ async function newestInGenerating(client: ServiceClient): Promise<DigestRun | nu
  * or one already awaiting approval, is a caller mistake rather than something to silently fix.
  * Absent a flag, the default is the newest digest in `generating`, the state `confirm_selection`
  * leaves a digest in the moment the operator passes the S-04 gate.
+ *
+ * ONE EXCEPTION, and only for an explicit `--digest`: a digest that FAILED during generation is
+ * put back into `generating` and retried. Without this the only legal move out of `failed` is
+ * back to `collecting`, which re-runs the whole pipeline and discards the operator's confirmed
+ * picks to recover from a stage that costs cents (impl-review F2). The confirmed selection is
+ * what distinguishes a generation failure from a collection failure — a digest that failed
+ * before the S-04 gate has none, and is refused as before. The retry is never implicit: the
+ * no-flag default still only picks up digests already in `generating`.
  */
 export async function resolveTargetDigest(client: ServiceClient, digestId: string | null): Promise<DigestRun> {
   if (digestId) {
     const digest = unwrap(await resumeDigest(client, digestId));
+
+    if (digest.status === "failed") {
+      if (!(await hasConfirmedSelection(client, digest.id))) {
+        throw new GenerateRefused(
+          `digest ${digestId} is "failed" with no confirmed selection — it did not fail during generation. ` +
+            "Re-run the pipeline from collection instead (npm run collect).",
+        );
+      }
+      console.log(
+        `digest ${digestId} failed during generation (${digest.last_error ?? "no recorded reason"}); retrying`,
+      );
+      return unwrap(await transitionDigest(client, digest.id, "generating"));
+    }
+
     if (digest.status !== "generating") {
       throw new GenerateRefused(
         `digest ${digestId} is in "${digest.status}", not "generating". Generation only runs on a digest in "generating".`,
