@@ -658,10 +658,10 @@ renders them as an empty strip rather than an error, and no backfill is attempte
 
 #### Automated
 
-- [x] 2.1 Type checking passes: `npm run build`
-- [x] 2.2 Linting passes: `npm run lint`
-- [x] 2.3 Client unit tests pass against a fake transport
-- [x] 2.4 Validator reports every seeded defect on fixture payloads
+- [x] 2.1 Type checking passes: `npm run build` — 89e8855
+- [x] 2.2 Linting passes: `npm run lint` — 89e8855
+- [x] 2.3 Client unit tests pass against a fake transport — 89e8855
+- [x] 2.4 Validator reports every seeded defect on fixture payloads — 89e8855
 
 #### Manual
 
@@ -673,13 +673,13 @@ renders them as an empty strip rather than an error, and no backfill is attempte
 
 #### Automated
 
-- [ ] 3.1 Slot mapping covers 3/4/5 statistics and fails on 2
-- [ ] 3.2 Fitting covers every tier boundary plus the overflow failure
-- [ ] 3.3 Linting passes: `npm run lint`
+- [x] 3.1 Slot mapping covers 3/4/5 statistics and fails on 2
+- [x] 3.2 Fitting covers every tier boundary plus the overflow failure
+- [x] 3.3 Linting passes: `npm run lint`
 
 #### Manual
 
-- [ ] 3.4 Tier boundaries sanity-checked against digest `c92aa3c5`'s real titles
+- [x] 3.4 Tier boundaries sanity-checked against digest `c92aa3c5`'s real titles
 
 ### Phase 4: Render orchestrator
 

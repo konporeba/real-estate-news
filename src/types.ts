@@ -189,6 +189,26 @@ export type SourceTextOrigin = "article" | "lede";
  */
 export type GeneratedAssetRow = Database["public"]["Tables"]["generated_asset"]["Row"];
 
+/**
+ * Why a visual could not be built from a story's copy (S-06, FR-015). Mirrors
+ * {@link SelectionErrorReason}: these are expected results the render stage handles and turns
+ * into a `failed` digest with a diagnostic, not exceptions.
+ *
+ * - `malformed_statistics` — `generated_copy.key_statistics` is not an array of `{label, value}`
+ * - `insufficient_statistics` — fewer usable figures than the template has fixed stat slots
+ * - `empty_title` — the story's Polish title is blank, so the card would render headline-less
+ * - `title_too_long` — the headline is past the last fit tier; no font size renders it whole
+ */
+export type VisualErrorReason = "malformed_statistics" | "insufficient_statistics" | "empty_title" | "title_too_long";
+
+export interface VisualError {
+  ok: false;
+  reason: VisualErrorReason;
+  message: string;
+}
+
+export type VisualResult<T> = { ok: true; data: T } | VisualError;
+
 /** A named job's scheduling state — is it running, when did it last fire/complete. */
 export type ScheduledJobRow = Database["public"]["Tables"]["scheduled_job"]["Row"];
 
