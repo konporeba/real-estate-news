@@ -888,34 +888,34 @@ redefinition only widens the set of statuses that free up a week.
 
 #### Automated
 
-- [x] 5.1 Builder tests pass: `npx vitest run src/lib/email/approval-ready.test.ts`
-- [x] 5.2 Worker notify tests pass: `npx vitest run src/worker/visuals.test.ts`
-- [x] 5.3 Type checking passes: `npm run build`
-- [x] 5.4 Linting passes: `npm run lint`
-- [x] 5.5 Full suite passes: `npm test`
+- [x] 5.1 Builder tests pass: `npx vitest run src/lib/email/approval-ready.test.ts` — 4d8d29a
+- [x] 5.2 Worker notify tests pass: `npx vitest run src/worker/visuals.test.ts` — 4d8d29a
+- [x] 5.3 Type checking passes: `npm run build` — 4d8d29a
+- [x] 5.4 Linting passes: `npm run lint` — 4d8d29a
+- [x] 5.5 Full suite passes: `npm test` — 4d8d29a
 
 #### Manual
 
-- [x] 5.6 Unconfigured email: `notifyApprovalReady` (called exactly as `npm run visuals`'s `main()` does) completes and logs that email is not configured
-- [x] 5.7 Configured: the email arrives and its CTA opens the right digest's approval page (real send verified against a stale-then-fixed Gmail App Password; content and CTA confirmed by the operator)
+- [x] 5.6 Unconfigured email: `notifyApprovalReady` (called exactly as `npm run visuals`'s `main()` does) completes and logs that email is not configured — 4d8d29a
+- [x] 5.7 Configured: the email arrives and its CTA opens the right digest's approval page (real send verified against a stale-then-fixed Gmail App Password; content and CTA confirmed by the operator) — 4d8d29a
 
 ### Phase 6: FR-021 — the Monday reminder
 
 #### Automated
 
-- [ ] 6.1 Reminder builder tests pass: `npx vitest run src/lib/email/reminder.test.ts`
-- [ ] 6.2 Outstanding-gates suite passes: `SUPABASE_TEST_PROJECT=1 npx vitest run src/lib/approval/outstanding.test.ts`
-- [ ] 6.3 Scheduler tests pass: `npx vitest run src/worker/scheduled-run.test.ts`
-- [ ] 6.4 Type checking passes: `npm run build`
-- [ ] 6.5 Linting passes: `npm run lint`
-- [ ] 6.6 Full suite passes: `npm test`
+- [x] 6.1 Reminder builder tests pass: `npx vitest run src/lib/email/reminder.test.ts`
+- [x] 6.2 Outstanding-gates suite passes: `SUPABASE_TEST_PROJECT=1 npx vitest run src/lib/approval/outstanding.test.ts`
+- [x] 6.3 Scheduler tests pass: `npx vitest run src/worker/scheduled-run.test.ts`
+- [x] 6.4 Type checking passes: `npm run build`
+- [x] 6.5 Linting passes: `npm run lint`
+- [x] 6.6 Full suite passes: `npm test`
 
 #### Manual
 
-- [ ] 6.7 `npm run remind` names the approval step and links to the approval page
-- [ ] 6.8 `npm run remind` names the selection step and links to the shortlist
-- [ ] 6.9 `npm run remind` with nothing outstanding sends no email and exits 0
-- [ ] 6.10 A second `scheduled-run` in the same week does not re-fire the reminder
+- [x] 6.7 `npm run remind` names the approval step and links to the approval page (verified live, including a genuine real digest awaiting approval since 2026-08-31)
+- [x] 6.8 `npm run remind` names the selection step and links to the shortlist (verified live, including a genuine real digest awaiting selection since 2026-07-27)
+- [x] 6.9 `npm run remind` with nothing outstanding sends no email and exits 0 (proven by `findOutstandingGates`'s automated integration test, not exercised live — two real digests are genuinely outstanding right now, and resolving them is the operator's call, not this phase's)
+- [x] 6.10 A second `scheduled-run` in the same week does not re-fire the reminder (verified live against the real registry entry: first call claimed and ran it, a second call with the same `now` reported "not due")
 
 ### Phase 7: Live verification
 

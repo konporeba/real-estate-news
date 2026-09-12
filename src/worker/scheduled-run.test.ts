@@ -168,4 +168,25 @@ describe.skipIf(!configured)("scheduled-run (integration)", () => {
     const { data: row } = await db.from("scheduled_job").select("*").eq("name", name).single();
     expect(row?.status).toBe("idle");
   });
+
+  // S-07/FR-021: the reminder's real schedule is Monday 09:00, not Sunday 17:00 -- this confirms
+  // the due-check/claim/release loop is genuinely generic across weekdays, not just proven against
+  // the one schedule every other test above happens to share.
+  it("claims and runs a job on a different weekday's schedule (the approval-reminder's own)", async () => {
+    const name = nextJobName();
+    const mondaySchedule = { dayOfWeek: 1 as const, hour: 9, minute: 0 };
+    const { action, callCount } = fakeAction({ ok: true });
+    const jobs: ScheduledJobDefinition[] = [{ name, schedule: mondaySchedule }];
+
+    // 2026-07-29 is itself a Wednesday; NOW's own most-recent-Monday-09:00 differs from
+    // MOST_RECENT_DUE_INSTANT (Sunday's), so this exercises a genuinely different due-check.
+    const allOk = await runScheduledJobs(db, jobs, { [name]: action }, NOW);
+
+    expect(allOk).toBe(true);
+    expect(callCount()).toBe(1);
+
+    const { data: row } = await db.from("scheduled_job").select("*").eq("name", name).single();
+    expect(row?.status).toBe("idle");
+    expect(row?.last_error).toBeNull();
+  });
 });

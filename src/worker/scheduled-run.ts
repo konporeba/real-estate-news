@@ -2,7 +2,9 @@
 // timer, cron, or by hand); the due-check inside decides whether any work actually
 // happens, so the invoker's own timing precision doesn't matter. Ties the scheduler core
 // (src/lib/scheduler/) together with the real pipeline actions: today, the "collection"
-// job runs collect.ts's main() and, only on success, rank.ts's main() next.
+// job runs collect.ts's main() and, only on success, rank.ts's main() next; the
+// "approval-reminder" job (S-07/FR-021) emails the operator when a digest is stuck at
+// either human gate.
 //
 // Runs in plain Node, never in the Astro/workerd runtime. Nothing here may import
 // astro:env/server or src/lib/supabase-admin; eslint.config.js enforces both directions
@@ -16,6 +18,7 @@ import { createServiceClient, type ServiceClient } from "@/lib/supabase-service"
 import { main as runCollect } from "@/worker/collect";
 import { loadWorkerEnv } from "@/worker/env";
 import { main as runRank } from "@/worker/rank";
+import { main as runRemind } from "@/worker/remind";
 import type { ScheduledJobRow } from "@/types";
 
 /** What a job's action reports back to the orchestrator. */
@@ -36,9 +39,21 @@ async function runCollectionJob(): Promise<JobOutcome> {
   return { ok: true };
 }
 
+/**
+ * S-07/FR-021: email the operator when a digest is stuck at either human gate. Thin wrapper
+ * around remind.ts's own main(), mirroring runCollectionJob's wrap of collect.ts/rank.ts --
+ * the entrypoint owns the logic, this maps its exit code onto the JobOutcome contract.
+ */
+async function runApprovalReminderJob(): Promise<JobOutcome> {
+  const exit = await runRemind();
+  if (exit !== 0) return { ok: false, error: `remind exited ${exit}` };
+  return { ok: true };
+}
+
 /** Maps a job's registry name to the action that runs it for real. */
 const JOB_ACTIONS: Record<string, JobAction> = {
   collection: runCollectionJob,
+  "approval-reminder": runApprovalReminderJob,
 };
 
 /** A freshly-claimed row always carries a `started_at`; narrows it without a non-null assertion. */
