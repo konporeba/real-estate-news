@@ -156,7 +156,7 @@ the file, per the warning in `20260908130000_rendering_status_enum.sql:15-16`.
 
 #### 2. The transition trigger and the week index
 
-**File**: `supabase/migrations/<ts>_approval_gate.sql` (also carries Phase 2's objects)
+**File**: `supabase/migrations/20260912093000_approval_gate.sql`
 
 **Intent**: Redefine `enforce_digest_transition()` to allow `ready_for_approval → rejected` and
 `rejected → generating`, and redefine `one_active_digest_per_week` so a rejected week no longer
@@ -251,9 +251,19 @@ Persist the operator's decision and perform the transition in one transaction, m
 
 ### Changes Required:
 
+> **Deviation from the original plan, decided during implementation (2026-09-12):** Phase 1's
+> migration (`20260912093000_approval_gate.sql`) is already applied to the live project and
+> recorded in `supabase_migrations.schema_migrations` — its manual verification required the
+> trigger/index changes to be live before Phase 1's integration tests could pass. `supabase
+migration repair`/`db push` track applied state by file **version**, not content checksum, so
+> appending new SQL to an already-applied file risks a future `db push` treating that version as
+> already handled and silently skipping the new statements. The approval table and RPC below
+> therefore land in their own new file, `20260912100000_approval_record.sql`, rather than the
+> file Phase 1 used.
+
 #### 1. The `approval` table
 
-**File**: `supabase/migrations/<ts>_approval_gate.sql` (same file as Phase 1 change #2)
+**File**: `supabase/migrations/20260912100000_approval_record.sql`
 
 **Intent**: One row per decision per digest, recording what was decided, optionally why, and when.
 Deny-by-default RLS like every other table, so only the service-role client reaches it.
@@ -266,11 +276,11 @@ index on `digest_id`, `alter table approval enable row level security` with no p
 loud `23505` rather than a silent overwrite — the same role it plays in `selection`.
 
 Note the enum here is created with `create type`, not `alter type ... add value`, so it is safe in a
-shared migration; only the `digest_status` addition needs its own file.
+shared migration; only the `digest_status` addition needed its own file.
 
 #### 2. `record_approval()`
 
-**File**: same migration
+**File**: same migration (`20260912100000_approval_record.sql`)
 
 **Intent**: Validate that the digest exists and is awaiting approval, write the decision, and
 transition to `approved` or `rejected` — all or nothing.
@@ -808,32 +818,32 @@ redefinition only widens the set of statuses that free up a week.
 
 #### Automated
 
-- [x] 1.1 State-machine drift guard passes: `npx vitest run src/lib/digest/state-machine.test.ts`
-- [x] 1.2 Generation entrypoint tests pass: `npx vitest run src/worker/generate.test.ts`
-- [x] 1.3 Type checking passes: `npm run build`
-- [x] 1.4 Linting passes: `npm run lint`
-- [x] 1.5 Full suite passes: `npm test`
+- [x] 1.1 State-machine drift guard passes: `npx vitest run src/lib/digest/state-machine.test.ts` — da20e5a
+- [x] 1.2 Generation entrypoint tests pass: `npx vitest run src/worker/generate.test.ts` — da20e5a
+- [x] 1.3 Type checking passes: `npm run build` — da20e5a
+- [x] 1.4 Linting passes: `npm run lint` — da20e5a
+- [x] 1.5 Full suite passes: `npm test` — da20e5a
 
 #### Manual
 
-- [x] 1.6 Both migrations applied; migration-repair debt cleared or explicitly re-recorded
-- [x] 1.7 Live trigger accepts `ready_for_approval → rejected` and `rejected → generating`, rejects `rejected → published` and `rejected → approved`
-- [x] 1.8 `one_active_digest_per_week` predicate includes `rejected`
-- [x] 1.9 `npm run generate -- --digest=<rejected>` recovers it; the no-flag default still ignores rejected digests
+- [x] 1.6 Both migrations applied; migration-repair debt cleared or explicitly re-recorded — da20e5a
+- [x] 1.7 Live trigger accepts `ready_for_approval → rejected` and `rejected → generating`, rejects `rejected → published` and `rejected → approved` — da20e5a
+- [x] 1.8 `one_active_digest_per_week` predicate includes `rejected` — da20e5a
+- [x] 1.9 `npm run generate -- --digest=<rejected>` recovers it; the no-flag default still ignores rejected digests — da20e5a
 
 ### Phase 2: Approval record and the `record_approval` RPC
 
 #### Automated
 
-- [ ] 2.1 Approval RPC suite passes: `SUPABASE_TEST_PROJECT=1 npx vitest run src/lib/approval/record.test.ts`
-- [ ] 2.2 Type checking passes: `npm run build`
-- [ ] 2.3 Linting passes: `npm run lint`
-- [ ] 2.4 Full suite passes: `npm test`
+- [x] 2.1 Approval RPC suite passes: `SUPABASE_TEST_PROJECT=1 npx vitest run src/lib/approval/record.test.ts`
+- [x] 2.2 Type checking passes: `npm run build`
+- [x] 2.3 Linting passes: `npm run lint`
+- [x] 2.4 Full suite passes: `npm test`
 
 #### Manual
 
-- [ ] 2.5 `approval` applied, reachable by the service role, denied to `anon`
-- [ ] 2.6 Approve and reject each produce the right status and exactly one `approval` row
+- [x] 2.5 `approval` applied, reachable by the service role, denied to `anon`
+- [x] 2.6 Approve and reject each produce the right status and exactly one `approval` row
 
 ### Phase 3: Shared approval rules and the decide endpoint
 

@@ -35,6 +35,9 @@
 //     in Row/Insert/Update (20260908140000_visual_assets.sql)
 //   - `"rejected"` in the `digest_status` enum and in Constants.public.Enums.digest_status
 //     (20260912090000_rejected_status_enum.sql)
+//   - `approval` under public.Tables, `approval_decision` under public.Enums and in
+//     Constants.public.Enums, `record_approval` under public.Functions
+//     (20260912100000_approval_record.sql)
 export type Json =
   | string
   | number
@@ -76,6 +79,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      approval: {
+        Row: {
+          created_at: string
+          decided_at: string
+          decision: Database["public"]["Enums"]["approval_decision"]
+          digest_id: string
+          id: string
+          note: string | null
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string
+          decision: Database["public"]["Enums"]["approval_decision"]
+          digest_id: string
+          id?: string
+          note?: string | null
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string
+          decision?: Database["public"]["Enums"]["approval_decision"]
+          digest_id?: string
+          id?: string
+          note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_digest_id_fkey"
+            columns: ["digest_id"]
+            isOneToOne: true
+            referencedRelation: "digest"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       article: {
         Row: {
           cluster_id: string | null
@@ -529,8 +567,20 @@ export type Database = {
         // surfaces an error rather than a null return.
         Returns: string
       }
+      record_approval: {
+        Args: {
+          p_digest_id: string
+          p_decision: Database["public"]["Enums"]["approval_decision"]
+          p_note: string | null
+        }
+        // The new approval row's id. Never null on success: every failure path inside the
+        // function raises (AG001..AG003, or 23505 on a second decision), so PostgREST surfaces
+        // an error rather than a null return.
+        Returns: string
+      }
     }
     Enums: {
+      approval_decision: "approved" | "rejected"
       digest_status:
         | "collecting"
         | "ranking"
@@ -676,6 +726,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      approval_decision: ["approved", "rejected"],
       digest_status: [
         "collecting",
         "ranking",

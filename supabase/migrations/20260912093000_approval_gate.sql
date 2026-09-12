@@ -9,8 +9,12 @@
 --   * `one_active_digest_per_week` redefined so a rejected week frees up its slot, like every
 --     other terminal state
 --
--- Phase 2 of the same change extends this file with the `approval` table and the
--- `record_approval()` RPC that actually performs the transition this trigger permits.
+-- The `approval` table and the `record_approval()` RPC that actually perform the transition this
+-- trigger permits live in a SEPARATE later migration (20260912100000_approval_record.sql), not
+-- appended here: this file is already applied and recorded in
+-- supabase_migrations.schema_migrations by the time that RPC was written, and `supabase migration
+-- repair`/`db push` track applied state by file version, not content checksum -- appending to an
+-- already-applied file risks a future `db push` skipping the addition entirely.
 
 -- ---------------------------------------------------------------------------
 -- 1. Transition guard

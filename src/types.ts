@@ -230,3 +230,40 @@ export interface SchedulerError {
 }
 
 export type SchedulerResult<T> = { ok: true; data: T } | SchedulerError;
+
+/** The operator's approve-or-reject decision for one digest, with an optional note (S-07, FR-020). */
+export type ApprovalRow = Database["public"]["Tables"]["approval"]["Row"];
+
+/** FR-020's two outcomes; mirrors the `approval_decision` Postgres enum. */
+export type ApprovalDecision = Database["public"]["Enums"]["approval_decision"];
+
+/**
+ * Why recording a decision did not succeed. Mirrors {@link SelectionErrorReason}: these are
+ * expected results the caller handles, not exceptions. Each maps from a SQLSTATE raised by
+ * `record_approval` (see the migration's header) except the first two, which the API route
+ * decides before reaching the database.
+ *
+ * - `unauthorized` — no operator session; the route answers 401 rather than redirecting
+ * - `invalid_request` — malformed body, or a note the rules reject (AG003)
+ * - `wrong_status` — the digest is not in `ready_for_approval` (AG002)
+ * - `already_decided` — a decision for this digest exists (23505 on approval.digest_id)
+ * - `not_found` — no digest with that id (AG001)
+ * - `not_configured` — no Supabase service client
+ * - `database_error` — anything else Postgres reported
+ */
+export type ApprovalErrorReason =
+  | "unauthorized"
+  | "invalid_request"
+  | "wrong_status"
+  | "already_decided"
+  | "not_found"
+  | "not_configured"
+  | "database_error";
+
+export interface ApprovalError {
+  ok: false;
+  reason: ApprovalErrorReason;
+  message: string;
+}
+
+export type ApprovalResult<T> = { ok: true; data: T } | ApprovalError;
