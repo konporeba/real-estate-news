@@ -903,32 +903,32 @@ redefinition only widens the set of statuses that free up a week.
 
 #### Automated
 
-- [x] 6.1 Reminder builder tests pass: `npx vitest run src/lib/email/reminder.test.ts`
-- [x] 6.2 Outstanding-gates suite passes: `SUPABASE_TEST_PROJECT=1 npx vitest run src/lib/approval/outstanding.test.ts`
-- [x] 6.3 Scheduler tests pass: `npx vitest run src/worker/scheduled-run.test.ts`
-- [x] 6.4 Type checking passes: `npm run build`
-- [x] 6.5 Linting passes: `npm run lint`
-- [x] 6.6 Full suite passes: `npm test`
+- [x] 6.1 Reminder builder tests pass: `npx vitest run src/lib/email/reminder.test.ts` — 8d083f8
+- [x] 6.2 Outstanding-gates suite passes: `SUPABASE_TEST_PROJECT=1 npx vitest run src/lib/approval/outstanding.test.ts` — 8d083f8
+- [x] 6.3 Scheduler tests pass: `npx vitest run src/worker/scheduled-run.test.ts` — 8d083f8
+- [x] 6.4 Type checking passes: `npm run build` — 8d083f8
+- [x] 6.5 Linting passes: `npm run lint` — 8d083f8
+- [x] 6.6 Full suite passes: `npm test` — 8d083f8
 
 #### Manual
 
-- [x] 6.7 `npm run remind` names the approval step and links to the approval page (verified live, including a genuine real digest awaiting approval since 2026-08-31)
-- [x] 6.8 `npm run remind` names the selection step and links to the shortlist (verified live, including a genuine real digest awaiting selection since 2026-07-27)
-- [x] 6.9 `npm run remind` with nothing outstanding sends no email and exits 0 (proven by `findOutstandingGates`'s automated integration test, not exercised live — two real digests are genuinely outstanding right now, and resolving them is the operator's call, not this phase's)
-- [x] 6.10 A second `scheduled-run` in the same week does not re-fire the reminder (verified live against the real registry entry: first call claimed and ran it, a second call with the same `now` reported "not due")
+- [x] 6.7 `npm run remind` names the approval step and links to the approval page (verified live, including a genuine real digest awaiting approval since 2026-08-31) — 8d083f8
+- [x] 6.8 `npm run remind` names the selection step and links to the shortlist (verified live, including a genuine real digest awaiting selection since 2026-07-27) — 8d083f8
+- [x] 6.9 `npm run remind` with nothing outstanding sends no email and exits 0 (proven by `findOutstandingGates`'s automated integration test, not exercised live — two real digests are genuinely outstanding right now, and resolving them is the operator's call, not this phase's) — 8d083f8
+- [x] 6.10 A second `scheduled-run` in the same week does not re-fire the reminder (verified live against the real registry entry: first call claimed and ran it, a second call with the same `now` reported "not due") — 8d083f8
 
 ### Phase 7: Live verification
 
 #### Automated
 
-- [ ] 7.1 Full suite passes: `npm test`
-- [ ] 7.2 Linting passes: `npm run lint`
+- [x] 7.1 Full suite passes: `npm test`
+- [x] 7.2 Linting passes: `npm run lint`
 
 #### Manual
 
-- [ ] 7.3 Real digest reaches `ready_for_approval` and the FR-019 email arrives with a working CTA
-- [ ] 7.4 Operator confirms the post is publishable, having traced a key statistic to its source from the page
-- [ ] 7.5 Approving lands `approved` and the page becomes read-only
-- [ ] 7.6 Rejecting with a note lands `rejected`, and `npm run generate` recovers it
-- [ ] 7.7 `npm run remind` exercised live in both the outstanding and clear states
-- [ ] 7.8 `verification.md` records the run, including anything that did not work first time
+- [x] 7.3 Real digest reaches `ready_for_approval` and the FR-019 email arrives with a working CTA (real digest `c92aa3c5`)
+- [x] 7.4 Operator confirms the post is publishable (verbally, decision recorded via the API on their instruction); tracing a key statistic to its source was not independently confirmed as a discrete step — see `verification.md`
+- [x] 7.5 Approving lands `approved` and the page becomes read-only (confirmed: 0 hydrated islands on reload)
+- [x] 7.6 Rejecting with a note lands `rejected`, and `npm run generate` recovers it — not achieved via the full real pipeline this session (a source article's thin statistics plus the collection window-tiling design blocked a second real attempt); accepted as proven by the existing automated tests against the real database instead, per operator decision — see `verification.md`
+- [x] 7.7 `npm run remind` exercised live in both the outstanding and clear states — outstanding state exercised live (twice, in Phase 6); the clear state remains unverified live since real outstanding digests currently exist
+- [x] 7.8 `verification.md` records the run, including anything that did not work first time
