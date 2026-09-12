@@ -673,36 +673,36 @@ renders them as an empty strip rather than an error, and no backfill is attempte
 
 #### Automated
 
-- [x] 3.1 Slot mapping covers 3/4/5 statistics and fails on 2
-- [x] 3.2 Fitting covers every tier boundary plus the overflow failure
-- [x] 3.3 Linting passes: `npm run lint`
+- [x] 3.1 Slot mapping covers 3/4/5 statistics and fails on 2 — 4c9a252
+- [x] 3.2 Fitting covers every tier boundary plus the overflow failure — 4c9a252
+- [x] 3.3 Linting passes: `npm run lint` — 4c9a252
 
 #### Manual
 
-- [x] 3.4 Tier boundaries sanity-checked against digest `c92aa3c5`'s real titles
+- [x] 3.4 Tier boundaries sanity-checked against digest `c92aa3c5`'s real titles — 4c9a252
 
 ### Phase 4: Render orchestrator
 
 #### Automated
 
-- [ ] 4.1 Happy path for both formats persists the expected row count
-- [ ] 4.2 Retry-then-succeed completes; retry-then-fail fails the digest
-- [ ] 4.3 Cleanup deletes every duplicated page on success and failure paths
-- [ ] 4.4 Too few copy rows fails with a diagnostic, not a throw
-- [ ] 4.5 Full suite passes: `npm test`
+- [x] 4.1 Happy path for both formats persists the expected row count
+- [x] 4.2 Retry-then-succeed completes; retry-then-fail fails the digest
+- [x] 4.3 Cleanup deletes every duplicated page on success and failure paths
+- [x] 4.4 Too few copy rows fails with a diagnostic, not a throw
+- [x] 4.5 Full suite passes: `npm test`
 
 #### Manual
 
-- [ ] 4.6 Reviewed that no code path can create a Drive file
+- [x] 4.6 Reviewed that no code path can create a Drive file
 
 ### Phase 5: Worker entrypoint
 
 #### Automated
 
-- [ ] 5.1 Flag parsing and refusal behaviour covered
+- [x] 5.1 Flag parsing and refusal behaviour covered
 - [x] 5.2 Generation now transitions to `rendering` — 1fb6a9c
-- [ ] 5.3 Linting passes: `npm run lint`
-- [ ] 5.4 Full suite passes: `npm test`
+- [x] 5.3 Linting passes: `npm run lint`
+- [x] 5.4 Full suite passes: `npm test`
 
 #### Manual
 

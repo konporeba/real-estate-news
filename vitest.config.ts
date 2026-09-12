@@ -17,9 +17,13 @@ export default defineConfig({
   test: {
     include: ["src/**/*.test.ts"],
     // Integration tests round-trip to the configured Supabase project; the default 5s
-    // is tight for a remote database.
-    testTimeout: 20_000,
-    hookTimeout: 20_000,
+    // is tight for a remote database. Raised from 20s to 40s when S-06 added the rendering
+    // suite: at ~700ms per round trip a case that seeds a digest (nine trips) and then runs a
+    // stage (seven more) sits close enough to 20s that a slow minute on the remote project
+    // failed a different two or three cases on every run, always with "Test timed out" and
+    // never with an assertion. The tests are latency-bound, not slow.
+    testTimeout: 40_000,
+    hookTimeout: 40_000,
     // Test FILES run one at a time. The integration suites share one global resource —
     // the `digest` table — and some of their assertions are about its global state
     // ("nothing is recoverable", "the newest recoverable digest is X"). Run in parallel,
