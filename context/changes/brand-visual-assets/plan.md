@@ -665,9 +665,9 @@ renders them as an empty strip rather than an error, and no backfill is attempte
 
 #### Manual
 
-- [ ] 2.5 Service account created and key configured
-- [ ] 2.6 Operator has built both decks and shared them as Editor
-- [ ] 2.7 `npm run visuals:validate` exits 0 against the real decks
+- [x] 2.5 Service account created and key configured
+- [x] 2.6 Operator has built both decks and shared them as Editor
+- [x] 2.7 `npm run visuals:validate` exits 0 against the real decks
 
 ### Phase 3: Slot mapping and text fitting
 
@@ -726,12 +726,12 @@ renders them as an empty strip rather than an error, and no backfill is attempte
 
 #### Automated
 
-- [ ] 7.1 `SLIDES_LIVE_SMOKE=1` smoke test passes against the real decks
-- [ ] 7.2 Full suite still passes after tier recalibration
+- [x] 7.1 `SLIDES_LIVE_SMOKE=1` smoke test passes against the real decks
+- [x] 7.2 Full suite still passes after tier recalibration
 
 #### Manual
 
-- [ ] 7.3 A live digest completes `rendering → ready_for_approval` with the expected asset count
-- [ ] 7.4 Operator confirms the cards are publishable
-- [ ] 7.5 Operator demonstrates US-13: deck edit changes output with no code change
-- [ ] 7.6 Both decks left clean, no leftover duplicated slides
+- [x] 7.3 A live digest completes `rendering → ready_for_approval` with the expected asset count
+- [x] 7.4 Operator confirms the cards are publishable
+- [x] 7.5 Operator demonstrates US-13: deck edit changes output with no code change
+- [x] 7.6 Both decks left clean, no leftover duplicated slides
