@@ -99,6 +99,10 @@ before S-08 actually publishes anything.
 
 ## Carousel deck
 
-Not exercised by a full render — digest `c92aa3c5`'s selection is `single_post`. The carousel deck
-passes the validator and its story slide still carries Slides' default 236 × 32 pt boxes, so it will
-need the same geometry treatment before the first carousel week.
+Not exercised by a full render — digest `c92aa3c5`'s selection is `single_post`, so the cover-slide
+path has only ever run against a fake transport.
+
+Its geometry **is** now fixed (impl-review F5): both cover boxes and all seven story boxes were
+given the same treatment as the single-post deck, and `npm run visuals:validate` still exits 0 for
+both decks. Original transforms are saved as `carousel-transforms-before.json` in this session's
+scratchpad. The first carousel week is still the first real exercise of the cover path.

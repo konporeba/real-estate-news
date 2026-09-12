@@ -327,6 +327,14 @@ async function renderPage(
     if (cleared.ok) created.delete(pageId);
   }
 
+  // Tracked BEFORE the call, not after. If the duplicate is applied server-side but the response
+  // never arrives (connection reset, timeout — both surface here as `api_error`), a page tracked
+  // only on success would be invisible to the caller's sweep AND to this function's own pre-delete
+  // on the retry, stranding it in the operator's deck and failing the retry on a duplicate id.
+  // Deleting a page that was never created is a harmless ignored failure; missing one that was is
+  // not, so the optimistic direction is the safe one.
+  created.add(pageId);
+
   const applied = await slides.batchUpdate(deckId, buildPageRequests(plan, pageId, titleId));
   if (!applied.ok) {
     return {
@@ -335,7 +343,6 @@ async function renderPage(
       message: `slide ${String(plan.slideIndex)}: ${applied.reason}: ${applied.message}`,
     };
   }
-  created.add(pageId);
 
   const exported = await slides.getPageThumbnail(deckId, pageId);
 
@@ -487,14 +494,18 @@ export async function renderDigest(
     // Best-effort: whatever survives here is prefixed, so the next run's sweep collects it. The
     // stage's own outcome must not turn on a cleanup call, or a deck left tidy-but-unreachable
     // would mask a run that actually succeeded.
-    if (created.size > 0) await slides.batchUpdate(deckId, deleteObjectRequests([...created]));
+    //
+    // One call per page rather than one batch for all of them: batchUpdate is all-or-nothing, so a
+    // single id that is already gone (see the optimistic tracking in renderPage) would fail the
+    // whole sweep and strand every page that really is still there.
+    for (const pageId of created) await slides.batchUpdate(deckId, deleteObjectRequests([pageId]));
   }
 
   if (failure) {
     // Storage is infrastructure: returned raw, leaving the digest in `rendering` so re-running the
     // stage is the entire recovery. A Slides failure that survived a retry is a real problem with
     // the deck or the credentials, which is the operator's to fix — hence `failed` + diagnostic.
-    if (failure.kind === "storage") return { ok: false, reason: "database_error", message: failure.message };
+    if (failure.kind === "storage") return { ok: false, reason: "storage_error", message: failure.message };
     return failDigest(client, digest.id, `rendering failed after a retry: ${failure.message}`);
   }
 

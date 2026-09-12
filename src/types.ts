@@ -25,6 +25,7 @@ export interface DigestWindow {
  * - `illegal_transition` — the transition is not in the state machine (app guard or DB trigger)
  * - `concurrent_modification` — the row's status changed between read and write
  * - `not_found` — no digest with that id
+ * - `storage_error` — Supabase Storage refused a read or write (S-06 stores rendered images)
  * - `database_error` — anything else Postgres reported
  */
 export type RunStateErrorReason =
@@ -32,6 +33,7 @@ export type RunStateErrorReason =
   | "illegal_transition"
   | "concurrent_modification"
   | "not_found"
+  | "storage_error"
   | "database_error";
 
 export interface RunStateError {

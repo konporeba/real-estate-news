@@ -437,6 +437,33 @@ describe.skipIf(!configured)(
       expect((await statusOf(digest.id)).status).toBe("ready_for_approval");
     });
 
+    // impl-review F1: a fill batch that fails may still have created the page server-side (the
+    // response can be lost after the write). The page must therefore be tracked optimistically, or
+    // the retry collides on a duplicate id and the sweep leaves it in the operator's deck.
+    it("clears the page id before retrying a fill that failed", async () => {
+      const digest = await seedRenderingDigest("single_post", 2);
+      const slides = fakeSlides(deck("single_post"), {
+        fill: (attempt) => (attempt === 1 ? { ok: false, reason: "api_error", message: "500" } : undefined),
+      });
+
+      const result = await renderDigest(slides.transport, fakeStore(), db, digest, { decks: DECKS });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error(result.message);
+      expect(result.data.digest.status).toBe("ready_for_approval");
+      // The failed attempt's page id is deleted before the retry duplicates it again.
+      const firstDelete = slides.batches.findIndex((requests) =>
+        requests.some((request) => Object.hasOwn(request, "deleteObject")),
+      );
+      const secondFill = slides.batches.reduce<number[]>(
+        (acc, requests, index) =>
+          requests.some((request) => Object.hasOwn(request, "duplicateObject")) ? [...acc, index] : acc,
+        [],
+      );
+      expect(firstDelete).toBeGreaterThan(-1);
+      expect(secondFill[1]).toBeGreaterThan(firstDelete);
+    });
+
     it("fails the digest when a page fails twice, and persists nothing", async () => {
       const digest = await seedRenderingDigest("single_post", 2);
       const slides = fakeSlides(deck("single_post"), {
@@ -602,6 +629,8 @@ describe.skipIf(!configured)(
 
       expect(result.ok).toBe(false);
       if (result.ok) throw new Error("expected a raw infrastructure failure");
+      // impl-review F2: distinguishable from a Postgres failure by reason, not only by message.
+      expect(result.reason).toBe("storage_error");
       expect(result.message).toContain("storage upload");
       expect((await statusOf(digest.id)).status).toBe("rendering");
       // The deck is still left clean, even though the run did not finish.

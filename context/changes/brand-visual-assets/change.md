@@ -1,7 +1,7 @@
 ---
 change_id: brand-visual-assets
 title: Brand visual assets
-status: implemented
+status: impl_reviewed
 created: 2026-09-08
 updated: 2026-09-12
 archived_at: null
