@@ -713,14 +713,14 @@ renders them as an empty strip rather than an error, and no backfill is attempte
 
 #### Automated
 
-- [x] 6.1 Type checking passes: `npm run build`
-- [x] 6.2 Linting passes: `npm run lint`
+- [x] 6.1 Type checking passes: `npm run build` — df0093b
+- [x] 6.2 Linting passes: `npm run lint` — df0093b
 
 #### Manual
 
-- [x] 6.3 Digest page shows rendered cards in slide order behind the PIN gate
-- [x] 6.4 A digest with no assets renders cleanly
-- [x] 6.5 A forced storage error renders the failure state, not an empty one
+- [x] 6.3 Digest page shows rendered cards in slide order behind the PIN gate — df0093b
+- [x] 6.4 A digest with no assets renders cleanly — df0093b
+- [x] 6.5 A forced storage error renders the failure state, not an empty one — df0093b
 
 ### Phase 7: Live verification
 

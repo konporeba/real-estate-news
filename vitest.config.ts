@@ -34,6 +34,8 @@ export default defineConfig({
     // Supabase credentials live in `.env` (git-ignored). Integration suites skip
     // themselves when these are unset. COLLECTION_LIVE_SMOKE gates the live RSS suite.
     // GMAIL_/OPERATOR_ gate the F-04 email live smoke suite (EMAIL_LIVE_SMOKE).
-    env: loadEnv("test", process.cwd(), ["SUPABASE_", "COLLECTION_", "GMAIL_", "OPERATOR_"]),
+    // GOOGLE_/SLIDES_ gate the S-06 Slides live smoke suite (SLIDES_LIVE_SMOKE) — without the
+    // prefix here the credentials sit in .env unread and the suite silently skips itself.
+    env: loadEnv("test", process.cwd(), ["SUPABASE_", "COLLECTION_", "GMAIL_", "OPERATOR_", "GOOGLE_", "SLIDES_"]),
   },
 });
