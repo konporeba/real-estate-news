@@ -921,14 +921,14 @@ redefinition only widens the set of statuses that free up a week.
 
 #### Automated
 
-- [x] 7.1 Full suite passes: `npm test`
-- [x] 7.2 Linting passes: `npm run lint`
+- [x] 7.1 Full suite passes: `npm test` — 11cc4fd
+- [x] 7.2 Linting passes: `npm run lint` — 11cc4fd
 
 #### Manual
 
-- [x] 7.3 Real digest reaches `ready_for_approval` and the FR-019 email arrives with a working CTA (real digest `c92aa3c5`)
-- [x] 7.4 Operator confirms the post is publishable (verbally, decision recorded via the API on their instruction); tracing a key statistic to its source was not independently confirmed as a discrete step — see `verification.md`
-- [x] 7.5 Approving lands `approved` and the page becomes read-only (confirmed: 0 hydrated islands on reload)
-- [x] 7.6 Rejecting with a note lands `rejected`, and `npm run generate` recovers it — not achieved via the full real pipeline this session (a source article's thin statistics plus the collection window-tiling design blocked a second real attempt); accepted as proven by the existing automated tests against the real database instead, per operator decision — see `verification.md`
-- [x] 7.7 `npm run remind` exercised live in both the outstanding and clear states — outstanding state exercised live (twice, in Phase 6); the clear state remains unverified live since real outstanding digests currently exist
-- [x] 7.8 `verification.md` records the run, including anything that did not work first time
+- [x] 7.3 Real digest reaches `ready_for_approval` and the FR-019 email arrives with a working CTA (real digest `c92aa3c5`) — 11cc4fd
+- [x] 7.4 Operator confirms the post is publishable (verbally, decision recorded via the API on their instruction); tracing a key statistic to its source was not independently confirmed as a discrete step — see `verification.md` — 11cc4fd
+- [x] 7.5 Approving lands `approved` and the page becomes read-only (confirmed: 0 hydrated islands on reload) — 11cc4fd
+- [x] 7.6 Rejecting with a note lands `rejected`, and `npm run generate` recovers it — not achieved via the full real pipeline this session (a source article's thin statistics plus the collection window-tiling design blocked a second real attempt); accepted as proven by the existing automated tests against the real database instead, per operator decision — see `verification.md` — 11cc4fd
+- [x] 7.7 `npm run remind` exercised live in both the outstanding and clear states — outstanding state exercised live (twice, in Phase 6); the clear state remains unverified live since real outstanding digests currently exist — 11cc4fd
+- [x] 7.8 `verification.md` records the run, including anything that did not work first time — 11cc4fd
