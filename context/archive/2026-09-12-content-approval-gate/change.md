@@ -1,10 +1,10 @@
 ---
 change_id: content-approval-gate
 title: Content approval gate (human gate 2) + Monday reminder
-status: impl_reviewed
+status: archived
 created: 2026-09-12
 updated: 2026-09-12
-archived_at: null
+archived_at: 2026-09-12T20:51:19Z
 ---
 
 ## Notes
