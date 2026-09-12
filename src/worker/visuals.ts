@@ -11,13 +11,16 @@
 // redo, and a half-old, half-new set of cards is worse than a slower run.
 import { pathToFileURL } from "node:url";
 
+import { buildApprovalReadyEmail, type ApprovalReadyItem } from "@/lib/email/approval-ready";
+import { createEmailClient, type EmailTransport } from "@/lib/email/client";
+import { sendEmail } from "@/lib/email/send";
 import { resumeDigest, transitionDigest } from "@/lib/digest/run-state";
 import { createServiceClient, type ServiceClient } from "@/lib/supabase-service";
 import { renderDigest, type RenderOptions } from "@/lib/visuals/render";
 import { createSlidesClient } from "@/lib/visuals/slides-client";
 import { createAssetStore } from "@/lib/visuals/store";
 import { loadWorkerEnv, type WorkerEnv } from "@/worker/env";
-import type { DigestRun, GeneratedAssetRow, RunStateResult } from "@/types";
+import type { DigestRun, GeneratedAssetRow, KeyStatistic, RunStateResult, SourceTextOrigin } from "@/types";
 
 /** `--digest=<uuid>` names a specific digest to render, bypassing the newest-in-`rendering` default. */
 const DIGEST_FLAG = /^--digest=(.+)$/;
@@ -126,6 +129,27 @@ async function fetchAssets(client: ServiceClient, digestId: string) {
 }
 
 /**
+ * Read the generated stories back for the FR-019 email. `generated_copy` covers exactly the
+ * picked clusters (S-05: one row per selected cluster), so no shortlist cross-reference is
+ * needed here the way FR-010's digest-ready notification needs one against the shortlist.
+ */
+async function fetchApprovalReadyItems(client: ServiceClient, digestId: string): Promise<ApprovalReadyItem[]> {
+  const { data, error } = await client
+    .from("generated_copy")
+    .select("polish_title, caption_summary, key_statistics, source_text_origin")
+    .eq("digest_id", digestId)
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(`${error.code}: ${error.message}`);
+
+  return data.map((row) => ({
+    polishTitle: row.polish_title,
+    captionSummary: row.caption_summary,
+    keyStatisticsCount: (row.key_statistics as unknown as KeyStatistic[]).length,
+    sourceTextOrigin: row.source_text_origin as SourceTextOrigin,
+  }));
+}
+
+/**
  * Which decks are available, by format. Built here rather than in the orchestrator so the stage
  * itself stays free of environment access and remains testable with fake ids.
  */
@@ -195,7 +219,63 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
   const rows = await fetchAssets(client, digest.id);
   console.log(`rendered ${String(rows.length)} ${rows.length === 1 ? "image" : "images"} into ${storage.bucket}:`);
   console.log(summarize(rows));
+
+  const transport = createEmailClient(
+    env.GMAIL_USER && env.GMAIL_APP_PASSWORD ? { user: env.GMAIL_USER, appPassword: env.GMAIL_APP_PASSWORD } : null,
+  );
+  await notifyApprovalReady(client, transport, outcome.data.digest, {
+    recipient: env.OPERATOR_EMAIL,
+    baseUrl: env.DASHBOARD_BASE_URL,
+  });
   return 0;
+}
+
+/**
+ * FR-019: tell the operator the approval gate is open.
+ *
+ * Composed at the entrypoint rather than inside renderDigest(), mirroring how rank.ts's
+ * notifyDigestReady is composed around rankDigest(): the rendering library stays free of side
+ * effects that aren't rendering.
+ *
+ * Never fails the run. Rendering has already succeeded and been persisted by this point (the
+ * digest is in `ready_for_approval`), so a missing credential or a refused SMTP connection must
+ * not turn a good render into a failed run.
+ */
+export async function notifyApprovalReady(
+  client: ServiceClient,
+  transport: EmailTransport | null,
+  digest: DigestRun,
+  options: { recipient?: string; baseUrl?: string } = {},
+): Promise<void> {
+  // Every failure path below returns rather than throws. sendEmail() already promises never to
+  // throw; the read and the build do not, so they are guarded here.
+  let items: ApprovalReadyItem[];
+  try {
+    items = await fetchApprovalReadyItems(client, digest.id);
+  } catch (error: unknown) {
+    console.error(`approval-ready email skipped: could not read the generated stories: ${String(error)}`);
+    return;
+  }
+
+  let request;
+  try {
+    request = buildApprovalReadyEmail(digest, items, options.baseUrl);
+  } catch (error: unknown) {
+    console.error(`approval-ready email skipped: could not build the message: ${String(error)}`);
+    return;
+  }
+
+  const result = await sendEmail(transport, options.recipient, request);
+
+  if (result.ok) {
+    console.log(`approval-ready email sent to ${options.recipient ?? "?"}`);
+  } else if (result.reason === "not_configured") {
+    console.log(
+      "approval-ready email not sent: email is not configured (GMAIL_USER/GMAIL_APP_PASSWORD/OPERATOR_EMAIL)",
+    );
+  } else {
+    console.error(`approval-ready email failed: ${result.reason}: ${result.message}`);
+  }
 }
 
 // Only run when executed directly, so the tests can import the helpers above.

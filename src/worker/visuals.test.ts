@@ -7,11 +7,13 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createDigest, markStageComplete, transitionDigest } from "@/lib/digest/run-state";
+import { fakeEmailTransport } from "@/lib/email/testing";
 import { createServiceClient, type ServiceClient } from "@/lib/supabase-service";
 import type { WorkerEnv } from "@/worker/env";
 import {
   type AssetSummaryRow,
   decksFrom,
+  notifyApprovalReady,
   parseDigestFlag,
   resolveTargetDigest,
   summarize,
@@ -238,5 +240,69 @@ describe.skipIf(!configured)("resolveTargetDigest (integration)", () => {
     unwrap(await transitionDigest(db, failed.id, "failed", { lastError: "empty pool" }));
 
     await expect(resolveTargetDigest(db, failed.id)).rejects.toThrow(/never completed generation/);
+  });
+});
+
+describe.skipIf(!configured)("notifyApprovalReady (integration)", () => {
+  beforeAll(async () => {
+    db = serviceClient();
+    await purgeSynthetic();
+  });
+  afterAll(purgeSynthetic);
+
+  /** A digest with `size` generated stories, parked at `ready_for_approval`. */
+  async function approvalReadyDigest(size: number): Promise<DigestRun> {
+    const digest = await renderingDigest(db);
+
+    for (let i = 0; i < size; i += 1) {
+      const { data: cluster } = await db
+        .from("cluster")
+        .insert({ digest_id: digest.id, rank: i + 1, coverage_count: 1 })
+        .select("id")
+        .single();
+      await db.from("generated_copy").insert({
+        digest_id: digest.id,
+        cluster_id: cluster?.id,
+        polish_title: `Polski ${String(i)}`,
+        caption_summary: "Streszczenie.",
+        body_copy: "Treść.",
+        key_statistics: i === 0 ? [{ label: "Cena", value: "1 €" }] : [],
+        source_text_origin: i === 0 ? "lede" : "article",
+      });
+    }
+    return unwrap(await transitionDigest(db, digest.id, "ready_for_approval"));
+  }
+
+  it("sends one message carrying the week and the generated stories", async () => {
+    const digest = await approvalReadyDigest(3);
+    const transport = fakeEmailTransport([true]);
+
+    await notifyApprovalReady(db, transport, digest, {
+      recipient: "operator@example.test",
+      baseUrl: "https://news.example",
+    });
+
+    expect(transport.calls).toHaveLength(1);
+    const sent = transport.calls[0] as { to: string; subject: string; html: string };
+    expect(sent.to).toBe("operator@example.test");
+    expect(sent.subject).toContain(digest.window_start);
+    expect(sent.html).toContain("Polski 0");
+    // The CTA points at the approval page, not the digest page FR-010's own email links to.
+    expect(sent.html).toContain(`https://news.example/dashboard/${digest.id}/approve`);
+  });
+
+  it("resolves quietly when email is not configured", async () => {
+    const digest = await approvalReadyDigest(2);
+
+    await expect(notifyApprovalReady(db, null, digest, {})).resolves.toBeUndefined();
+  });
+
+  it("does not throw when the transport fails", async () => {
+    const digest = await approvalReadyDigest(2);
+    const transport = fakeEmailTransport([new Error("smtp refused the connection")]);
+
+    await expect(
+      notifyApprovalReady(db, transport, digest, { recipient: "operator@example.test" }),
+    ).resolves.toBeUndefined();
   });
 });

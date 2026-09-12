@@ -870,34 +870,34 @@ redefinition only widens the set of statuses that free up a week.
 
 #### Automated
 
-- [x] 4.1 Type checking passes: `npm run build`
-- [x] 4.2 Linting passes: `npm run lint`
-- [x] 4.3 Full suite passes: `npm test`
+- [x] 4.1 Type checking passes: `npm run build` — ef5f4b0
+- [x] 4.2 Linting passes: `npm run lint` — ef5f4b0
+- [x] 4.3 Full suite passes: `npm test` — ef5f4b0
 
 #### Manual
 
-- [x] 4.4 Page shows copy, key statistics, originals and working source links per story
-- [x] 4.5 Rendered cards load behind the PIN gate; an asset-less digest shows an empty strip, not an error
-- [x] 4.6 Approve requires the second step and its summary names the right count, format and platforms (verified via correct SSR props + code review; no interactive browser available in this session to click through — see phase report)
-- [x] 4.7 Reject with a note lands `rejected` and stores the note
-- [x] 4.8 Post-decision page is read-only
-- [x] 4.9 A rejected digest's `/dashboard/[id]` page still shows its rendered cards
-- [x] 4.10 Signed out, the URL redirects to `/auth/pin`
+- [x] 4.4 Page shows copy, key statistics, originals and working source links per story — ef5f4b0
+- [x] 4.5 Rendered cards load behind the PIN gate; an asset-less digest shows an empty strip, not an error — ef5f4b0
+- [x] 4.6 Approve requires the second step and its summary names the right count, format and platforms (verified via correct SSR props + code review; no interactive browser available in this session to click through — see phase report) — ef5f4b0
+- [x] 4.7 Reject with a note lands `rejected` and stores the note — ef5f4b0
+- [x] 4.8 Post-decision page is read-only — ef5f4b0
+- [x] 4.9 A rejected digest's `/dashboard/[id]` page still shows its rendered cards — ef5f4b0
+- [x] 4.10 Signed out, the URL redirects to `/auth/pin` — ef5f4b0
 
 ### Phase 5: FR-019 — the approval-ready email
 
 #### Automated
 
-- [ ] 5.1 Builder tests pass: `npx vitest run src/lib/email/approval-ready.test.ts`
-- [ ] 5.2 Worker notify tests pass: `npx vitest run src/worker/visuals.test.ts`
-- [ ] 5.3 Type checking passes: `npm run build`
-- [ ] 5.4 Linting passes: `npm run lint`
-- [ ] 5.5 Full suite passes: `npm test`
+- [x] 5.1 Builder tests pass: `npx vitest run src/lib/email/approval-ready.test.ts`
+- [x] 5.2 Worker notify tests pass: `npx vitest run src/worker/visuals.test.ts`
+- [x] 5.3 Type checking passes: `npm run build`
+- [x] 5.4 Linting passes: `npm run lint`
+- [x] 5.5 Full suite passes: `npm test`
 
 #### Manual
 
-- [ ] 5.6 Unconfigured email: `npm run visuals` completes and logs that email is not configured
-- [ ] 5.7 Configured: the email arrives and its CTA opens the right digest's approval page
+- [x] 5.6 Unconfigured email: `notifyApprovalReady` (called exactly as `npm run visuals`'s `main()` does) completes and logs that email is not configured
+- [x] 5.7 Configured: the email arrives and its CTA opens the right digest's approval page (real send verified against a stale-then-fixed Gmail App Password; content and CTA confirmed by the operator)
 
 ### Phase 6: FR-021 — the Monday reminder
 
