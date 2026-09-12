@@ -87,6 +87,8 @@ const runtimeBoundaryConfig = tseslint.config(
                 "@/lib/email",
                 "@/lib/scheduler/*",
                 "@/lib/scheduler",
+                "@/lib/visuals/*",
+                "@/lib/visuals",
                 "@/worker/*",
                 "@/worker",
               ],
@@ -108,6 +110,7 @@ const runtimeBoundaryConfig = tseslint.config(
       "src/lib/llm/**",
       "src/lib/email/**",
       "src/lib/scheduler/**",
+      "src/lib/visuals/**",
       "scripts/**",
     ],
     rules: {

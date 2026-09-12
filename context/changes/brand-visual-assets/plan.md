@@ -685,15 +685,15 @@ renders them as an empty strip rather than an error, and no backfill is attempte
 
 #### Automated
 
-- [x] 4.1 Happy path for both formats persists the expected row count
-- [x] 4.2 Retry-then-succeed completes; retry-then-fail fails the digest
-- [x] 4.3 Cleanup deletes every duplicated page on success and failure paths
-- [x] 4.4 Too few copy rows fails with a diagnostic, not a throw
-- [x] 4.5 Full suite passes: `npm test`
+- [x] 4.1 Happy path for both formats persists the expected row count — e0609c4
+- [x] 4.2 Retry-then-succeed completes; retry-then-fail fails the digest — e0609c4
+- [x] 4.3 Cleanup deletes every duplicated page on success and failure paths — e0609c4
+- [x] 4.4 Too few copy rows fails with a diagnostic, not a throw — e0609c4
+- [x] 4.5 Full suite passes: `npm test` — e0609c4
 
 #### Manual
 
-- [x] 4.6 Reviewed that no code path can create a Drive file
+- [x] 4.6 Reviewed that no code path can create a Drive file — e0609c4
 
 ### Phase 5: Worker entrypoint
 
@@ -706,8 +706,8 @@ renders them as an empty strip rather than an error, and no backfill is attempte
 
 #### Manual
 
-- [ ] 5.5 Wrong-status digest refused with a readable message and exit 2
-- [ ] 5.6 `--digest=<uuid>` targets that digest specifically
+- [x] 5.5 Wrong-status digest refused with a readable message and exit 2
+- [x] 5.6 `--digest=<uuid>` targets that digest specifically
 
 ### Phase 6: Dashboard preview
 
