@@ -1,0 +1,89 @@
+---
+// S-07: one picked story's complete Polish adaptation, with the fact-checking material beside it
+// rather than a click away — S-05's own lesson was that a wrong figure only gets caught by
+// tracing it back to the source, and the approval gate is the one place that check should be a
+// scroll, not a research task.
+//
+// Static, like ShortlistCard's read-only modes: no client directive, no JavaScript shipped for
+// this component. The decision controls live in ApprovalPanel, a separate island.
+import { isSafeUrl } from "@/lib/utils";
+import type { ApprovalStory } from "@/types";
+
+/** LANGUAGE_CHIP look, kept visually identical to ShortlistCard's own chip. */
+const LANGUAGE_CHIP =
+  "rounded border border-white/15 bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-blue-100/70";
+
+interface Props {
+  story: ApprovalStory;
+  /** 1-based position in the confirmed order, echoing ShortlistCard's own #rank convention. */
+  index: number;
+}
+
+const { story, index } = Astro.props;
+---
+
+<li class="rounded-xl border border-white/10 bg-white/10 p-4">
+  <div class="flex items-center justify-between gap-3">
+    <span class="text-blue-100/50">#{index}</span>
+    {
+      story.sourceTextOrigin === "lede" && (
+        <span class="rounded-full border border-amber-400/40 bg-amber-500/20 px-2 py-0.5 text-[10px] font-semibold tracking-wider text-amber-200 uppercase">
+          short source
+        </span>
+      )
+    }
+  </div>
+
+  <h2 class="mt-2 text-lg font-semibold text-white">{story.polishTitle}</h2>
+  <p class="mt-1 text-sm text-blue-100/80">{story.captionSummary}</p>
+  <p class="mt-3 text-sm whitespace-pre-wrap text-blue-100/70">{story.bodyCopy}</p>
+
+  <div class="mt-4 grid gap-3 sm:grid-cols-2">
+    <div class="rounded-lg border border-white/10 bg-white/5 p-3">
+      <h3 class="text-xs font-semibold tracking-wide text-blue-100/60 uppercase">Key statistics</h3>
+      {
+        story.keyStatistics.length > 0 ? (
+          <dl class="mt-2 space-y-1 text-sm">
+            {story.keyStatistics.map((stat) => (
+              <div class="flex items-baseline justify-between gap-2">
+                <dt class="text-blue-100/60">{stat.label}</dt>
+                <dd class="font-medium text-white">{stat.value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <p class="mt-2 text-sm text-blue-100/50">No statistics pulled out for this story.</p>
+        )
+      }
+    </div>
+
+    <div class="rounded-lg border border-white/10 bg-white/5 p-3">
+      <h3 class="text-xs font-semibold tracking-wide text-blue-100/60 uppercase">Source</h3>
+      {
+        story.originalTitle ? (
+          <>
+            <div class="mt-2 flex items-start gap-2">
+              {story.language && <span class:list={LANGUAGE_CHIP}>{story.language.toUpperCase()}</span>}
+              <p class="text-sm font-medium text-blue-100/90">{story.originalTitle}</p>
+            </div>
+            {story.originalLede && <p class="mt-1 text-sm text-blue-100/60">{story.originalLede}</p>}
+          </>
+        ) : (
+          <p class="mt-2 text-sm text-blue-100/50">Original article not available.</p>
+        )
+      }
+      {
+        story.sourceUrl && isSafeUrl(story.sourceUrl) && (
+          <a
+            href={story.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="mt-2 inline-block text-sm text-blue-300 hover:underline"
+          >
+            Read original →
+          </a>
+        )
+      }
+    </div>
+  </div>
+</li>

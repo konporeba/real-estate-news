@@ -855,34 +855,34 @@ redefinition only widens the set of statuses that free up a week.
 
 #### Automated
 
-- [x] 3.1 Rules drift guard passes: `npx vitest run src/lib/approval/rules.test.ts`
-- [x] 3.2 Type checking passes: `npm run build`
-- [x] 3.3 Linting passes: `npm run lint`
-- [x] 3.4 Full suite passes: `npm test`
+- [x] 3.1 Rules drift guard passes: `npx vitest run src/lib/approval/rules.test.ts` — ab009f9
+- [x] 3.2 Type checking passes: `npm run build` — ab009f9
+- [x] 3.3 Linting passes: `npm run lint` — ab009f9
+- [x] 3.4 Full suite passes: `npm test` — ab009f9
 
 #### Manual
 
-- [x] 3.5 Unauthenticated POST returns 401 JSON, not a redirect
-- [x] 3.6 Malformed body 400, wrong status 409, second decision 409 (as `wrong_status`, not `already_decided` — matches the S-04 precedent; see updated criterion text)
-- [x] 3.7 No Postgres message text appears in any response body
+- [x] 3.5 Unauthenticated POST returns 401 JSON, not a redirect — ab009f9
+- [x] 3.6 Malformed body 400, wrong status 409, second decision 409 (as `wrong_status`, not `already_decided` — matches the S-04 precedent; see updated criterion text) — ab009f9
+- [x] 3.7 No Postgres message text appears in any response body — ab009f9
 
 ### Phase 4: The approval page and island
 
 #### Automated
 
-- [ ] 4.1 Type checking passes: `npm run build`
-- [ ] 4.2 Linting passes: `npm run lint`
-- [ ] 4.3 Full suite passes: `npm test`
+- [x] 4.1 Type checking passes: `npm run build`
+- [x] 4.2 Linting passes: `npm run lint`
+- [x] 4.3 Full suite passes: `npm test`
 
 #### Manual
 
-- [ ] 4.4 Page shows copy, key statistics, originals and working source links per story
-- [ ] 4.5 Rendered cards load behind the PIN gate; an asset-less digest shows an empty strip, not an error
-- [ ] 4.6 Approve requires the second step and its summary names the right count, format and platforms
-- [ ] 4.7 Reject with a note lands `rejected` and stores the note
-- [ ] 4.8 Post-decision page is read-only
-- [ ] 4.9 A rejected digest's `/dashboard/[id]` page still shows its rendered cards
-- [ ] 4.10 Signed out, the URL redirects to `/auth/pin`
+- [x] 4.4 Page shows copy, key statistics, originals and working source links per story
+- [x] 4.5 Rendered cards load behind the PIN gate; an asset-less digest shows an empty strip, not an error
+- [x] 4.6 Approve requires the second step and its summary names the right count, format and platforms (verified via correct SSR props + code review; no interactive browser available in this session to click through — see phase report)
+- [x] 4.7 Reject with a note lands `rejected` and stores the note
+- [x] 4.8 Post-decision page is read-only
+- [x] 4.9 A rejected digest's `/dashboard/[id]` page still shows its rendered cards
+- [x] 4.10 Signed out, the URL redirects to `/auth/pin`
 
 ### Phase 5: FR-019 — the approval-ready email
 

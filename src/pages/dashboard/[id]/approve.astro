@@ -1,0 +1,311 @@
+---
+// S-07: the content approval gate (FR-019, FR-020, US-16) — the operator reviews the complete
+// generated post here and approves or rejects it. A dedicated route rather than a sixth branch on
+// the digest page (`../[id].astro`), per the plan's own review: that page is already 318 lines
+// with five query branches, and S-04's impl-review found a crash born of exactly that
+// accumulation (a query error that set a flag without returning).
+import GeneratedStoryCard from "@/components/GeneratedStoryCard.astro";
+import AssetStrip, { type RenderedAsset } from "@/components/AssetStrip.astro";
+import { ApprovalPanel } from "@/components/ApprovalPanel";
+import OperatorHeader from "@/components/OperatorHeader.astro";
+import Layout from "@/layouts/Layout.astro";
+import { ASSET_BUCKET, SIGNED_URL_TTL_SECONDS } from "@/lib/digest/assets";
+import { createServiceClient } from "@/lib/supabase-admin";
+import { cn } from "@/lib/utils";
+import type {
+  ApprovalDecision,
+  ApprovalStory,
+  DigestStatus,
+  KeyStatistic,
+  SelectionFormat,
+  SelectionPlatform,
+  SourceTextOrigin,
+} from "@/types";
+
+/**
+ * Statuses this page can show generated content for. Anything earlier means generation has not
+ * produced anything yet; `failed` gets its own diagnostic branch below, matching `[id].astro`'s
+ * convention of keeping "not ready" and "broke" visibly distinct.
+ */
+const DECIDABLE_STATUSES: DigestStatus[] = ["ready_for_approval", "approved", "rejected"];
+
+interface DigestSummary {
+  id: string;
+  window_start: string;
+  window_end: string;
+  status: DigestStatus;
+  last_error: string | null;
+}
+
+const { id } = Astro.params;
+const client = createServiceClient();
+
+let loadError = false;
+let digest: DigestSummary | null = null;
+
+if (client) {
+  const { data, error } = await client
+    .from("digest")
+    .select("id, window_start, window_end, status, last_error")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) {
+    console.error(`failed to load digest ${id}: ${error.code}: ${error.message}`);
+    loadError = true;
+    Astro.response.status = 500;
+  } else {
+    digest = data;
+    if (!digest) Astro.response.status = 404;
+  }
+} else {
+  Astro.response.status = 503;
+}
+
+let stories: ApprovalStory[] = [];
+let selection: { format: SelectionFormat; platforms: SelectionPlatform[] } | null = null;
+let decided: { decision: ApprovalDecision; note: string | null; decidedAt: string } | null = null;
+
+if (client && digest && !loadError && DECIDABLE_STATUSES.includes(digest.status)) {
+  const { data: copyRows, error: copyError } = await client
+    .from("generated_copy")
+    .select("cluster_id, polish_title, caption_summary, body_copy, key_statistics, source_text_origin")
+    .eq("digest_id", digest.id)
+    .order("created_at", { ascending: true });
+  if (copyError) {
+    console.error(`failed to load generated copy for digest ${digest.id}: ${copyError.code}: ${copyError.message}`);
+    loadError = true;
+    Astro.response.status = 500;
+  }
+
+  const clusterIds = (copyRows ?? []).map((row) => row.cluster_id);
+
+  const { data: articles, error: articlesError } =
+    clusterIds.length > 0
+      ? await client
+          .from("article")
+          .select("cluster_id, original_title, original_lede, source_url, language, published_at")
+          .in("cluster_id", clusterIds)
+          .order("published_at", { ascending: true })
+      : { data: [], error: null };
+  if (articlesError) {
+    console.error(
+      `failed to load source articles for digest ${digest.id}: ${articlesError.code}: ${articlesError.message}`,
+    );
+    loadError = true;
+    Astro.response.status = 500;
+  }
+
+  // First by published_at ascending wins -- deterministic, and matches [id].astro's own
+  // "earliest published" fallback when nothing else distinguishes a multi-source story's articles.
+  const articleByCluster = new Map<string, NonNullable<typeof articles>[number]>();
+  for (const article of articles ?? []) {
+    if (!article.cluster_id) continue;
+    if (!articleByCluster.has(article.cluster_id)) articleByCluster.set(article.cluster_id, article);
+  }
+
+  // generated_copy already covers only the PICKED clusters (S-05: one row per selected cluster,
+  // not per shortlisted one), so no separate selection_item.picked filter is needed here.
+  stories = (copyRows ?? []).map((row): ApprovalStory => {
+    const article = articleByCluster.get(row.cluster_id);
+    return {
+      clusterId: row.cluster_id,
+      polishTitle: row.polish_title,
+      captionSummary: row.caption_summary,
+      bodyCopy: row.body_copy,
+      keyStatistics: row.key_statistics as unknown as KeyStatistic[],
+      sourceTextOrigin: row.source_text_origin as SourceTextOrigin,
+      originalTitle: article?.original_title ?? null,
+      originalLede: article?.original_lede ?? null,
+      sourceUrl: article?.source_url ?? null,
+      language: article?.language ?? null,
+    };
+  });
+
+  const { data: selectionRow, error: selectionError } = await client
+    .from("selection")
+    .select("format, platforms")
+    .eq("digest_id", digest.id)
+    .maybeSingle();
+  if (selectionError) {
+    console.error(
+      `failed to load selection for digest ${digest.id}: ${selectionError.code}: ${selectionError.message}`,
+    );
+    loadError = true;
+    Astro.response.status = 500;
+  } else if (selectionRow) {
+    selection = { format: selectionRow.format, platforms: selectionRow.platforms };
+  }
+
+  if (digest.status === "approved" || digest.status === "rejected") {
+    const { data: approvalRow, error: approvalError } = await client
+      .from("approval")
+      .select("decision, note, decided_at")
+      .eq("digest_id", digest.id)
+      .maybeSingle();
+    if (approvalError) {
+      console.error(
+        `failed to load the approval record for digest ${digest.id}: ${approvalError.code}: ${approvalError.message}`,
+      );
+      loadError = true;
+      Astro.response.status = 500;
+    } else if (approvalRow) {
+      decided = { decision: approvalRow.decision, note: approvalRow.note, decidedAt: approvalRow.decided_at };
+    }
+  }
+}
+
+/**
+ * Rendered slide images (S-06). Three outcomes kept apart on purpose, exactly as `[id].astro`
+ * does — S-03 impl-review F2 is why this project never conflates "nothing loaded", "some loaded",
+ * and "the stage hasn't run yet".
+ */
+let assets: RenderedAsset[] = [];
+let assetsError = false;
+let assetsPartial = false;
+
+if (client && digest && !loadError && DECIDABLE_STATUSES.includes(digest.status)) {
+  const { data: rows, error: assetsQueryError } = await client
+    .from("generated_asset")
+    .select("slide_index, cluster_id, storage_path")
+    .eq("digest_id", digest.id)
+    .order("slide_index", { ascending: true });
+
+  if (assetsQueryError) {
+    console.error(
+      `failed to load assets for digest ${digest.id}: ${assetsQueryError.code}: ${assetsQueryError.message}`,
+    );
+    assetsError = true;
+  } else if (rows.length > 0) {
+    const { data: signed, error: signError } = await client.storage.from(ASSET_BUCKET).createSignedUrls(
+      rows.map((row) => row.storage_path),
+      SIGNED_URL_TTL_SECONDS,
+    );
+
+    if (signError) {
+      console.error(`failed to sign asset URLs for digest ${digest.id}: ${signError.message}`);
+      assetsError = true;
+    } else {
+      const failed = signed.filter((entry) => !entry.signedUrl);
+      if (failed.length > 0) {
+        console.error(
+          `failed to sign ${String(failed.length)}/${String(signed.length)} asset URL(s) for digest ${digest.id} ` +
+            `in bucket ${ASSET_BUCKET}: ${failed[0]?.error ?? "no reason given"}`,
+        );
+      }
+
+      const urlByPath = new Map(
+        signed.filter((entry) => entry.signedUrl).map((entry) => [entry.path, entry.signedUrl]),
+      );
+      const titleByCluster = new Map(stories.map((story) => [story.clusterId, story.polishTitle]));
+
+      assets = rows.flatMap((row): RenderedAsset[] => {
+        const url = urlByPath.get(row.storage_path);
+        if (!url) {
+          assetsPartial = true;
+          return [];
+        }
+        return [
+          {
+            slideIndex: row.slide_index,
+            url,
+            label: row.cluster_id ? (titleByCluster.get(row.cluster_id) ?? "Story") : "Cover",
+          },
+        ];
+      });
+
+      if (assets.length === 0) {
+        assetsError = true;
+        assetsPartial = false;
+      }
+    }
+  }
+}
+---
+
+<Layout title="Approve digest">
+  <div class="bg-cosmic min-h-screen p-4 text-white">
+    <OperatorHeader title={digest ? `Approve: ${digest.window_start} – ${digest.window_end}` : "Digest not found"} />
+    <main class="mx-auto mt-6 max-w-3xl">
+      {
+        !client ? (
+          <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">
+            Supabase is not configured — this digest cannot be loaded.
+          </p>
+        ) : loadError ? (
+          <p class="rounded-xl border border-red-400/30 bg-red-500/10 p-6 text-sm text-red-200">
+            Couldn't load this digest — please try again.
+          </p>
+        ) : !digest ? (
+          <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">
+            No digest with this id exists.
+          </p>
+        ) : digest.status === "failed" ? (
+          <p class="rounded-xl border border-red-400/30 bg-red-500/10 p-6 text-sm text-red-200">
+            This digest failed: {digest.last_error ?? "no diagnostic recorded"}
+          </p>
+        ) : !DECIDABLE_STATUSES.includes(digest.status) ? (
+          <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">
+            This digest is still <span class="font-semibold">{digest.status}</span> — there is nothing generated to
+            review yet.
+          </p>
+        ) : stories.length === 0 ? (
+          <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">
+            No generated stories found for this digest.
+          </p>
+        ) : (
+          <Fragment>
+            {decided && (
+              <p
+                class:list={cn(
+                  "mb-4 rounded-xl border p-4 text-sm",
+                  decided.decision === "approved"
+                    ? "border-green-400/30 bg-green-500/10 text-green-200"
+                    : "border-red-400/30 bg-red-500/10 text-red-200",
+                )}
+              >
+                <span class="font-semibold">{decided.decision === "approved" ? "Approved" : "Rejected"}</span> on{" "}
+                {new Date(decided.decidedAt).toLocaleString()}.
+                {decided.decision === "rejected" && (
+                  <>
+                    {" "}
+                    Run <code class="font-mono">npm run generate -- --digest={digest.id}</code> to produce fresh copy on
+                    the same confirmed selection.
+                  </>
+                )}
+                {decided.note && <span class="mt-1 block text-blue-100/70">Note: {decided.note}</span>}
+              </p>
+            )}
+
+            {digest.status === "ready_for_approval" && selection && (
+              <ApprovalPanel
+                client:load
+                digestId={digest.id}
+                storyCount={stories.length}
+                format={selection.format}
+                platforms={selection.platforms}
+              />
+            )}
+
+            {assetsError ? (
+              <p class="mb-6 rounded-xl border border-red-400/30 bg-red-500/10 p-4 text-sm text-red-200">
+                Couldn't load this digest's rendered visuals — the images may still exist. Try reloading.
+              </p>
+            ) : assets.length > 0 ? (
+              <AssetStrip assets={assets} partialFailure={assetsPartial} />
+            ) : (
+              <p class="mb-6 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-blue-100/70">
+                No visuals rendered yet — run <code class="font-mono">npm run visuals</code> for this digest.
+              </p>
+            )}
+
+            <ul class="space-y-3">
+              {stories.map((story, i) => (
+                <GeneratedStoryCard story={story} index={i + 1} />
+              ))}
+            </ul>
+          </Fragment>
+        )
+      }
+    </main>
+  </div>
+</Layout>

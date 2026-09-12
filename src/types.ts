@@ -267,3 +267,26 @@ export interface ApprovalError {
 }
 
 export type ApprovalResult<T> = { ok: true; data: T } | ApprovalError;
+
+/**
+ * One picked story's complete adaptation, shaped for the S-07 approval page — a join of
+ * `generated_copy` (the Polish adaptation) and the representative `article` (the original, for
+ * fact-checking beside it). Built by the page, rendered by `GeneratedStoryCard.astro`. Lives here
+ * rather than in the component file: `ShortlistItem` sets the precedent that a domain-shaped view
+ * model dot-accessed across files belongs in `src/types.ts`, not in an `.astro` file's own export
+ * — the type-aware linter cannot fully resolve member access on an interface imported from a
+ * `.astro` file, even though `tsc`/`astro check` handle it correctly.
+ */
+export interface ApprovalStory {
+  clusterId: string;
+  polishTitle: string;
+  captionSummary: string;
+  bodyCopy: string;
+  keyStatistics: KeyStatistic[];
+  sourceTextOrigin: SourceTextOrigin;
+  /** Null when the source article row could not be found — shown, not hidden, as a gap. */
+  originalTitle: string | null;
+  originalLede: string | null;
+  sourceUrl: string | null;
+  language: string | null;
+}

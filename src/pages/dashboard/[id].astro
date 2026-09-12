@@ -16,8 +16,10 @@ const NOT_READY_STATUSES: DigestStatus[] = ["collecting", "ranking"];
  * Statuses at or past the rendering stage — the ones whose digest may have images to show.
  * `failed` is absent deliberately: that status renders its own diagnostic panel instead, and a
  * half-rendered set behind a failure message would invite the operator to read it as finished.
+ * `rejected` (S-07) IS included: a rejected digest still has the visuals it was rejected with,
+ * and omitting it would make the cards it really does have vanish with no explanation.
  */
-const RENDERED_STATUSES: DigestStatus[] = ["rendering", "ready_for_approval", "approved", "published"];
+const RENDERED_STATUSES: DigestStatus[] = ["rendering", "ready_for_approval", "approved", "rejected", "published"];
 
 interface DigestSummary {
   id: string;
@@ -292,6 +294,24 @@ const selectionOpen = digest?.status === "ready_for_selection" && !selection && 
                 <span class="font-semibold">{selection.platforms.map((p) => PLATFORM_LABELS[p]).join(", ")}</span>.
               </p>
             )}
+            {
+              // S-07: the approval gate lives on its own route -- this is only the entry point.
+              digest.status === "ready_for_approval" ? (
+                <p class="mb-4 rounded-xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-100">
+                  Content is ready for approval.{" "}
+                  <a href={`/dashboard/${digest.id}/approve`} class="font-semibold underline hover:no-underline">
+                    Review and decide →
+                  </a>
+                </p>
+              ) : digest.status === "approved" || digest.status === "rejected" ? (
+                <p class="mb-4 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-blue-100/70">
+                  This digest was <span class="font-semibold">{digest.status}</span>.{" "}
+                  <a href={`/dashboard/${digest.id}/approve`} class="text-blue-300 hover:underline">
+                    View the decision →
+                  </a>
+                </p>
+              ) : null
+            }
             {assetsError ? (
               <p class="mb-6 rounded-xl border border-red-400/30 bg-red-500/10 p-4 text-sm text-red-200">
                 Couldn't load this digest's rendered visuals — the images may still exist. Try reloading.
