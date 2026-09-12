@@ -17,10 +17,17 @@ export const TRANSITIONS: Record<DigestStatus, readonly DigestStatus[]> = {
   // S-06: generation hands off to the rendering stage, not straight to the approval gate.
   generating: ["rendering", "failed"],
   rendering: ["ready_for_approval", "failed"],
-  ready_for_approval: ["approved", "skipped", "failed"],
+  // S-07: `rejected` is deliberately separate from `skipped` -- `skipped` is US-19's
+  // missed-deadline state and stays manually publishable (skipped -> published). A digest the
+  // operator rejected must never be publishable, and S-08 must be able to tell the two apart.
+  ready_for_approval: ["approved", "rejected", "skipped", "failed"],
   approved: ["published", "skipped", "failed"],
   // US-19: a missed-deadline digest stays manually publishable.
   skipped: ["published"],
+  // S-07: the sole recovery path out of a rejection -- fresh copy on the same confirmed
+  // selection, mirroring `failed -> generating` (S-05 impl-review F2). Never publishable
+  // directly.
+  rejected: ["generating"],
   // FR-018: re-trigger a failed run in place -- from the top for a collection failure, from
   // the selection gate's output for a generation failure (S-05 impl-review F2), which would
   // otherwise discard the confirmed selection and re-pay the whole ranking stage, or from the
@@ -35,7 +42,12 @@ export const TRANSITIONS: Record<DigestStatus, readonly DigestStatus[]> = {
  * re-triggered. `skipped` and `failed` keep a single manual escape hatch (see
  * TRANSITIONS) — terminal here means "no longer occupies the week", not "frozen".
  */
-export const TERMINAL_STATES = ["published", "skipped", "failed"] as const satisfies readonly DigestStatus[];
+export const TERMINAL_STATES = [
+  "published",
+  "skipped",
+  "failed",
+  "rejected",
+] as const satisfies readonly DigestStatus[];
 
 export function isTerminal(status: DigestStatus): boolean {
   return (TERMINAL_STATES as readonly DigestStatus[]).includes(status);

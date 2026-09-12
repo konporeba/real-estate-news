@@ -196,6 +196,25 @@ describe.skipIf(!configured)("resolveTargetDigest (integration)", () => {
     expect(digest.status).toBe("generating");
   });
 
+  // S-07: the sole recovery path out of a rejection. A rejected digest always carries a confirmed
+  // selection -- reaching ready_for_approval requires having passed through generation, which
+  // itself requires the S-04 gate -- so this mirrors the failed-digest case above exactly.
+  it("puts a rejected digest with a confirmed selection back into generating", async () => {
+    const rejected = await generatingDigest(db);
+    const { error: selectionError } = await db
+      .from("selection")
+      .insert({ digest_id: rejected.id, format: "single_post", platforms: ["instagram"] });
+    if (selectionError) throw new Error(selectionError.message);
+    unwrap(await transitionDigest(db, rejected.id, "rendering"));
+    unwrap(await transitionDigest(db, rejected.id, "ready_for_approval"));
+    unwrap(await transitionDigest(db, rejected.id, "rejected"));
+
+    const digest = await resolveTargetDigest(db, rejected.id);
+
+    expect(digest.id).toBe(rejected.id);
+    expect(digest.status).toBe("generating");
+  });
+
   // A digest that failed BEFORE the gate never had picks, so there is nothing to regenerate from.
   it("refuses a failed digest that never passed the selection gate", async () => {
     const failed = unwrap(await createDigest(db, nextWeek()));

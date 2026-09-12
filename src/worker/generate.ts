@@ -68,28 +68,34 @@ async function hasConfirmedSelection(client: ServiceClient, digestId: string): P
  * Absent a flag, the default is the newest digest in `generating`, the state `confirm_selection`
  * leaves a digest in the moment the operator passes the S-04 gate.
  *
- * ONE EXCEPTION, and only for an explicit `--digest`: a digest that FAILED during generation is
- * put back into `generating` and retried. Without this the only legal move out of `failed` is
- * back to `collecting`, which re-runs the whole pipeline and discards the operator's confirmed
- * picks to recover from a stage that costs cents (impl-review F2). The confirmed selection is
- * what distinguishes a generation failure from a collection failure — a digest that failed
- * before the S-04 gate has none, and is refused as before. The retry is never implicit: the
- * no-flag default still only picks up digests already in `generating`.
+ * TWO EXCEPTIONS, and only for an explicit `--digest`: a digest that FAILED during generation, or
+ * one the operator REJECTED at the S-07 approval gate, is put back into `generating` and retried.
+ * Without this the only legal move out of `failed` is back to `collecting` (and `rejected` has no
+ * move at all but this one), which for `failed` would re-run the whole pipeline and discard the
+ * operator's confirmed picks to recover from a stage that costs cents (impl-review F2). The
+ * confirmed selection is what distinguishes a generation failure from a collection failure — a
+ * digest that failed before the S-04 gate has none, and is refused as before. A rejected digest
+ * always has one, since reaching `ready_for_approval` (and therefore `rejected`) requires having
+ * passed through generation, which itself requires the gate — but the guard is reused defensively
+ * rather than assumed. The retry is never implicit: the no-flag default still only picks up
+ * digests already in `generating`.
  */
 export async function resolveTargetDigest(client: ServiceClient, digestId: string | null): Promise<DigestRun> {
   if (digestId) {
     const digest = unwrap(await resumeDigest(client, digestId));
 
-    if (digest.status === "failed") {
+    if (digest.status === "failed" || digest.status === "rejected") {
       if (!(await hasConfirmedSelection(client, digest.id))) {
         throw new GenerateRefused(
-          `digest ${digestId} is "failed" with no confirmed selection — it did not fail during generation. ` +
+          `digest ${digestId} is "${digest.status}" with no confirmed selection — it did not fail during generation. ` +
             "Re-run the pipeline from collection instead (npm run collect).",
         );
       }
-      console.log(
-        `digest ${digestId} failed during generation (${digest.last_error ?? "no recorded reason"}); retrying`,
-      );
+      const reason =
+        digest.status === "failed"
+          ? `failed during generation (${digest.last_error ?? "no recorded reason"})`
+          : "rejected at the approval gate";
+      console.log(`digest ${digestId} ${reason}; retrying`);
       return unwrap(await transitionDigest(client, digest.id, "generating"));
     }
 

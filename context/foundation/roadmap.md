@@ -40,7 +40,7 @@ A single real-estate professional serving Polish investors in Spain publishes no
 | S-04 | story-selection-gate         | select 2–4 stories, format, and platforms                            | S-03, F-04       | FR-010,012; US-09,10             | done     |
 | S-05 | polish-copy-generation       | get Polish social copy with a numeric-integrity gate                 | S-04, F-03       | FR-013,014,016,017; US-11,12,15  | done     |
 | S-06 | brand-visual-assets          | get per-platform visuals from brand templates                        | S-05             | FR-015; US-13,14                 | done     |
-| S-07 | content-approval-gate        | approve/reject before publish; get a Monday reminder                 | S-05, S-06, F-04 | FR-019,020,021; US-16,17         | proposed |
+| S-07 | content-approval-gate        | approve/reject before publish; get a Monday reminder                 | S-05, S-06, F-04 | FR-019,020,021; US-16,17         | planned  |
 | S-08 | scheduled-publishing         | publish approved content on schedule, per platform                   | S-07, F-05       | FR-022,023; US-18,19,20          | proposed |
 | S-09 | archive-and-learning-loop    | browse the archive; picks/passes refine the rubric                   | S-08, S-02       | FR-024,025; US-10,21             | proposed |
 | S-10 | ops-heartbeat-and-catchup    | learn when nothing ran; missed windows are caught up                 | F-05             | FR-027,028; US-23,24             | proposed |
@@ -238,7 +238,9 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** The digest waits in `ready_for_approval` indefinitely — nothing publishes without an explicit approve, in every path. Reviews the full post (copy + visuals), hence the S-06 prerequisite.
-- **Status:** proposed
+- **Status:** implementing (2026-09-12) — `context/changes/content-approval-gate/plan.md`, 7 phases, plan-review verdict SOUND after 5 fixes.
+- **Decisions taken at planning:** rejection gets its own terminal `rejected` state rather than reusing `skipped` (which is US-19's missed-deadline state and stays manually publishable), recoverable via `rejected → generating` so a bad week needn't re-pay the ranking stage; the Monday reminder covers **both** human gates at 09:00 `Europe/Warsaw` and is silent when nothing is outstanding; the approval review gets its own route (`/dashboard/[id]/approve`) rather than a sixth branch on the digest page; approve carries a two-step confirmation because `approved` is a one-way door into unattended publishing. **OQ#6 closed as "no" — email only.**
+- **Carried-forward debt cleared during Phase 1 (2026-09-12):** the `supabase migration repair` debt tracked across F-01, S-04 and S-05's entries above (last recorded at six migrations, and actually thirteen by the time this slice started — three older ones from `reliable-scheduler-backbone` had also gone unrecorded) is now **fully repaired**. The `LegacyDbConnectError: Connection timed out` that blocked every prior attempt had resolved on its own; `npx supabase migration repair --status applied <version>` was run for all thirteen outstanding versions plus this slice's own two, and `supabase migration list` now shows every local migration matched by a remote entry. `db push` should be usable again — worth confirming on the next slice that touches a migration, since the earlier failure was never root-caused.
 
 ### S-08: Scheduled publishing
 
@@ -279,23 +281,23 @@ Foundations below assume these are present and do NOT re-scaffold them.
 
 ## Backlog Handoff
 
-| Roadmap ID | Change ID                    | Suggested issue title                               | Ready for `/10x-plan` | Notes                                                                              |
-| ---------- | ---------------------------- | --------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------- |
-| F-01       | durable-digest-run-state     | Durable digest run-state & core schema              | shipped               | Shipped 2026-07-24; see impl-review F1                                             |
-| F-02       | operator-pin-access-gate     | PIN access gate replacing scaffold auth             | yes                   | Independent; enables the dashboard                                                 |
-| F-03       | llm-cost-ceiling-harness     | Budgeted, retry-safe LLM invocation harness         | shipped               | Shipped & reviewed 2026-07-25; unblocks S-02                                       |
-| F-04       | outbound-email-notifications | Outbound email notification capability              | shipped               | Shipped 2026-07-28; reviewed (impl-review APPROVED, 2 low-impact fixes applied)    |
-| F-05       | reliable-scheduler-backbone  | DST-correct persistent scheduler primitive          | yes                   | F-01 shipped; unblocked                                                            |
-| S-01       | weekly-source-collection     | Weekly source collection (tiered, resilient)        | shipped               | Shipped 2026-07-24; 234 articles on first run                                      |
-| S-02       | geography-ranking-rubric     | Geography-ranking rubric + eval harness             | shipped               | Shipped 2026-07-27; verified against a real 368-article pool                       |
-| S-03       | translated-shortlist-view    | Translated shortlist dashboard view ★               | shipped               | Shipped 2026-07-30; reviewed (1 critical fixed); F3 live-translation check open    |
-| S-04       | story-selection-gate         | Story selection gate (human gate 1)                 | shipped               | Shipped 2026-09-06; reviewed (APPROVED, 1 warning + 4 observations, all fixed)     |
-| S-05       | polish-copy-generation       | Polish copy generation + numeric-integrity gate     | shipped               | Shipped 2026-09-08; reviewed (1 critical + 4 others fixed); verified on `c92aa3c5` |
-| S-06       | brand-visual-assets          | Per-platform brand visual assets                    | shipped               | Shipped 2026-09-12 via Google Slides; Canva ruled out (OQ#2 closed: no)            |
-| S-07       | content-approval-gate        | Content approval gate (human gate 2) + reminder     | no                    | Needs S-06; S-05 and F-04 shipped — unblocked on those sides                       |
-| S-08       | scheduled-publishing         | Scheduled per-platform publishing + missed-deadline | no                    | Needs S-07, F-05; reuses publish integ.                                            |
-| S-09       | archive-and-learning-loop    | Full-fidelity archive + rubric learning loop        | no                    | Needs S-08, S-02                                                                   |
-| S-10       | ops-heartbeat-and-catchup    | Ops heartbeat alert + missed-run catch-up           | no                    | Needs F-05                                                                         |
+| Roadmap ID | Change ID                    | Suggested issue title                               | Ready for `/10x-plan` | Notes                                                                                       |
+| ---------- | ---------------------------- | --------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------- |
+| F-01       | durable-digest-run-state     | Durable digest run-state & core schema              | shipped               | Shipped 2026-07-24; see impl-review F1                                                      |
+| F-02       | operator-pin-access-gate     | PIN access gate replacing scaffold auth             | yes                   | Independent; enables the dashboard                                                          |
+| F-03       | llm-cost-ceiling-harness     | Budgeted, retry-safe LLM invocation harness         | shipped               | Shipped & reviewed 2026-07-25; unblocks S-02                                                |
+| F-04       | outbound-email-notifications | Outbound email notification capability              | shipped               | Shipped 2026-07-28; reviewed (impl-review APPROVED, 2 low-impact fixes applied)             |
+| F-05       | reliable-scheduler-backbone  | DST-correct persistent scheduler primitive          | yes                   | F-01 shipped; unblocked                                                                     |
+| S-01       | weekly-source-collection     | Weekly source collection (tiered, resilient)        | shipped               | Shipped 2026-07-24; 234 articles on first run                                               |
+| S-02       | geography-ranking-rubric     | Geography-ranking rubric + eval harness             | shipped               | Shipped 2026-07-27; verified against a real 368-article pool                                |
+| S-03       | translated-shortlist-view    | Translated shortlist dashboard view ★               | shipped               | Shipped 2026-07-30; reviewed (1 critical fixed); F3 live-translation check open             |
+| S-04       | story-selection-gate         | Story selection gate (human gate 1)                 | shipped               | Shipped 2026-09-06; reviewed (APPROVED, 1 warning + 4 observations, all fixed)              |
+| S-05       | polish-copy-generation       | Polish copy generation + numeric-integrity gate     | shipped               | Shipped 2026-09-08; reviewed (1 critical + 4 others fixed); verified on `c92aa3c5`          |
+| S-06       | brand-visual-assets          | Per-platform brand visual assets                    | shipped               | Shipped 2026-09-12 via Google Slides; Canva ruled out (OQ#2 closed: no)                     |
+| S-07       | content-approval-gate        | Content approval gate (human gate 2) + reminder     | planned               | Planned 2026-09-12; plan-review SOUND. Next: `/10x-implement content-approval-gate phase 1` |
+| S-08       | scheduled-publishing         | Scheduled per-platform publishing + missed-deadline | no                    | Needs S-07, F-05; reuses publish integ.                                                     |
+| S-09       | archive-and-learning-loop    | Full-fidelity archive + rubric learning loop        | no                    | Needs S-08, S-02                                                                            |
+| S-10       | ops-heartbeat-and-catchup    | Ops heartbeat alert + missed-run catch-up           | no                    | Needs F-05                                                                                  |
 
 ## Open Roadmap Questions
 
@@ -304,7 +306,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 3. **Carousel length — fixed, or driven by story count?** — Owner: operator. Block: S-06.
 4. **Selection granularity — pick the cluster or a specific article within it?** — Owner: operator. Block: S-04.
 5. **Retention policy for full-fidelity archive material on local disk.** — Owner: operator. Block: S-09.
-6. **Second notification channel for the time-critical Monday reminder?** — Owner: operator. Block: S-07 only (non-blocking; F-04 shipped 2026-07-28 email-only without resolving this — the reminder can ship as email-only too if the operator doesn't ask for a second channel by then).
+6. ~~**Second notification channel for the time-critical Monday reminder?**~~ — **Resolved 2026-09-12 at S-07 planning: no.** The reminder ships email-only through the F-04 harness; no second channel, no notification abstraction. Revisit only if a Monday is actually missed in practice.
 7. ~~**Late-Sunday news window — shrink to Sun 17:00, or roll into next week?**~~ — **Resolved 2026-07-24: roll into next week.** Windows tile from the previous digest's `collection_completed_at` checkpoint to the current run's start time, so the calendar is covered exactly once and a late-Sunday story is never dropped — it lands in the following run. No declared cutoff to maintain. Implemented in S-01 Phase 4 (`src/lib/collection/window.ts`).
 8. **Delivery timeline soft target.** — Owner: operator. Block: roadmap-wide. Resolved stance: `main_goal: quality`, `mvp_weeks` intentionally unbounded; sequence by dependency, not by calendar. Set a soft milestone only if downstream coordination needs one.
 

@@ -1,0 +1,22 @@
+-- S-07: add the `rejected` state to the digest state machine.
+--
+-- ALONE IN ITS OWN MIGRATION ON PURPOSE. Postgres refuses to let a value added by
+-- `alter type ... add value` be *used* by any other statement in the same transaction
+-- ("unsafe use of new value of enum type"). The companion migration
+-- 20260912093000_approval_gate.sql redefines enforce_digest_transition() (and the
+-- one_active_digest_per_week partial index) to route through this state, and Supabase applies
+-- each migration file in its own transaction -- so the value is committed before anything
+-- references it. Same split S-06 used for `rendering` (20260908130000_rendering_status_enum.sql).
+--
+-- Positioned after 'approved' so the enum still reads in pipeline order:
+--   collecting -> ranking -> ready_for_selection -> generating -> rendering ->
+--   ready_for_approval -> approved -> rejected -> published
+--
+-- `rejected` is deliberately NOT `skipped`: `skipped` is US-19's missed-deadline state and stays
+-- manually publishable (skipped -> published). A digest the operator rejected must never be
+-- publishable, and S-08 must be able to tell the two apart.
+--
+-- Nothing else belongs in this file. Adding so much as a comment-free DDL statement that
+-- mentions 'rejected' would reintroduce the very error this split exists to avoid.
+
+alter type digest_status add value 'rejected' after 'approved';

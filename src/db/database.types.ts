@@ -33,6 +33,8 @@
 //     (20260908130000_rendering_status_enum.sql)
 //   - `generated_asset` under public.Tables, `digest.rendering_completed_at: string | null`
 //     in Row/Insert/Update (20260908140000_visual_assets.sql)
+//   - `"rejected"` in the `digest_status` enum and in Constants.public.Enums.digest_status
+//     (20260912090000_rejected_status_enum.sql)
 export type Json =
   | string
   | number
@@ -537,6 +539,7 @@ export type Database = {
         | "rendering"
         | "ready_for_approval"
         | "approved"
+        | "rejected"
         | "published"
         | "skipped"
         | "failed"
@@ -681,6 +684,7 @@ export const Constants = {
         "rendering",
         "ready_for_approval",
         "approved",
+        "rejected",
         "published",
         "skipped",
         "failed",
