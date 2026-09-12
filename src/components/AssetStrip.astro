@@ -1,0 +1,62 @@
+---
+// APP-SIDE, static: no island, no interactivity. The rendered cards are read-only here — approving
+// or rejecting them is S-07's job, and a control that did nothing yet would read as one that does.
+//
+// Why a preview exists at all: US-13 says the operator owns the design and restyles without a code
+// change, and US-14 that each platform gets its asset. Neither is verifiable by reading a
+// `generated_asset` row — only by looking at the image. This is the looking.
+export interface RenderedAsset {
+  slideIndex: number;
+  /** Short-lived signed URL; the bucket is private. Minted by the page, per render. */
+  url: string;
+  /** The story this slide carries, or a label for a slide that belongs to no story. */
+  label: string;
+}
+
+interface Props {
+  assets: RenderedAsset[];
+  /** True when at least one image could not be loaded or signed — never conflated with "none yet". */
+  partialFailure?: boolean;
+}
+
+const { assets, partialFailure = false } = Astro.props;
+---
+
+<section class="mb-6">
+  <h2 class="mb-3 text-sm font-semibold tracking-wide text-blue-100/80 uppercase">
+    Rendered visuals
+    <span class="ml-1 font-normal text-blue-100/50 normal-case">({assets.length})</span>
+  </h2>
+
+  {
+    partialFailure && (
+      <p class="mb-3 rounded-xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-200">
+        Some images could not be loaded. Re-run <code class="font-mono">npm run visuals</code> for this digest.
+      </p>
+    )
+  }
+
+  <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+    {
+      assets.map((asset) => (
+        <li class="overflow-hidden rounded-xl border border-white/10 bg-white/5">
+          {/* Square by construction: the templates are 1080x1080 and the validator fails a deck
+              that is not. aspect-square here means a wrong-sized export is visibly letterboxed
+              rather than silently stretched. */}
+          <img
+            src={asset.url}
+            alt={`Slide ${String(asset.slideIndex + 1)}: ${asset.label}`}
+            width="1080"
+            height="1080"
+            loading="lazy"
+            class="aspect-square w-full bg-black/20 object-contain"
+          />
+          <p class="px-3 pt-2 text-[11px] font-semibold tracking-wide text-blue-100/50 uppercase">
+            Slide {asset.slideIndex + 1}
+          </p>
+          <p class="line-clamp-2 px-3 pb-3 text-xs text-blue-100/80">{asset.label}</p>
+        </li>
+      ))
+    }
+  </ul>
+</section>

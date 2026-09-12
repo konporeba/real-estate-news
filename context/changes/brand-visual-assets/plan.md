@@ -699,28 +699,28 @@ renders them as an empty strip rather than an error, and no backfill is attempte
 
 #### Automated
 
-- [x] 5.1 Flag parsing and refusal behaviour covered
+- [x] 5.1 Flag parsing and refusal behaviour covered — cb8f31b
 - [x] 5.2 Generation now transitions to `rendering` — 1fb6a9c
-- [x] 5.3 Linting passes: `npm run lint`
-- [x] 5.4 Full suite passes: `npm test`
+- [x] 5.3 Linting passes: `npm run lint` — cb8f31b
+- [x] 5.4 Full suite passes: `npm test` — cb8f31b
 
 #### Manual
 
-- [x] 5.5 Wrong-status digest refused with a readable message and exit 2
-- [x] 5.6 `--digest=<uuid>` targets that digest specifically
+- [x] 5.5 Wrong-status digest refused with a readable message and exit 2 — cb8f31b
+- [x] 5.6 `--digest=<uuid>` targets that digest specifically — cb8f31b
 
 ### Phase 6: Dashboard preview
 
 #### Automated
 
-- [ ] 6.1 Type checking passes: `npm run build`
-- [ ] 6.2 Linting passes: `npm run lint`
+- [x] 6.1 Type checking passes: `npm run build`
+- [x] 6.2 Linting passes: `npm run lint`
 
 #### Manual
 
-- [ ] 6.3 Digest page shows rendered cards in slide order behind the PIN gate
-- [ ] 6.4 A digest with no assets renders cleanly
-- [ ] 6.5 A forced storage error renders the failure state, not an empty one
+- [x] 6.3 Digest page shows rendered cards in slide order behind the PIN gate
+- [x] 6.4 A digest with no assets renders cleanly
+- [x] 6.5 A forced storage error renders the failure state, not an empty one
 
 ### Phase 7: Live verification
 

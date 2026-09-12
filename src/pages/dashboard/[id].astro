@@ -1,14 +1,23 @@
 ---
 import Layout from "@/layouts/Layout.astro";
+import AssetStrip, { type RenderedAsset } from "@/components/AssetStrip.astro";
 import OperatorHeader from "@/components/OperatorHeader.astro";
 import { SelectionForm } from "@/components/SelectionForm";
 import { ShortlistCard } from "@/components/ShortlistCard";
+import { ASSET_BUCKET, SIGNED_URL_TTL_SECONDS } from "@/lib/digest/assets";
 import { FORMAT_LABELS, PLATFORM_LABELS } from "@/lib/selection/rules";
 import { createServiceClient } from "@/lib/supabase-admin";
 import type { DigestStatus, SelectionFormat, SelectionPlatform, ShortlistItem } from "@/types";
 
 /** Statuses reached before the ranking stage (and its translation sub-step) has run. */
 const NOT_READY_STATUSES: DigestStatus[] = ["collecting", "ranking"];
+
+/**
+ * Statuses at or past the rendering stage — the ones whose digest may have images to show.
+ * `failed` is absent deliberately: that status renders its own diagnostic panel instead, and a
+ * half-rendered set behind a failure message would invite the operator to read it as finished.
+ */
+const RENDERED_STATUSES: DigestStatus[] = ["rendering", "ready_for_approval", "approved", "published"];
 
 interface DigestSummary {
   id: string;
@@ -157,6 +166,88 @@ if (client && digest && !NOT_READY_STATUSES.includes(digest.status) && digest.st
   }
 }
 
+/**
+ * Rendered slide images (S-06), newest-run only — `renderDigest` replaces the whole set per run.
+ *
+ * Three outcomes are kept apart on purpose, because S-03 impl-review F2 was exactly this mistake
+ * one query over: `assetsError` (nothing could be loaded), `assetsPartial` (some images signed,
+ * some did not) and an empty list (the stage has not run yet). Conflating any two of them would
+ * show the operator a digest that looks either finished or broken when it is neither.
+ */
+let assets: RenderedAsset[] = [];
+let assetsError = false;
+let assetsPartial = false;
+
+if (client && digest && !loadError && RENDERED_STATUSES.includes(digest.status)) {
+  const { data: rows, error: assetsQueryError } = await client
+    .from("generated_asset")
+    .select("slide_index, cluster_id, storage_path")
+    .eq("digest_id", digest.id)
+    .order("slide_index", { ascending: true });
+
+  if (assetsQueryError) {
+    console.error(
+      `failed to load assets for digest ${digest.id}: ${assetsQueryError.code}: ${assetsQueryError.message}`,
+    );
+    assetsError = true;
+  } else if (rows.length > 0) {
+    // One signing call for every path rather than one per image: the bucket is private, so every
+    // render has to mint these, and N round trips would put the page's latency on the slide count.
+    const { data: signed, error: signError } = await client.storage.from(ASSET_BUCKET).createSignedUrls(
+      rows.map((row) => row.storage_path),
+      SIGNED_URL_TTL_SECONDS,
+    );
+
+    if (signError) {
+      console.error(`failed to sign asset URLs for digest ${digest.id}: ${signError.message}`);
+      assetsError = true;
+    } else {
+      // createSignedUrls reports per ENTRY, not at the top level: a missing object — and a bucket
+      // that does not exist at all — both come back with `error: null` above and a null `signedUrl`
+      // on each row. Verified against the real project, because the obvious reading of the API
+      // (a top-level error on a bad bucket) is wrong, and trusting it would have left the failure
+      // branch below unreachable.
+      const failed = signed.filter((entry) => !entry.signedUrl);
+      if (failed.length > 0) {
+        console.error(
+          `failed to sign ${String(failed.length)}/${String(signed.length)} asset URL(s) for digest ${digest.id} ` +
+            `in bucket ${ASSET_BUCKET}: ${failed[0]?.error ?? "no reason given"}`,
+        );
+      }
+
+      const urlByPath = new Map(
+        signed.filter((entry) => entry.signedUrl).map((entry) => [entry.path, entry.signedUrl]),
+      );
+      // The shortlist is already loaded, so the slide labels come from it rather than from a second
+      // query for the same titles.
+      const titleByCluster = new Map(shortlist.map((item) => [item.clusterId, item.polishTitle ?? item.originalTitle]));
+
+      assets = rows.flatMap((row): RenderedAsset[] => {
+        const url = urlByPath.get(row.storage_path);
+        if (!url) {
+          // One path failed while others worked — show what loaded, and say so.
+          assetsPartial = true;
+          return [];
+        }
+        return [
+          {
+            slideIndex: row.slide_index,
+            url,
+            label: row.cluster_id ? (titleByCluster.get(row.cluster_id) ?? "Story") : "Cover",
+          },
+        ];
+      });
+
+      // Every path failed: the bucket is gone, renamed, or no longer readable. That is a total
+      // failure reported as one, not "some images are missing" beside an empty grid.
+      if (assets.length === 0) {
+        assetsError = true;
+        assetsPartial = false;
+      }
+    }
+  }
+}
+
 /** The gate is open only while the digest awaits selection and none has been recorded. */
 const selectionOpen = digest?.status === "ready_for_selection" && !selection && !loadError;
 ---
@@ -200,6 +291,19 @@ const selectionOpen = digest?.status === "ready_for_selection" && !selection && 
                 <span class="font-semibold">{FORMAT_LABELS[selection.format]}</span> content for{" "}
                 <span class="font-semibold">{selection.platforms.map((p) => PLATFORM_LABELS[p]).join(", ")}</span>.
               </p>
+            )}
+            {assetsError ? (
+              <p class="mb-6 rounded-xl border border-red-400/30 bg-red-500/10 p-4 text-sm text-red-200">
+                Couldn't load this digest's rendered visuals — the images may still exist. Try reloading.
+              </p>
+            ) : assets.length > 0 ? (
+              <AssetStrip assets={assets} partialFailure={assetsPartial} />
+            ) : (
+              RENDERED_STATUSES.includes(digest.status) && (
+                <p class="mb-6 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-blue-100/70">
+                  No visuals rendered yet — run <code class="font-mono">npm run visuals</code> for this digest.
+                </p>
+              )
             )}
             <ul class="space-y-3">
               {shortlist.map((item) => (

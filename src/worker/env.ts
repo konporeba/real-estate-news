@@ -6,6 +6,8 @@
 // from .env by Node's --env-file flag.
 import { z } from "zod";
 
+import { ASSET_BUCKET } from "@/lib/digest/assets";
+
 const workerEnvSchema = z.object({
   SUPABASE_URL: z.url("SUPABASE_URL must be a valid URL"),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, "SUPABASE_SERVICE_ROLE_KEY must not be empty"),
@@ -41,8 +43,10 @@ const workerEnvSchema = z.object({
   SLIDES_DECK_SINGLE_POST: z.string().min(1, "SLIDES_DECK_SINGLE_POST must not be empty").optional(),
   SLIDES_DECK_CAROUSEL: z.string().min(1, "SLIDES_DECK_CAROUSEL must not be empty").optional(),
   // Where rendered PNGs are stored. Defaulted rather than optional: the bucket is created by
-  // migration 20260908140000, so the name is a deployment detail, not a missing capability.
-  SUPABASE_ASSET_BUCKET: z.string().min(1).default("digest-assets"),
+  // migration 20260908140000, so the name is a deployment detail, not a missing capability. The
+  // default comes from the shared constant the dashboard signs URLs against, so the two cannot
+  // drift into pointing at different buckets.
+  SUPABASE_ASSET_BUCKET: z.string().min(1).default(ASSET_BUCKET),
 });
 
 export type WorkerEnv = z.infer<typeof workerEnvSchema>;
