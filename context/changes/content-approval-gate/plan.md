@@ -414,7 +414,13 @@ code is honestly typed `| undefined` and becomes a logged 500 carrying our wordi
 
 - `POST /api/approval/decide` with no session cookie returns 401 JSON, not a redirect to `/auth/pin`
 - A malformed body returns 400 with the specific field complaint; a decision on a digest not in
-  `ready_for_approval` returns 409; a second decision returns 409 `already_decided`
+  `ready_for_approval` returns 409; a second decision on an already-decided digest returns 409 too
+  — as `wrong_status`, not `already_decided`, because `record_approval`'s own status check fires
+  before the digest can no longer be `ready_for_approval`, before the unique constraint on
+  `approval.digest_id` is ever reached. This is not a bug: it is the exact behavior
+  `confirm_selection` already has for S-04 (`confirm.test.ts`: "the status check fires first...
+  the unique constraint... is the backstop underneath it"), so `already_decided` stays mapped for
+  defense-in-depth but is not reachable under normal operation.
 - No Postgres message text appears in any response body
 
 **Implementation Note**: After completing this phase and all automated verification passes, pause
@@ -835,30 +841,30 @@ redefinition only widens the set of statuses that free up a week.
 
 #### Automated
 
-- [x] 2.1 Approval RPC suite passes: `SUPABASE_TEST_PROJECT=1 npx vitest run src/lib/approval/record.test.ts`
-- [x] 2.2 Type checking passes: `npm run build`
-- [x] 2.3 Linting passes: `npm run lint`
-- [x] 2.4 Full suite passes: `npm test`
+- [x] 2.1 Approval RPC suite passes: `SUPABASE_TEST_PROJECT=1 npx vitest run src/lib/approval/record.test.ts` — ca9fd09
+- [x] 2.2 Type checking passes: `npm run build` — ca9fd09
+- [x] 2.3 Linting passes: `npm run lint` — ca9fd09
+- [x] 2.4 Full suite passes: `npm test` — ca9fd09
 
 #### Manual
 
-- [x] 2.5 `approval` applied, reachable by the service role, denied to `anon`
-- [x] 2.6 Approve and reject each produce the right status and exactly one `approval` row
+- [x] 2.5 `approval` applied, reachable by the service role, denied to `anon` — ca9fd09
+- [x] 2.6 Approve and reject each produce the right status and exactly one `approval` row — ca9fd09
 
 ### Phase 3: Shared approval rules and the decide endpoint
 
 #### Automated
 
-- [ ] 3.1 Rules drift guard passes: `npx vitest run src/lib/approval/rules.test.ts`
-- [ ] 3.2 Type checking passes: `npm run build`
-- [ ] 3.3 Linting passes: `npm run lint`
-- [ ] 3.4 Full suite passes: `npm test`
+- [x] 3.1 Rules drift guard passes: `npx vitest run src/lib/approval/rules.test.ts`
+- [x] 3.2 Type checking passes: `npm run build`
+- [x] 3.3 Linting passes: `npm run lint`
+- [x] 3.4 Full suite passes: `npm test`
 
 #### Manual
 
-- [ ] 3.5 Unauthenticated POST returns 401 JSON, not a redirect
-- [ ] 3.6 Malformed body 400, wrong status 409, second decision 409 `already_decided`
-- [ ] 3.7 No Postgres message text appears in any response body
+- [x] 3.5 Unauthenticated POST returns 401 JSON, not a redirect
+- [x] 3.6 Malformed body 400, wrong status 409, second decision 409 (as `wrong_status`, not `already_decided` — matches the S-04 precedent; see updated criterion text)
+- [x] 3.7 No Postgres message text appears in any response body
 
 ### Phase 4: The approval page and island
 
