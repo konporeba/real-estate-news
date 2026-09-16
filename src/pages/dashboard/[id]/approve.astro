@@ -8,6 +8,8 @@ import GeneratedStoryCard from "@/components/GeneratedStoryCard.astro";
 import AssetStrip, { type RenderedAsset } from "@/components/AssetStrip.astro";
 import { ApprovalPanel } from "@/components/ApprovalPanel";
 import OperatorHeader from "@/components/OperatorHeader.astro";
+import { PublishPanel } from "@/components/PublishPanel";
+import PublicationResults, { type PublicationResultRow } from "@/components/PublicationResults.astro";
 import Layout from "@/layouts/Layout.astro";
 import { ASSET_BUCKET, SIGNED_URL_TTL_SECONDS } from "@/lib/digest/assets";
 import { createServiceClient } from "@/lib/supabase-admin";
@@ -25,9 +27,17 @@ import type {
 /**
  * Statuses this page can show generated content for. Anything earlier means generation has not
  * produced anything yet; `failed` gets its own diagnostic branch below, matching `[id].astro`'s
- * convention of keeping "not ready" and "broke" visibly distinct.
+ * convention of keeping "not ready" and "broke" visibly distinct. Extended in S-08 to also cover
+ * `skipped` and `published`: this page is now also where the operator publishes manually (S-08's
+ * own manual-publish and results-viewing statuses), not just where they decide.
  */
-const DECIDABLE_STATUSES: DigestStatus[] = ["ready_for_approval", "approved", "rejected"];
+const CONTENT_STATUSES: DigestStatus[] = ["ready_for_approval", "approved", "rejected", "skipped", "published"];
+
+/** Statuses S-08's "Publish now" panel is offered for — a live decision has already been made. */
+const PUBLISHABLE_STATUSES: DigestStatus[] = ["approved", "skipped"];
+
+/** Statuses a `publication` row can legally exist for — record_publication's own contract. */
+const HAS_PUBLICATION_STATUSES: DigestStatus[] = ["approved", "skipped", "published"];
 
 interface DigestSummary {
   id: string;
@@ -64,8 +74,9 @@ if (client) {
 let stories: ApprovalStory[] = [];
 let selection: { format: SelectionFormat; platforms: SelectionPlatform[] } | null = null;
 let decided: { decision: ApprovalDecision; note: string | null; decidedAt: string } | null = null;
+let publications: PublicationResultRow[] = [];
 
-if (client && digest && !loadError && DECIDABLE_STATUSES.includes(digest.status)) {
+if (client && digest && !loadError && CONTENT_STATUSES.includes(digest.status)) {
   const { data: copyRows, error: copyError } = await client
     .from("generated_copy")
     .select("cluster_id, polish_title, caption_summary, body_copy, key_statistics, source_text_origin")
@@ -152,6 +163,27 @@ if (client && digest && !loadError && DECIDABLE_STATUSES.includes(digest.status)
       decided = { decision: approvalRow.decision, note: approvalRow.note, decidedAt: approvalRow.decided_at };
     }
   }
+
+  if (HAS_PUBLICATION_STATUSES.includes(digest.status)) {
+    const { data: publicationRows, error: publicationError } = await client
+      .from("publication")
+      .select("platform, status, post_id, error")
+      .eq("digest_id", digest.id);
+    if (publicationError) {
+      console.error(
+        `failed to load publication results for digest ${digest.id}: ${publicationError.code}: ${publicationError.message}`,
+      );
+      loadError = true;
+      Astro.response.status = 500;
+    } else {
+      publications = publicationRows.map((row) => ({
+        platform: row.platform,
+        status: row.status,
+        postId: row.post_id,
+        error: row.error,
+      }));
+    }
+  }
 }
 
 /**
@@ -163,7 +195,7 @@ let assets: RenderedAsset[] = [];
 let assetsError = false;
 let assetsPartial = false;
 
-if (client && digest && !loadError && DECIDABLE_STATUSES.includes(digest.status)) {
+if (client && digest && !loadError && CONTENT_STATUSES.includes(digest.status)) {
   const { data: rows, error: assetsQueryError } = await client
     .from("generated_asset")
     .select("slide_index, cluster_id, storage_path")
@@ -243,7 +275,7 @@ if (client && digest && !loadError && DECIDABLE_STATUSES.includes(digest.status)
           <p class="rounded-xl border border-red-400/30 bg-red-500/10 p-6 text-sm text-red-200">
             This digest failed: {digest.last_error ?? "no diagnostic recorded"}
           </p>
-        ) : !DECIDABLE_STATUSES.includes(digest.status) ? (
+        ) : !CONTENT_STATUSES.includes(digest.status) ? (
           <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">
             This digest is still <span class="font-semibold">{digest.status}</span> — there is nothing generated to
             review yet.
@@ -285,6 +317,12 @@ if (client && digest && !loadError && DECIDABLE_STATUSES.includes(digest.status)
                 platforms={selection.platforms}
               />
             )}
+
+            {PUBLISHABLE_STATUSES.includes(digest.status) && selection && (
+              <PublishPanel client:load digestId={digest.id} platforms={selection.platforms} />
+            )}
+
+            <PublicationResults results={publications} />
 
             {assetsError ? (
               <p class="mb-6 rounded-xl border border-red-400/30 bg-red-500/10 p-4 text-sm text-red-200">

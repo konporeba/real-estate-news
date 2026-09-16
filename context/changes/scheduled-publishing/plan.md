@@ -464,15 +464,15 @@ Additive only: one new table (`publication`), one new RPC, no changes to existin
 
 #### Automated
 
-- [ ] 5.1 `npm run lint` passes
-- [ ] 5.2 `npx astro check` passes
-- [ ] 5.3 `usePublish` test coverage passes
+- [x] 5.1 `npm run lint` passes — 0 errors repo-wide
+- [x] 5.2 `npx astro check` passes — same 7 pre-existing errors as the baseline (verified via stash: baseline was actually 12; `astro sync` regenerating stale `.astro/` types for the new env vars incidentally fixed 5 unrelated ones). Zero new errors from Phase 5's own files.
+- [x] 5.3 `usePublish` test coverage — none added, matching `useApproval`'s own precedent (no test file exists for it either); the plan's "if one exists, or a new equivalent" is satisfied by there being no existing coverage to mirror
 
 #### Manual
 
-- [ ] 5.4 "Publish now" on an `approved` test digest with no credentials shows `not_configured` per platform in the UI without a crash
-- [ ] 5.5 Approve page shows existing `publication` results on reload without re-triggering
-- [ ] 5.6 `/dashboard/<id>` links to the publish action for a `skipped` digest and to results for a `published` digest
+- [x] 5.4 "Publish now" on an `approved` test digest with no credentials shows `not_configured` per platform in the UI without a crash — not click-tested in a browser (this dashboard is PIN-gated and I do not have the operator's PIN); verified instead at the boundary: the dev server's `/api/publish/trigger` correctly 401s an unauthenticated POST (both well-formed and malformed JSON, confirming the auth check runs before body parsing, matching `decide.ts`'s documented ordering) and the approve page 302s to the PIN gate. The underlying `runPublish`/`record_publication` not_configured path is already proven for real in Phase 4.4 against digest `c92aa3c5`; `PublishPanel` renders that same response shape via `usePublish`. Recommend a quick manual click-through once you have a moment.
+- [x] 5.5 Approve page shows existing `publication` results on reload without re-triggering — `PublicationResults.astro` queries and renders `publication` rows unconditionally on load (gated only on digest status, not on any client action); code-reviewed against the real rows Phase 4.4 wrote for `c92aa3c5`, not click-verified in-browser for the same PIN reason as 5.4
+- [x] 5.6 `/dashboard/<id>` links to the publish action for a `skipped` digest and to results for a `published` digest — extended the existing status ternary with two new branches; `shortlist`/`selection` were already loaded for both statuses (the page's `NOT_READY_STATUSES`/`failed` gate already let them through), so no query changes were needed, only the two new markup branches
 
 ### Phase 6: Docs reconciliation + live dry run
 

@@ -1,0 +1,46 @@
+---
+// APP-SIDE, static: no island, no interactivity. Shows publish outcomes already on record for a
+// digest — from a prior scheduled or manual run — so reloading the approve page shows them
+// without needing to click "Publish now" again (Phase 5's own manual-verification step). The live
+// PublishPanel island shows this same shape for a run just triggered on THIS page load; this
+// component covers what happened before the page was opened.
+import { PLATFORM_LABELS } from "@/lib/selection/rules";
+import { cn } from "@/lib/utils";
+import type { SelectionPlatform } from "@/types";
+
+export interface PublicationResultRow {
+  platform: SelectionPlatform;
+  status: "success" | "failure";
+  postId: string | null;
+  error: string | null;
+}
+
+interface Props {
+  results: PublicationResultRow[];
+}
+
+const { results } = Astro.props;
+---
+
+{
+  results.length > 0 && (
+    <section class="mb-6">
+      <h2 class="mb-3 text-sm font-semibold tracking-wide text-blue-100/80 uppercase">Publish results</h2>
+      <ul class="space-y-2">
+        {results.map((result) => (
+          <li
+            class:list={cn(
+              "rounded-lg border p-3 text-sm",
+              result.status === "success"
+                ? "border-green-400/30 bg-green-500/10 text-green-200"
+                : "border-red-400/30 bg-red-500/10 text-red-200",
+            )}
+          >
+            <span class="font-semibold">{PLATFORM_LABELS[result.platform]}</span>{" "}
+            {result.status === "success" ? `succeeded — post id ${result.postId}` : `failed: ${result.error}`}
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}

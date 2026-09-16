@@ -310,6 +310,22 @@ const selectionOpen = digest?.status === "ready_for_selection" && !selection && 
                     View the decision →
                   </a>
                 </p>
+              ) : digest.status === "skipped" ? (
+                // S-08/US-19: a missed approval deadline skips the auto-publish but leaves the
+                // digest manually publishable -- the "Publish now" panel lives on the approve page.
+                <p class="mb-4 rounded-xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-100">
+                  This digest missed its approval deadline and was skipped.{" "}
+                  <a href={`/dashboard/${digest.id}/approve`} class="font-semibold underline hover:no-underline">
+                    Publish it manually →
+                  </a>
+                </p>
+              ) : digest.status === "published" ? (
+                <p class="mb-4 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-blue-100/70">
+                  This digest was published.{" "}
+                  <a href={`/dashboard/${digest.id}/approve`} class="text-blue-300 hover:underline">
+                    View publish results →
+                  </a>
+                </p>
               ) : null
             }
             {assetsError ? (
