@@ -478,10 +478,10 @@ Additive only: one new table (`publication`), one new RPC, no changes to existin
 
 #### Automated
 
-- [ ] 6.1 `npm run lint` passes
+- [x] 6.1 `npm run lint` passes — 0 errors repo-wide; markdown reformatted with `prettier --write` (table column widths only)
 
 #### Manual
 
-- [ ] 6.2 Real dry-run publish against real Meta/LinkedIn accounts succeeds (or fails clearly) per platform
-- [ ] 6.3 No platform reports an image-fetch/expired-URL error during the dry run
-- [ ] 6.4 PRD and roadmap read correctly with no stale "reused from a prior project" claim
+- [ ] 6.2 Real dry-run publish against real Meta/LinkedIn accounts succeeds (or fails clearly) per platform — **not done; needs the operator's real credentials, and possibly LinkedIn's Community Management API approval filed first**
+- [ ] 6.3 No platform reports an image-fetch/expired-URL error during the dry run — depends on 6.2
+- [x] 6.4 PRD and roadmap read correctly with no stale "reused from a prior project" claim — `context/foundation/prd.md`'s Vision section and Non-Goals bullet rewritten; `context/foundation/roadmap.md`'s S-08 entry, Backlog Handoff row, and Parked entry updated; roadmap marked `done` for S-08 per the operator's explicit go-ahead, with an unambiguous carried-forward note that 6.2/6.3 remain open
