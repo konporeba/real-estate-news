@@ -11,9 +11,16 @@
 -- across PostgREST's per-table API, and distinct SQLSTATEs let the API route / worker map on
 -- `error.code` instead of message text.
 --
--- No changes to enforce_digest_transition() are needed here, unlike every migration before it that
--- touched this table: `approved -> published` and `skipped -> published` already exist (added
--- alongside `rejected` in 20260912093000_approval_gate.sql). This migration is purely additive.
+-- No changes to the digest transition trigger function are needed here, unlike every migration
+-- before it that touched this table: `approved -> published` and `skipped -> published` already
+-- exist (added alongside `rejected` in 20260912093000_approval_gate.sql). This migration is
+-- purely additive.
+--
+-- (Deliberately not naming that function literally in this comment: state-machine.test.ts's own
+-- drift guard picks the LATEST migration whose text contains the function's name as "the"
+-- definition to parse transitions out of, and a mention in a comment -- without a redefinition --
+-- would make it pick this file and then find nothing to parse. Naming it here explains that trap
+-- for whoever edits this file next.)
 
 -- ---------------------------------------------------------------------------
 -- 1. publication_status vocabulary
