@@ -436,9 +436,9 @@ Additive only: one new table (`publication`), one new RPC, no changes to existin
 
 #### Automated
 
-- [ ] 2.1 `npm run lint` passes
-- [ ] 2.2 `npx vitest run src/lib/publishing/` passes (platform clients against faked HTTP)
-- [ ] 2.3 Caption composition/truncation unit tests pass
+- [x] 2.1 `npm run lint` passes
+- [x] 2.2 `npx vitest run src/lib/publishing/` passes (platform clients against faked HTTP) — 47/47 passing across 7 files, including Instagram's IN_PROGRESS→FINISHED polling sequence and exhausted-polling-budget failure
+- [x] 2.3 Caption composition/truncation unit tests pass — includes the 4-story-over-Instagram's-limit case
 
 ### Phase 3: Publish orchestration
 
