@@ -5,6 +5,7 @@
 // `IN_PROGRESS` and must reach `FINISHED` before `/media_publish` will succeed (a premature
 // publish call fails with error code 9007) — so every container (child, parent, or the
 // single-image container) is polled to completion before it is ever handed to media_publish.
+import { truncateForPlatform } from "@/lib/publishing/caption";
 import { createGraphClient, type GraphClient } from "@/lib/publishing/graph-api";
 import type { Publisher, PublishAttempt } from "@/lib/publishing/types";
 
@@ -16,6 +17,9 @@ export interface InstagramCredentials {
 /** Bounded so a stuck container fails the platform, not the whole run — matches the "no retry within a run" contract. */
 const MAX_CONTAINER_POLL_ATTEMPTS = 10;
 const CONTAINER_POLL_INTERVAL_MS = 2000;
+
+/** Instagram's caption limit. Applied here, not by the orchestrator, so runPublish stays platform-agnostic. */
+export const INSTAGRAM_MAX_CAPTION_LENGTH = 2200;
 
 /**
  * Build an Instagram publisher. Returns null when credentials are absent — the createEmailClient /
@@ -72,8 +76,9 @@ export function buildInstagramPublisher(
   }
 
   return {
-    async publish(images, caption): Promise<PublishAttempt> {
+    async publish(images, rawCaption): Promise<PublishAttempt> {
       if (images.length === 0) return { ok: false, error: "no images to publish" };
+      const caption = truncateForPlatform(rawCaption, INSTAGRAM_MAX_CAPTION_LENGTH);
 
       let creationId: string;
       if (images.length === 1) {

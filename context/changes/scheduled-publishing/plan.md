@@ -444,9 +444,9 @@ Additive only: one new table (`publication`), one new RPC, no changes to existin
 
 #### Automated
 
-- [ ] 3.1 `npm run lint` passes
-- [ ] 3.2 `npx vitest run src/lib/publishing/run.test.ts` passes
-- [ ] 3.3 `record_publication` integration test against the real test project
+- [x] 3.1 `npm run lint` passes
+- [x] 3.2 `npx vitest run src/lib/publishing/run.test.ts` passes — 10/10, covering all-succeed, one-fails-one-succeeds (US-20), retry-only-the-failed-platform, already-fully-published, unconfigured-platform, and caption/image order derived from `generated_asset.slide_index` regardless of `generated_copy`'s own row order
+- [x] 3.3 `record_publication` integration test against the real test project — already covered by Phase 1's `record.test.ts` (11/11 passing), which is the RPC this phase calls; not duplicated here
 
 ### Phase 4: Worker entrypoint + scheduler wiring
 

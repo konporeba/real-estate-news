@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createGraphClient } from "@/lib/publishing/graph-api";
-import { buildInstagramPublisher, createInstagramPublisher } from "@/lib/publishing/instagram";
+import {
+  buildInstagramPublisher,
+  createInstagramPublisher,
+  INSTAGRAM_MAX_CAPTION_LENGTH,
+} from "@/lib/publishing/instagram";
 
 const jsonResponse = (body: unknown, init: ResponseInit = {}) =>
   new Response(JSON.stringify(body), { status: 200, ...init });
@@ -122,5 +126,22 @@ describe("buildInstagramPublisher", () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error).toContain("Invalid image URL");
+  });
+
+  it("truncates the caption to Instagram's own limit before creating the container", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ id: "container-1" }))
+      .mockResolvedValueOnce(jsonResponse({ status_code: "FINISHED" }))
+      .mockResolvedValueOnce(jsonResponse({ id: "media-1" }));
+    const client = createGraphClient(fetchImpl, "token");
+    const publisher = buildInstagramPublisher("ig-user-1", client, noSleep);
+    const overLong = "word ".repeat(1000);
+
+    await publisher.publish(["https://signed/a.png"], overLong);
+
+    const [, createInit] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    const body = new URLSearchParams(createInit.body as string);
+    expect(body.get("caption")?.length).toBeLessThanOrEqual(INSTAGRAM_MAX_CAPTION_LENGTH);
   });
 });

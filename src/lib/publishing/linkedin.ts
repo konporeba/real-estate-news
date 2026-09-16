@@ -9,6 +9,7 @@
 // Community Management API product, an application/review process with its own external lead time
 // (structurally the same as S-06's Canva access dependency) — file that request early, independent
 // of this module's code.
+import { truncateForPlatform } from "@/lib/publishing/caption";
 import type { Publisher, PublishAttempt } from "@/lib/publishing/types";
 
 export interface LinkedinCredentials {
@@ -18,6 +19,9 @@ export interface LinkedinCredentials {
 
 const LINKEDIN_API = "https://api.linkedin.com/rest";
 const LINKEDIN_API_VERSION = "202405";
+
+/** LinkedIn's organization-post commentary limit. Re-confirm against current docs at dry-run time. */
+export const LINKEDIN_MAX_CAPTION_LENGTH = 3000;
 
 /**
  * Build a LinkedIn publisher. Returns null when credentials are absent — the createEmailClient /
@@ -104,8 +108,9 @@ export function buildLinkedinPublisher(credentials: LinkedinCredentials, fetchIm
   }
 
   return {
-    async publish(images, caption): Promise<PublishAttempt> {
+    async publish(images, rawCaption): Promise<PublishAttempt> {
       if (images.length === 0) return { ok: false, error: "no images to publish" };
+      const caption = truncateForPlatform(rawCaption, LINKEDIN_MAX_CAPTION_LENGTH);
 
       const urns: string[] = [];
       for (const image of images) {

@@ -3,6 +3,7 @@
 // one feed post references all of them together — a single image still uses this same two-step
 // shape (Facebook's single-photo endpoint could post directly), keeping one code path per platform
 // rather than a single-vs-carousel branch inside this module.
+import { truncateForPlatform } from "@/lib/publishing/caption";
 import { createGraphClient, type GraphClient } from "@/lib/publishing/graph-api";
 import type { Publisher, PublishAttempt } from "@/lib/publishing/types";
 
@@ -10,6 +11,9 @@ export interface FacebookCredentials {
   accessToken: string;
   pageId: string;
 }
+
+/** Effectively unbounded for this use case (Facebook's actual feed-post cap); kept for symmetry with the other platforms. */
+export const FACEBOOK_MAX_CAPTION_LENGTH = 63_206;
 
 /**
  * Build a Facebook publisher. Returns null when credentials are absent — the createEmailClient /
@@ -24,8 +28,9 @@ export function createFacebookPublisher(credentials: FacebookCredentials | null)
 /** Split out so the request sequencing can be unit-tested against a fake Graph client. */
 export function buildFacebookPublisher(pageId: string, client: GraphClient): Publisher {
   return {
-    async publish(images, caption): Promise<PublishAttempt> {
+    async publish(images, rawCaption): Promise<PublishAttempt> {
       if (images.length === 0) return { ok: false, error: "no images to publish" };
+      const caption = truncateForPlatform(rawCaption, FACEBOOK_MAX_CAPTION_LENGTH);
 
       const photoIds: string[] = [];
       for (const image of images) {

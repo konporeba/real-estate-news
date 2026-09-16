@@ -49,7 +49,9 @@ export async function signAssetUrls(
 
   return new Map(
     signed
-      .filter((entry): entry is typeof entry & { signedUrl: string } => Boolean(entry.signedUrl))
+      .filter((entry): entry is typeof entry & { path: string; signedUrl: string } =>
+        Boolean(entry.path && entry.signedUrl),
+      )
       .map((entry) => [entry.path, entry.signedUrl]),
   );
 }

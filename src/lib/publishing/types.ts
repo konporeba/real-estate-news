@@ -12,7 +12,9 @@ export type PublishAttempt = { ok: true; postId: string } | { ok: false; error: 
 export interface Publisher {
   /**
    * Post the given images (already-signed, fetchable URLs, in publish order — cover slide first
-   * for a carousel) with the given caption (already composed and truncated for this platform).
+   * for a carousel) with the given caption (already composed, but NOT yet truncated — each
+   * publisher truncates to its own `MAX_CAPTION_LENGTH` internally, right before its own API call,
+   * so `runPublish` stays platform-agnostic and never has to know any platform's length limit).
    * One attempt, no retry — matches `sendEmail()`'s "no retry, fail fast" contract.
    */
   publish(images: readonly string[], caption: string): Promise<PublishAttempt>;
