@@ -290,3 +290,48 @@ export interface ApprovalStory {
   sourceUrl: string | null;
   language: string | null;
 }
+
+/** One platform's recorded publish outcome for a digest (S-08, FR-022, US-20). */
+export type PublicationRow = Database["public"]["Tables"]["publication"]["Row"];
+
+/** `record_publication`'s two outcomes; mirrors the `publication_status` Postgres enum. */
+export type PublicationStatus = Database["public"]["Enums"]["publication_status"];
+
+/**
+ * Why publishing did not succeed for a digest (not per-platform — a per-platform failure is a
+ * `PublishOutcome`, not a `PublicationError`; this is the orchestrator/route-level failure that
+ * stops the whole run before any platform is attempted). Mirrors {@link ApprovalErrorReason}: these
+ * are expected results the caller handles, not exceptions. Each maps from a SQLSTATE raised by
+ * `record_publication` (see the migration's header) except the first two, which the API route
+ * decides before reaching the database.
+ *
+ * - `unauthorized` — no operator session; the route answers 401 rather than redirecting
+ * - `invalid_request` — malformed body
+ * - `wrong_status` — the digest is not `approved`/`skipped`/`published` (PB002)
+ * - `not_found` — no digest with that id (PB001)
+ * - `not_configured` — no Supabase service client
+ * - `database_error` — anything else Postgres reported
+ */
+export type PublicationErrorReason =
+  | "unauthorized"
+  | "invalid_request"
+  | "wrong_status"
+  | "not_found"
+  | "not_configured"
+  | "database_error";
+
+export interface PublicationError {
+  ok: false;
+  reason: PublicationErrorReason;
+  message: string;
+}
+
+export type PublicationResult<T> = { ok: true; data: T } | PublicationError;
+
+/** One platform's outcome from a single `runPublish` call (S-08, US-20). */
+export type PublishOutcome =
+  | { platform: SelectionPlatform; ok: true; postId: string }
+  | { platform: SelectionPlatform; ok: false; error: string };
+
+/** Every platform attempted by one `runPublish` call, in the order they were attempted. */
+export type PublishSummary = PublishOutcome[];

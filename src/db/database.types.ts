@@ -38,6 +38,9 @@
 //   - `approval` under public.Tables, `approval_decision` under public.Enums and in
 //     Constants.public.Enums, `record_approval` under public.Functions
 //     (20260912100000_approval_record.sql)
+//   - `publication` under public.Tables, `publication_status` under public.Enums and in
+//     Constants.public.Enums, `record_publication` under public.Functions
+//     (20260913120000_publication.sql)
 export type Json =
   | string
   | number
@@ -389,6 +392,47 @@ export type Database = {
         }
         Relationships: []
       }
+      publication: {
+        Row: {
+          created_at: string
+          digest_id: string
+          error: string | null
+          id: string
+          platform: Database["public"]["Enums"]["selection_platform"]
+          post_id: string | null
+          published_at: string
+          status: Database["public"]["Enums"]["publication_status"]
+        }
+        Insert: {
+          created_at?: string
+          digest_id: string
+          error?: string | null
+          id?: string
+          platform: Database["public"]["Enums"]["selection_platform"]
+          post_id?: string | null
+          published_at?: string
+          status: Database["public"]["Enums"]["publication_status"]
+        }
+        Update: {
+          created_at?: string
+          digest_id?: string
+          error?: string | null
+          id?: string
+          platform?: Database["public"]["Enums"]["selection_platform"]
+          post_id?: string | null
+          published_at?: string
+          status?: Database["public"]["Enums"]["publication_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publication_digest_id_fkey"
+            columns: ["digest_id"]
+            isOneToOne: false
+            referencedRelation: "digest"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scheduled_job: {
         Row: {
           last_completed_at: string | null
@@ -578,6 +622,18 @@ export type Database = {
         // an error rather than a null return.
         Returns: string
       }
+      record_publication: {
+        Args: {
+          p_digest_id: string
+          p_platform: Database["public"]["Enums"]["selection_platform"]
+          p_status: Database["public"]["Enums"]["publication_status"]
+          p_post_id: string | null
+          p_error: string | null
+        }
+        // The upserted publication row's id. Never null on success: the only failure path
+        // raises (PB001, PB002), so PostgREST surfaces an error rather than a null return.
+        Returns: string
+      }
     }
     Enums: {
       approval_decision: "approved" | "rejected"
@@ -593,6 +649,7 @@ export type Database = {
         | "published"
         | "skipped"
         | "failed"
+      publication_status: "success" | "failure"
       scheduled_job_status: "idle" | "running"
       selection_format: "single_post" | "carousel"
       selection_platform: "instagram" | "linkedin" | "facebook"
@@ -740,6 +797,7 @@ export const Constants = {
         "skipped",
         "failed",
       ],
+      publication_status: ["success", "failure"],
     },
   },
 } as const
