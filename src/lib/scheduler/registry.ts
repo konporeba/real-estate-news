@@ -3,7 +3,7 @@
 // keeps this module free of @/lib/collection or @/lib/llm imports. S-07 added
 // "approval-reminder" below with zero changes to src/lib/scheduler/schedule.ts or the
 // orchestration entrypoint's due-check loop — exactly the generality this file's original
-// comment predicted; S-08 will add a third entry, "publish", the same way.
+// comment predicted; S-08 adds "publish" the same way.
 import type { WeeklySchedule } from "@/lib/scheduler/schedule";
 
 export interface ScheduledJobDefinition {
@@ -18,4 +18,6 @@ export const SCHEDULED_JOBS: readonly ScheduledJobDefinition[] = [
   // reminder still leaves time to act. dayOfWeek 1 = Monday, the same 0=Sunday convention
   // WeeklySchedule documents.
   { name: "approval-reminder", schedule: { dayOfWeek: 1, hour: 9, minute: 0 } },
+  // S-08/FR-022: the automatic weekly publish. dayOfWeek 2 = Tuesday, the same convention.
+  { name: "publish", schedule: { dayOfWeek: 2, hour: 17, minute: 0 } },
 ];

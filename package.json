@@ -18,6 +18,7 @@
     "visuals:validate": "tsx --env-file=.env src/worker/validate-decks.ts",
     "scheduled-run": "tsx --env-file=.env src/worker/scheduled-run.ts",
     "remind": "tsx --env-file=.env src/worker/remind.ts",
+    "publish": "tsx --env-file=.env src/worker/publish.ts",
     "hash-pin": "tsx scripts/hash-pin.ts"
   },
   "dependencies": {

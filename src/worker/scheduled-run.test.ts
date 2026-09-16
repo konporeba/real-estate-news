@@ -7,11 +7,29 @@ import { randomUUID } from "node:crypto";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import type { ScheduledJobDefinition } from "@/lib/scheduler/registry";
+import { SCHEDULED_JOBS, type ScheduledJobDefinition } from "@/lib/scheduler/registry";
 import { DEFAULT_STALE_AFTER_MS, releaseJob, tryAcquireJob } from "@/lib/scheduler/store";
 import { createServiceClient, type ServiceClient } from "@/lib/supabase-service";
-import { runScheduledJobs, type JobAction, type JobOutcome } from "@/worker/scheduled-run";
+import { JOB_ACTIONS, runScheduledJobs, type JobAction, type JobOutcome } from "@/worker/scheduled-run";
 import type { ScheduledJobRow } from "@/types";
+
+// Needs no database: a drift guard confirming every registered job (including S-08's "publish")
+// has a matching real action, the same way F-01's transition-guard test keeps the SQL and TS
+// digest transition tables from silently diverging.
+describe("JOB_ACTIONS", () => {
+  it("has a real action for every job in SCHEDULED_JOBS", () => {
+    for (const job of SCHEDULED_JOBS) {
+      expect(JOB_ACTIONS[job.name]).toBeTypeOf("function");
+    }
+  });
+
+  it("registers no action for a job the registry does not know about", () => {
+    const registeredNames = new Set(SCHEDULED_JOBS.map((job) => job.name));
+    for (const name of Object.keys(JOB_ACTIONS)) {
+      expect(registeredNames.has(name)).toBe(true);
+    }
+  });
+});
 
 const configured = Boolean(
   process.env.SUPABASE_TEST_PROJECT === "1" && process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY,

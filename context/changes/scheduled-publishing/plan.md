@@ -452,13 +452,13 @@ Additive only: one new table (`publication`), one new RPC, no changes to existin
 
 #### Automated
 
-- [ ] 4.1 `npm run lint` passes
-- [ ] 4.2 `npx vitest run src/worker/publish.test.ts` passes
-- [ ] 4.3 `npx vitest run src/worker/scheduled-run.test.ts` passes (new "publish" action covered)
+- [x] 4.1 `npm run lint` passes — 0 errors repo-wide
+- [x] 4.2 `npx vitest run src/worker/publish.test.ts` passes — 14/14 (1 real-data-dependent case self-skips), covering `--digest`, the newest-eligible fallback (including skipping a newer candidate with no pending platform), an already-`published` explicit retry, and the exit-2 refusal path
+- [x] 4.3 `npx vitest run src/worker/scheduled-run.test.ts` passes — 9/9; added a `JOB_ACTIONS` drift-guard test (every `SCHEDULED_JOBS` entry, including "publish", has a real action and vice versa) since the existing suite is generic over job name/schedule rather than asserting on `JOB_ACTIONS`'s literal keys
 
 #### Manual
 
-- [ ] 4.4 `npm run publish -- --digest=<approved digest>` with no credentials reports `not_configured` per platform and exits cleanly
+- [x] 4.4 `npm run publish -- --digest=<approved digest>` with no credentials reports `not_configured` per platform and exits cleanly — run for real against digest `c92aa3c5` (no credentials configured): all three platforms recorded `not_configured`, digest stayed `approved` (no false transition), no crash
 
 ### Phase 5: Manual publish dashboard action
 

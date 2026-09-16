@@ -17,6 +17,7 @@ import { DEFAULT_STALE_AFTER_MS, getJobState, releaseJob, tryAcquireJob } from "
 import { createServiceClient, type ServiceClient } from "@/lib/supabase-service";
 import { main as runCollect } from "@/worker/collect";
 import { loadWorkerEnv } from "@/worker/env";
+import { main as runPublish, PublishRefused } from "@/worker/publish";
 import { main as runRank } from "@/worker/rank";
 import { main as runRemind } from "@/worker/remind";
 import type { ScheduledJobRow } from "@/types";
@@ -50,10 +51,36 @@ async function runApprovalReminderJob(): Promise<JobOutcome> {
   return { ok: true };
 }
 
-/** Maps a job's registry name to the action that runs it for real. */
-const JOB_ACTIONS: Record<string, JobAction> = {
+/**
+ * S-08/FR-022: the automatic Tuesday publish. Thin wrapper around publish.ts's own main(),
+ * mirroring runApprovalReminderJob's wrap of remind.ts -- with one difference: publish.ts's
+ * main() THROWS PublishRefused when nothing is eligible (no --digest is ever passed here, so the
+ * only possible refusal is "nothing approved/skipped has a platform pending"), rather than
+ * returning 0 the way remind.ts's "nothing outstanding" does. Most weeks, once the week's digest
+ * has published, there is nothing left pending until the next one -- that is expected, not a
+ * failure, so it is treated the same as remind.ts's own not_configured / nothing-outstanding
+ * convention: `ok: true`, not a `last_error` on the job.
+ */
+async function runPublishScheduledJob(): Promise<JobOutcome> {
+  try {
+    const exit = await runPublish();
+    if (exit !== 0) return { ok: false, error: `publish exited ${exit}` };
+    return { ok: true };
+  } catch (error: unknown) {
+    if (error instanceof PublishRefused) return { ok: true };
+    throw error;
+  }
+}
+
+/**
+ * Maps a job's registry name to the action that runs it for real. Exported so a drift guard can
+ * assert every SCHEDULED_JOBS entry has a matching action, the same "make the SQL and TS agree"
+ * precedent F-01's transition-guard test sets for the digest state machine.
+ */
+export const JOB_ACTIONS: Record<string, JobAction> = {
   collection: runCollectionJob,
   "approval-reminder": runApprovalReminderJob,
+  publish: runPublishScheduledJob,
 };
 
 /** A freshly-claimed row always carries a `started_at`; narrows it without a non-null assertion. */

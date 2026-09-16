@@ -47,6 +47,19 @@ const workerEnvSchema = z.object({
   // default comes from the shared constant the dashboard signs URLs against, so the two cannot
   // drift into pointing at different buckets.
   SUPABASE_ASSET_BUCKET: z.string().min(1).default(ASSET_BUCKET),
+  // S-08/FR-022,023: the publishing stage's platform credentials. All optional, like the Slides
+  // block — a worker with none of these configured still collects, ranks, generates and renders;
+  // only `npm run publish` needs them, and each createXPublisher() returns null without its own
+  // pair so the stage reports `not_configured` per platform rather than dying on an auth error.
+  //
+  // META_ACCESS_TOKEN is shared by Instagram and Facebook: both are Meta Graph API surfaces on the
+  // same long-lived Page access token, just different target ids (an IG Business account id vs a
+  // Page id).
+  META_ACCESS_TOKEN: z.string().min(1, "META_ACCESS_TOKEN must not be empty").optional(),
+  META_PAGE_ID: z.string().min(1, "META_PAGE_ID must not be empty").optional(),
+  META_IG_USER_ID: z.string().min(1, "META_IG_USER_ID must not be empty").optional(),
+  LINKEDIN_ACCESS_TOKEN: z.string().min(1, "LINKEDIN_ACCESS_TOKEN must not be empty").optional(),
+  LINKEDIN_ORGANIZATION_URN: z.string().min(1, "LINKEDIN_ORGANIZATION_URN must not be empty").optional(),
 });
 
 export type WorkerEnv = z.infer<typeof workerEnvSchema>;
