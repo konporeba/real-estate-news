@@ -100,6 +100,10 @@ export interface ShortlistItem {
   clusterId: string;
   rank: number;
   tier: string | null;
+  /** The rubric's 0-100 relevance score. Null alongside `tier` for a pre-S-09 cluster. */
+  score: number | null;
+  /** The rubric's one-line editorial reasoning (S-09 archive view). */
+  rationale: string | null;
   coverageCount: number;
   /** Null until the translation stage has run over this cluster's representative. */
   polishTitle: string | null;

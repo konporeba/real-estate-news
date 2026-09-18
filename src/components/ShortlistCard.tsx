@@ -78,6 +78,7 @@ export function ShortlistCard({
             )}
           >
             {item.tier}
+            {item.score !== null && <span className="ml-1 normal-case">· {item.score}</span>}
           </span>
         )}
       </div>
@@ -106,6 +107,8 @@ export function ShortlistCard({
           {item.originalLede && <p className="mt-1 text-sm text-blue-100/70">{item.originalLede}</p>}
         </>
       )}
+
+      {item.rationale && <p className="mt-2 text-xs text-blue-100/50 italic">{item.rationale}</p>}
 
       <div className="mt-3 flex items-center gap-3 text-xs text-blue-100/60">
         <span>
