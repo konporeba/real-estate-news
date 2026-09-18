@@ -2,34 +2,76 @@
 import Layout from "@/layouts/Layout.astro";
 import OperatorHeader from "@/components/OperatorHeader.astro";
 import { createServiceClient } from "@/lib/supabase-admin";
+import { cn } from "@/lib/utils";
+import type { DigestStatus } from "@/types";
+
+/** S-09: the "needs my attention now" set — everything before the operator's first gate. */
+const ACTIVE_STATUSES: DigestStatus[] = ["collecting", "ranking", "ready_for_selection"];
+const PAGE_SIZE = 25;
 
 const client = createServiceClient();
 
-let digests: { id: string; window_start: string; window_end: string; status: string }[] = [];
+const view = Astro.url.searchParams.get("view") === "active" ? "active" : "all";
+const before = Astro.url.searchParams.get("before");
+
+let digests: { id: string; window_start: string; window_end: string; status: DigestStatus }[] = [];
 let loadError = false;
+let hasMore = false;
 
 if (client) {
-  const { data, error } = await client
+  let query = client
     .from("digest")
     .select("id, window_start, window_end, status")
     .order("window_start", { ascending: false })
-    .limit(25);
+    .limit(PAGE_SIZE);
+  if (view === "active") query = query.in("status", ACTIVE_STATUSES);
+  // Keyset pagination on window_start rather than offset: the list is append-only by week, so a
+  // cursor on the last row's own window_start never skips or repeats a digest as new ones arrive.
+  if (before) query = query.lt("window_start", before);
+
+  const { data, error } = await query;
   if (error) {
     console.error(`failed to load digests: ${error.code}: ${error.message}`);
     loadError = true;
     Astro.response.status = 500;
   } else {
     digests = data;
+    hasMore = data.length === PAGE_SIZE;
   }
 } else {
   Astro.response.status = 503;
 }
+
+const nextBefore = digests.at(-1)?.window_start;
+const olderHref = nextBefore ? `/dashboard?before=${nextBefore}${view === "active" ? "&view=active" : ""}` : null;
 ---
 
 <Layout title="Dashboard">
   <div class="bg-cosmic min-h-screen p-4 text-white">
     <OperatorHeader title="Operator Dashboard" />
     <main class="mx-auto mt-6 max-w-3xl">
+      <div class="mb-4 flex gap-2 text-xs tracking-wide uppercase">
+        <a
+          href="/dashboard"
+          class:list={cn(
+            "rounded-full border px-3 py-1 transition-colors",
+            view === "all" ? "border-purple-400/50 bg-purple-500/15" : "border-white/10 bg-white/10 hover:bg-white/20",
+          )}
+        >
+          All
+        </a>
+        <a
+          href="/dashboard?view=active"
+          class:list={cn(
+            "rounded-full border px-3 py-1 transition-colors",
+            view === "active"
+              ? "border-purple-400/50 bg-purple-500/15"
+              : "border-white/10 bg-white/10 hover:bg-white/20",
+          )}
+        >
+          Active only
+        </a>
+      </div>
       {
         !client ? (
           <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">
@@ -42,23 +84,32 @@ if (client) {
         ) : digests.length === 0 ? (
           <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">No digests yet.</p>
         ) : (
-          <ul class="space-y-3">
-            {digests.map((digest) => (
-              <li>
-                <a
-                  href={`/dashboard/${digest.id}`}
-                  class="flex items-center justify-between rounded-xl border border-white/10 bg-white/10 p-4 transition-colors hover:bg-white/20"
-                >
-                  <span>
-                    {digest.window_start} – {digest.window_end}
-                  </span>
-                  <span class="rounded-full bg-white/10 px-3 py-1 text-xs tracking-wide text-blue-100/80 uppercase">
-                    {digest.status}
-                  </span>
+          <Fragment>
+            <ul class="space-y-3">
+              {digests.map((digest) => (
+                <li>
+                  <a
+                    href={`/dashboard/${digest.id}`}
+                    class="flex items-center justify-between rounded-xl border border-white/10 bg-white/10 p-4 transition-colors hover:bg-white/20"
+                  >
+                    <span>
+                      {digest.window_start} – {digest.window_end}
+                    </span>
+                    <span class="rounded-full bg-white/10 px-3 py-1 text-xs tracking-wide text-blue-100/80 uppercase">
+                      {digest.status}
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+            {olderHref && hasMore && (
+              <div class="mt-4 text-center">
+                <a href={olderHref} class="text-sm text-blue-300 hover:underline">
+                  Older →
                 </a>
-              </li>
-            ))}
-          </ul>
+              </div>
+            )}
+          </Fragment>
         )
       }
     </main>

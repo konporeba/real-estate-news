@@ -549,21 +549,21 @@ optional fields, one new module, one new env var with a safe default.
 
 #### Automated
 
-- [x] 1.1 Type checking passes: `npm run typecheck`
-- [x] 1.2 Linting passes: `npm run lint`
-- [x] 1.3 Full test suite passes: `npm test`
+- [x] 1.1 Type checking passes: `npm run typecheck` — e302e88
+- [x] 1.2 Linting passes: `npm run lint` — e302e88
+- [x] 1.3 Full test suite passes: `npm test` — e302e88
 
 #### Manual
 
-- [ ] 1.4 Every shortlist card shows tier, score, and rationale; picks/passes render correctly
-- [ ] 1.5 Pre-S-09 digest without scoring_detail renders without crash or placeholder text
+- [x] 1.4 Every shortlist card shows tier, score, and rationale; picks/passes render correctly — e302e88
+- [x] 1.5 Pre-S-09 digest without scoring_detail renders without crash or placeholder text — e302e88
 
 ### Phase 2: Archive list — pagination + status filter
 
 #### Automated
 
-- [ ] 2.1 Type checking passes: `npm run typecheck`
-- [ ] 2.2 Linting passes: `npm run lint`
+- [x] 2.1 Type checking passes: `npm run typecheck`
+- [x] 2.2 Linting passes: `npm run lint`
 
 #### Manual
 

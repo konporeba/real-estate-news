@@ -3,7 +3,7 @@ change_id: archive-and-learning-loop
 title: Archive and learning loop
 status: implementing
 created: 2026-09-16
-updated: 2026-09-17
+updated: 2026-09-18
 archived_at: null
 ---
 
