@@ -605,15 +605,15 @@ optional fields, one new module, one new env var with a safe default.
 
 #### Automated
 
-- [x] 6.1 Full test suite passes: `npm test`
-- [x] 6.2 `RANKING_EVAL=1 npm test` passes against real historical data
-- [x] 6.3 Type checking passes: `npm run typecheck`
-- [x] 6.4 Linting passes: `npm run lint`
-- [x] 6.5 Production build succeeds: `npm run build`
+- [x] 6.1 Full test suite passes: `npm test` — caca3ab
+- [x] 6.2 `RANKING_EVAL=1 npm test` passes against real historical data — caca3ab
+- [x] 6.3 Type checking passes: `npm run typecheck` — caca3ab
+- [x] 6.4 Linting passes: `npm run lint` — caca3ab
+- [x] 6.5 Production build succeeds: `npm run build` — caca3ab
 
 #### Manual
 
-- [x] 6.6 Full archive browse (shortlist + approve page) verified on a real past digest
-- [x] 6.7 Pagination and filter verified past 25 digests
-- [x] 6.8 Cache engagement confirmed via `cacheReadTokens`/`cacheCreationTokens`
-- [x] 6.9 Kill-switch confirmed to revert behavior with no deploy
+- [x] 6.6 Full archive browse (shortlist + approve page) verified on a real past digest — caca3ab
+- [x] 6.7 Pagination and filter verified past 25 digests — caca3ab
+- [x] 6.8 Cache engagement confirmed via `cacheReadTokens`/`cacheCreationTokens` — caca3ab
+- [x] 6.9 Kill-switch confirmed to revert behavior with no deploy — caca3ab
