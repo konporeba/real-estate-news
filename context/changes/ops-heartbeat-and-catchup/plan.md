@@ -512,26 +512,26 @@ new optional environment variable with no default, matching every other optional
 
 #### Automated
 
-- [x] 4.1 Type checking passes: `npm run typecheck`
-- [x] 4.2 Linting passes: `npm run lint`
+- [x] 4.1 Type checking passes: `npm run typecheck` — bb3f49e
+- [x] 4.2 Linting passes: `npm run lint` — bb3f49e
 
 #### Manual
 
 - [x] 4.3 `deploy/systemd/README.md`'s new Heartbeat section reads correctly as a standalone
-      procedure
+      procedure — bb3f49e
 
 ### Phase 5: End-to-end verification
 
 #### Automated
 
-- [ ] 5.1 Full test suite passes: `npm test`
-- [ ] 5.2 Type checking passes: `npm run typecheck`
-- [ ] 5.3 Linting passes: `npm run lint`
-- [ ] 5.4 Production build succeeds: `npm run build`
+- [x] 5.1 Full test suite passes: `npm test`
+- [x] 5.2 Type checking passes: `npm run typecheck`
+- [x] 5.3 Linting passes: `npm run lint`
+- [x] 5.4 Production build succeeds: `npm run build`
 
 #### Manual
 
-- [ ] 5.5 `HEARTBEAT_LIVE_SMOKE=1` run passes against a real healthchecks.io check
-- [ ] 5.6 Local `npm run scheduled-run` with `HEARTBEAT_PING_URL` set shows a successful heartbeat
+- [x] 5.5 `HEARTBEAT_LIVE_SMOKE=1` run passes against a real healthchecks.io check
+- [x] 5.6 Local `npm run scheduled-run` with `HEARTBEAT_PING_URL` set shows a successful heartbeat
       log line, reflected on the dashboard
-- [ ] 5.7 Real Pi deployment acknowledged as a carried-forward manual step, not verified here
+- [x] 5.7 Real Pi deployment acknowledged as a carried-forward manual step, not verified here
