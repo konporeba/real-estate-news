@@ -327,6 +327,8 @@ Foundations below assume these are present and do NOT re-scaffold them.
 
 ## Done
 
+- **S-10: operator learns when nothing ran (an external monitor alerts on missing heartbeat) rather than mistaking silence for "no news," and a run missed while the machine was off is executed on next start.** — Archived 2026-09-19 → `context/archive/2026-09-19-ops-heartbeat-and-catchup/`. Lesson: —.
+
 - **S-09: operator can browse a full-fidelity archive of every past digest (shortlist shown, picks and passes, generated copy, visuals, targets, per-platform results), and each week's picks-vs-passes feed back into the ranking rubric as few-shot material.** — Archived 2026-09-19 → `context/archive/2026-09-16-archive-and-learning-loop/`. Lesson: —.
 
 - **S-07: operator is emailed that content is ready, reviews the complete generated post, and approves or rejects it before anything publishes — with a Monday reminder email if any step is still unvalidated.** — Archived 2026-09-12 → `context/archive/2026-09-12-content-approval-gate/`. Lesson: —.
