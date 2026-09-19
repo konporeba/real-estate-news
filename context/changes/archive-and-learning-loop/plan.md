@@ -562,21 +562,21 @@ optional fields, one new module, one new env var with a safe default.
 
 #### Automated
 
-- [x] 2.1 Type checking passes: `npm run typecheck`
-- [x] 2.2 Linting passes: `npm run lint`
+- [x] 2.1 Type checking passes: `npm run typecheck` — b46f18f
+- [x] 2.2 Linting passes: `npm run lint` — b46f18f
 
 #### Manual
 
-- [ ] 2.3 "Older →" pagination works and disappears at the oldest digest
-- [ ] 2.4 `active` filter narrows correctly; default view unchanged
+- [x] 2.3 "Older →" pagination works and disappears at the oldest digest — b46f18f
+- [x] 2.4 `active` filter narrows correctly; default view unchanged — b46f18f
 
 ### Phase 3: Few-shot example retrieval
 
 #### Automated
 
-- [ ] 3.1 New unit tests pass: `npm test -- few-shot`
-- [ ] 3.2 Type checking passes: `npm run typecheck`
-- [ ] 3.3 Linting passes: `npm run lint`
+- [x] 3.1 New unit tests pass: `npm test -- few-shot`
+- [x] 3.2 Type checking passes: `npm run typecheck`
+- [x] 3.3 Linting passes: `npm run lint`
 
 ### Phase 4: Wire few-shot into the rubric prompt behind a config flag
 
