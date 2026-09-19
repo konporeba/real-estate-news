@@ -42,7 +42,7 @@ A single real-estate professional serving Polish investors in Spain publishes no
 | S-06 | brand-visual-assets          | get per-platform visuals from brand templates                        | S-05             | FR-015; US-13,14                 | done     |
 | S-07 | content-approval-gate        | approve/reject before publish; get a Monday reminder                 | S-05, S-06, F-04 | FR-019,020,021; US-16,17         | done     |
 | S-08 | scheduled-publishing         | publish approved content on schedule, per platform                   | S-07, F-05       | FR-022,023; US-18,19,20          | done     |
-| S-09 | archive-and-learning-loop    | browse the archive; picks/passes refine the rubric                   | S-08, S-02       | FR-024,025; US-10,21             | proposed |
+| S-09 | archive-and-learning-loop    | browse the archive; picks/passes refine the rubric                   | S-08, S-02       | FR-024,025; US-10,21             | done     |
 | S-10 | ops-heartbeat-and-catchup    | learn when nothing ran; missed windows are caught up                 | F-05             | FR-027,028; US-23,24             | proposed |
 
 ## Streams
@@ -269,7 +269,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** — (OQ#5 resolved: keep everything indefinitely; see Open Roadmap Questions #5.)
 - **Risk:** Feeding picks/passes back into the rubric changes rubric behavior, so this depends on S-02's eval harness to catch drift — the learning loop is only safe because the regression gate exists.
-- **Status:** proposed
+- **Status:** done (shipped 2026-09-19, commits `e302e88`…`0fe5cfd`)
 
 ### S-10: Ops heartbeat & catch-up
 
@@ -300,7 +300,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 | S-06       | brand-visual-assets          | Per-platform brand visual assets                    | shipped               | Shipped 2026-09-12 via Google Slides; Canva ruled out (OQ#2 closed: no)                                                                                 |
 | S-07       | content-approval-gate        | Content approval gate (human gate 2) + reminder     | shipped               | Shipped 2026-09-12; live-verified on real digest `c92aa3c5`; reject-recover path proven by automated tests, not the full pipeline — see roadmap entry   |
 | S-08       | scheduled-publishing         | Scheduled per-platform publishing + missed-deadline | shipped               | Code-complete 2026-09-16, built from scratch (prior integration unavailable); live dry run against real Meta/LinkedIn accounts open — see roadmap entry |
-| S-09       | archive-and-learning-loop    | Full-fidelity archive + rubric learning loop        | no                    | Needs S-08, S-02                                                                                                                                        |
+| S-09       | archive-and-learning-loop    | Full-fidelity archive + rubric learning loop        | shipped               | Shipped 2026-09-19, commits `e302e88`…`0fe5cfd`; eval-set disjointness mechanically enforced (Phase 5); OQ#5 resolved                                   |
 | S-10       | ops-heartbeat-and-catchup    | Ops heartbeat alert + missed-run catch-up           | no                    | Needs F-05                                                                                                                                              |
 
 ## Open Roadmap Questions

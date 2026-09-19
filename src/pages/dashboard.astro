@@ -12,7 +12,10 @@ const PAGE_SIZE = 25;
 const client = createServiceClient();
 
 const view = Astro.url.searchParams.get("view") === "active" ? "active" : "all";
-const before = Astro.url.searchParams.get("before");
+const beforeParam = Astro.url.searchParams.get("before");
+// window_start is a plain date (YYYY-MM-DD); a malformed cursor falls back to the unfiltered
+// first page rather than surfacing as a generic query error.
+const before = beforeParam && /^\d{4}-\d{2}-\d{2}$/.test(beforeParam) ? beforeParam : null;
 
 let digests: { id: string; window_start: string; window_end: string; status: DigestStatus }[] = [];
 let loadError = false;
