@@ -43,7 +43,7 @@ A single real-estate professional serving Polish investors in Spain publishes no
 | S-07 | content-approval-gate        | approve/reject before publish; get a Monday reminder                 | S-05, S-06, F-04 | FR-019,020,021; US-16,17         | done     |
 | S-08 | scheduled-publishing         | publish approved content on schedule, per platform                   | S-07, F-05       | FR-022,023; US-18,19,20          | done     |
 | S-09 | archive-and-learning-loop    | browse the archive; picks/passes refine the rubric                   | S-08, S-02       | FR-024,025; US-10,21             | done     |
-| S-10 | ops-heartbeat-and-catchup    | learn when nothing ran; missed windows are caught up                 | F-05             | FR-027,028; US-23,24             | proposed |
+| S-10 | ops-heartbeat-and-catchup    | learn when nothing ran; missed windows are caught up                 | F-05             | FR-027,028; US-23,24             | done     |
 
 ## Streams
 
@@ -281,7 +281,9 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** A home server's silence is ambiguous; the dead-man's-switch closes that gap. Builds on F-05's persistent-timer primitive to turn "missed window" into "run executed on next boot" plus an external alert.
-- **Status:** proposed
+- **Status:** done (shipped 2026-09-19, commits `8ac0cca`…`6dd13c2`)
+- **Delivered:** FR-027's catch-up turned out to already be delivered generically by F-05's `isJobDue` for every registered job — this slice added a regression test proving it against the real `SCHEDULED_JOBS` registry rather than reimplementing anything. FR-028's heartbeat is net-new: `src/lib/heartbeat/send.ts` pings a healthchecks.io check once per `scheduled-run.ts` tick (~every 15 min), success or `/fail`-suffixed depending on whether every due job succeeded, mirroring the email harness's never-throw contract so a ping failure can never affect the tick's own exit code.
+- **Carried forward:** real Pi hardware verification (installing the updated `deploy/systemd/README.md` Heartbeat section and confirming the alert path) has not happened — this development environment has no Linux/systemd host, the same limitation F-05's own runbook already carried.
 
 ## Backlog Handoff
 
@@ -301,7 +303,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 | S-07       | content-approval-gate        | Content approval gate (human gate 2) + reminder     | shipped               | Shipped 2026-09-12; live-verified on real digest `c92aa3c5`; reject-recover path proven by automated tests, not the full pipeline — see roadmap entry   |
 | S-08       | scheduled-publishing         | Scheduled per-platform publishing + missed-deadline | shipped               | Code-complete 2026-09-16, built from scratch (prior integration unavailable); live dry run against real Meta/LinkedIn accounts open — see roadmap entry |
 | S-09       | archive-and-learning-loop    | Full-fidelity archive + rubric learning loop        | shipped               | Shipped 2026-09-19, commits `e302e88`…`0fe5cfd`; eval-set disjointness mechanically enforced (Phase 5); OQ#5 resolved                                   |
-| S-10       | ops-heartbeat-and-catchup    | Ops heartbeat alert + missed-run catch-up           | no                    | Needs F-05                                                                                                                                              |
+| S-10       | ops-heartbeat-and-catchup    | Ops heartbeat alert + missed-run catch-up           | shipped               | Shipped 2026-09-19, commits `8ac0cca`…`6dd13c2`; FR-027 catch-up verified (already delivered by F-05), FR-028 heartbeat net-new                        |
 
 ## Open Roadmap Questions
 

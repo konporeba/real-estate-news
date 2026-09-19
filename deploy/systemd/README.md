@@ -58,6 +58,30 @@ that catch-up fire needs to do anything.
   `[scheduled-run] <job>: due, claimed — running` line per registered job (currently just
   `collection`).
 
+## Heartbeat (S-10)
+
+`scheduled-run.ts` pings an external dead-man's-switch (healthchecks.io) once per tick, after
+job execution, regardless of whether any job was due — so silence from the Pi (powered off, or
+the timer/service itself stalled) surfaces as an alert instead of looking like "no news". See
+`src/lib/heartbeat/send.ts` and `context/changes/ops-heartbeat-and-catchup/plan.md`.
+
+> **Status: reviewed, not verified against real hardware**, same caveat as the rest of this file.
+
+1. Sign up at healthchecks.io (free tier) and create a new check.
+2. Set the check's period/grace so it comfortably exceeds the 15-minute tick cadence — e.g. a
+   30-minute grace period. Too tight a grace period will false-alarm on an ordinary gap between
+   ticks; too loose delays a real outage alert.
+3. Copy the check's ping URL (`https://hc-ping.com/<uuid>`) into `HEARTBEAT_PING_URL` in the
+   Pi's `.env`, alongside the other worker variables (see `.env.example`). A failed tick pings the
+   same URL with `/fail` appended automatically — no separate URL to configure.
+4. Verify: trigger the service once by hand (see "Verify" above), then check the healthchecks.io
+   dashboard shows a recent ping. `journalctl -u real-estate-news-scheduled-run.service -n 20
+   --no-pager` should show a `[scheduled-run] heartbeat: sent` line.
+5. To confirm the alert path itself, temporarily stop the timer
+   (`sudo systemctl stop real-estate-news-scheduled-run.timer`) and wait past the check's grace
+   period — healthchecks.io should alert. Restart the timer afterward
+   (`sudo systemctl start real-estate-news-scheduled-run.timer`).
+
 ## Troubleshooting
 
 - **Timer shows no next-fire time** — check `systemctl status

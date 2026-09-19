@@ -504,20 +504,20 @@ new optional environment variable with no default, matching every other optional
 
 #### Automated
 
-- [x] 3.1 New registry-wide catch-up test passes: `npm test -- scheduled-run`
-- [x] 3.2 Type checking passes: `npm run typecheck`
-- [x] 3.3 Linting passes: `npm run lint`
+- [x] 3.1 New registry-wide catch-up test passes: `npm test -- scheduled-run` — 6dd13c2
+- [x] 3.2 Type checking passes: `npm run typecheck` — 6dd13c2
+- [x] 3.3 Linting passes: `npm run lint` — 6dd13c2
 
 ### Phase 4: Docs & deploy runbook
 
 #### Automated
 
-- [ ] 4.1 Type checking passes: `npm run typecheck`
-- [ ] 4.2 Linting passes: `npm run lint`
+- [x] 4.1 Type checking passes: `npm run typecheck`
+- [x] 4.2 Linting passes: `npm run lint`
 
 #### Manual
 
-- [ ] 4.3 `deploy/systemd/README.md`'s new Heartbeat section reads correctly as a standalone
+- [x] 4.3 `deploy/systemd/README.md`'s new Heartbeat section reads correctly as a standalone
       procedure
 
 ### Phase 5: End-to-end verification
