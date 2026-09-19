@@ -36,6 +36,15 @@ export default defineConfig({
     // GMAIL_/OPERATOR_ gate the F-04 email live smoke suite (EMAIL_LIVE_SMOKE).
     // GOOGLE_/SLIDES_ gate the S-06 Slides live smoke suite (SLIDES_LIVE_SMOKE) — without the
     // prefix here the credentials sit in .env unread and the suite silently skips itself.
-    env: loadEnv("test", process.cwd(), ["SUPABASE_", "COLLECTION_", "GMAIL_", "OPERATOR_", "GOOGLE_", "SLIDES_"]),
+    // HEARTBEAT_ gates the S-10 heartbeat live smoke suite (HEARTBEAT_LIVE_SMOKE), same reason.
+    env: loadEnv("test", process.cwd(), [
+      "SUPABASE_",
+      "COLLECTION_",
+      "GMAIL_",
+      "OPERATOR_",
+      "GOOGLE_",
+      "SLIDES_",
+      "HEARTBEAT_",
+    ]),
   },
 });

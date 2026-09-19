@@ -92,6 +92,23 @@ export interface EmailError {
 export type EmailResult = { ok: true } | EmailError;
 
 /**
+ * Why a heartbeat ping did not send. Mirrors {@link EmailErrorReason}: these are expected results
+ * the caller handles, not exceptions.
+ *
+ * - `not_configured` — no `HEARTBEAT_PING_URL` set
+ * - `send_failed` — the ping request failed (network error) or returned a non-2xx status
+ */
+export type HeartbeatErrorReason = "not_configured" | "send_failed";
+
+export interface HeartbeatError {
+  ok: false;
+  reason: HeartbeatErrorReason;
+  message: string;
+}
+
+export type HeartbeatResult = { ok: true } | HeartbeatError;
+
+/**
  * One shortlisted story as the dashboard renders it — a view DTO assembled from a cluster and
  * its representative article, shared by the Astro page and the React card so the selectable and
  * read-only renderings cannot drift apart.
