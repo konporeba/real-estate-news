@@ -490,23 +490,23 @@ new optional environment variable with no default, matching every other optional
 
 #### Automated
 
-- [x] 2.1 Existing scheduled-run tests still pass: `npm test -- scheduled-run`
-- [x] 2.2 New `reportHeartbeat` unit tests pass
-- [x] 2.3 Type checking passes: `npm run typecheck`
-- [x] 2.4 Linting passes: `npm run lint`
+- [x] 2.1 Existing scheduled-run tests still pass: `npm test -- scheduled-run` — 82d8636
+- [x] 2.2 New `reportHeartbeat` unit tests pass — 82d8636
+- [x] 2.3 Type checking passes: `npm run typecheck` — 82d8636
+- [x] 2.4 Linting passes: `npm run lint` — 82d8636
 
 #### Manual
 
 - [x] 2.5 `npm run scheduled-run` without `HEARTBEAT_PING_URL` completes normally, exit code
-      unaffected
+      unaffected — 82d8636
 
 ### Phase 3: Catch-up verification for the real job registry
 
 #### Automated
 
-- [ ] 3.1 New registry-wide catch-up test passes: `npm test -- scheduled-run`
-- [ ] 3.2 Type checking passes: `npm run typecheck`
-- [ ] 3.3 Linting passes: `npm run lint`
+- [x] 3.1 New registry-wide catch-up test passes: `npm test -- scheduled-run`
+- [x] 3.2 Type checking passes: `npm run typecheck`
+- [x] 3.3 Linting passes: `npm run lint`
 
 ### Phase 4: Docs & deploy runbook
 

@@ -239,4 +239,45 @@ describe.skipIf(!configured)("scheduled-run (integration)", () => {
     expect(row?.status).toBe("idle");
     expect(row?.last_error).toBeNull();
   });
+
+  // S-10/FR-027: proves catch-up against the REAL production job list (SCHEDULED_JOBS), not just
+  // synthetic single-job cases -- every test above exercises one job's schedule in isolation.
+  // Uses synthetic names (never the real "collection"/"approval-reminder"/"publish" rows, which
+  // would corrupt the real scheduler's state in this shared Supabase project) paired with the
+  // real schedules, each pre-marked as last fired 5 weeks ago -- well before every schedule's most
+  // recent occurrence -- to simulate a multi-week outage. isJobDue compares only against the
+  // single most recent scheduled instant, so this must collapse to exactly one catch-up fire per
+  // job, not one per missed week.
+  it("catches up every job in the real registry after a simulated multi-week outage", async () => {
+    const FIVE_WEEKS_MS = 5 * 7 * 24 * 60 * 60 * 1000;
+    const staleFiredAt = new Date(NOW.getTime() - FIVE_WEEKS_MS);
+
+    const jobs: ScheduledJobDefinition[] = SCHEDULED_JOBS.map((job) => ({
+      name: nextJobName(),
+      schedule: job.schedule,
+    }));
+    const actions: Record<string, JobAction> = {};
+    const callCounts = new Map<string, () => number>();
+
+    for (const job of jobs) {
+      const claimed = await tryAcquireJob(db, job.name, staleFiredAt, DEFAULT_STALE_AFTER_MS);
+      if (!claimed.ok) throw new Error(`setup failed: ${claimed.reason}`);
+      await releaseJob(db, job.name, requireStartedAt(claimed.data), { completedAt: staleFiredAt });
+
+      const { action, callCount } = fakeAction({ ok: true });
+      actions[job.name] = action;
+      callCounts.set(job.name, callCount);
+    }
+
+    const allOk = await runScheduledJobs(db, jobs, actions, NOW);
+
+    expect(allOk).toBe(true);
+    for (const job of jobs) {
+      expect(callCounts.get(job.name)?.()).toBe(1);
+
+      const { data: row } = await db.from("scheduled_job").select("*").eq("name", job.name).single();
+      expect(row?.status).toBe("idle");
+      expect(row?.last_error).toBeNull();
+    }
+  });
 });
