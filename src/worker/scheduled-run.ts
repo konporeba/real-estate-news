@@ -11,6 +11,7 @@
 // of that boundary.
 import { pathToFileURL } from "node:url";
 
+import { sendHeartbeat } from "@/lib/heartbeat/send";
 import { SCHEDULED_JOBS, type ScheduledJobDefinition } from "@/lib/scheduler/registry";
 import { isJobDue } from "@/lib/scheduler/schedule";
 import { DEFAULT_STALE_AFTER_MS, getJobState, releaseJob, tryAcquireJob } from "@/lib/scheduler/store";
@@ -160,11 +161,36 @@ export async function runScheduledJobs(
   return allOk;
 }
 
+/**
+ * S-10/FR-028: ping the external dead-man's-switch once per tick, after job execution, regardless
+ * of whether any job was due. Never throws and never returns a value the caller branches on — a
+ * heartbeat delivery problem must not change scheduled-run's own exit code, which reflects only
+ * the real job outcomes; the monitor's own grace-period alert is what catches a heartbeat that
+ * stops arriving.
+ */
+export async function reportHeartbeat(
+  fetchImpl: typeof fetch,
+  pingUrl: string | undefined,
+  ok: boolean,
+): Promise<void> {
+  const result = await sendHeartbeat(fetchImpl, pingUrl, { ok });
+  if (result.ok) {
+    console.log("[scheduled-run] heartbeat: sent");
+    return;
+  }
+  if (result.reason === "not_configured") {
+    console.log("[scheduled-run] heartbeat: not sent (HEARTBEAT_PING_URL not configured)");
+    return;
+  }
+  console.error(`[scheduled-run] heartbeat: ${result.reason}: ${result.message}`);
+}
+
 export async function main(now: Date = new Date()): Promise<number> {
   const env = loadWorkerEnv();
   const client = createServiceClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 
   const ok = await runScheduledJobs(client, SCHEDULED_JOBS, JOB_ACTIONS, now);
+  await reportHeartbeat(fetch, env.HEARTBEAT_PING_URL, ok);
   return ok ? 0 : 1;
 }
 

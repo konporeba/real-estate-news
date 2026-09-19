@@ -5,13 +5,45 @@
 // test run, which is exactly what the opt-in live-smoke tests exist to avoid doing by default.
 import { randomUUID } from "node:crypto";
 
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { SCHEDULED_JOBS, type ScheduledJobDefinition } from "@/lib/scheduler/registry";
 import { DEFAULT_STALE_AFTER_MS, releaseJob, tryAcquireJob } from "@/lib/scheduler/store";
 import { createServiceClient, type ServiceClient } from "@/lib/supabase-service";
-import { JOB_ACTIONS, runScheduledJobs, type JobAction, type JobOutcome } from "@/worker/scheduled-run";
+import {
+  JOB_ACTIONS,
+  reportHeartbeat,
+  runScheduledJobs,
+  type JobAction,
+  type JobOutcome,
+} from "@/worker/scheduled-run";
 import type { ScheduledJobRow } from "@/types";
+
+// No DB dependency, unlike the integration suites below — reportHeartbeat only calls fetch.
+describe("reportHeartbeat", () => {
+  it("resolves without throwing when pingUrl is undefined", async () => {
+    const fetchImpl = vi.fn();
+    await expect(reportHeartbeat(fetchImpl, undefined, true)).resolves.toBeUndefined();
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("resolves without throwing when fetch rejects", async () => {
+    const fetchImpl = vi.fn().mockRejectedValue(new Error("network down"));
+    await expect(reportHeartbeat(fetchImpl, "https://hc-ping.com/abc", true)).resolves.toBeUndefined();
+  });
+
+  it("GETs the plain ping URL when ok is true", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
+    await reportHeartbeat(fetchImpl, "https://hc-ping.com/abc", true);
+    expect(fetchImpl).toHaveBeenCalledWith("https://hc-ping.com/abc");
+  });
+
+  it("GETs the /fail-suffixed URL when ok is false", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
+    await reportHeartbeat(fetchImpl, "https://hc-ping.com/abc", false);
+    expect(fetchImpl).toHaveBeenCalledWith("https://hc-ping.com/abc/fail");
+  });
+});
 
 // Needs no database: a drift guard confirming every registered job (including S-08's "publish")
 // has a matching real action, the same way F-01's transition-guard test keeps the SQL and TS

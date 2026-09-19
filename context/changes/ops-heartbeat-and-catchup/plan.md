@@ -482,22 +482,22 @@ new optional environment variable with no default, matching every other optional
 
 #### Automated
 
-- [x] 1.1 New unit tests pass: `npm test -- heartbeat`
-- [x] 1.2 Type checking passes: `npm run typecheck`
-- [x] 1.3 Linting passes: `npm run lint`
+- [x] 1.1 New unit tests pass: `npm test -- heartbeat` — 8ac0cca
+- [x] 1.2 Type checking passes: `npm run typecheck` — 8ac0cca
+- [x] 1.3 Linting passes: `npm run lint` — 8ac0cca
 
 ### Phase 2: Wire into scheduled-run.ts
 
 #### Automated
 
-- [ ] 2.1 Existing scheduled-run tests still pass: `npm test -- scheduled-run`
-- [ ] 2.2 New `reportHeartbeat` unit tests pass
-- [ ] 2.3 Type checking passes: `npm run typecheck`
-- [ ] 2.4 Linting passes: `npm run lint`
+- [x] 2.1 Existing scheduled-run tests still pass: `npm test -- scheduled-run`
+- [x] 2.2 New `reportHeartbeat` unit tests pass
+- [x] 2.3 Type checking passes: `npm run typecheck`
+- [x] 2.4 Linting passes: `npm run lint`
 
 #### Manual
 
-- [ ] 2.5 `npm run scheduled-run` without `HEARTBEAT_PING_URL` completes normally, exit code
+- [x] 2.5 `npm run scheduled-run` without `HEARTBEAT_PING_URL` completes normally, exit code
       unaffected
 
 ### Phase 3: Catch-up verification for the real job registry

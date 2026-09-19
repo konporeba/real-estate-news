@@ -72,6 +72,10 @@ const workerEnvSchema = z.object({
     .int()
     .positive("RANKING_FEWSHOT_LIMIT_PER_LABEL must be a positive integer")
     .default(8),
+  // S-10/FR-028: the dead-man's-switch ping URL (healthchecks.io). Optional like the Gmail
+  // block — an unconfigured worker still runs scheduled-run.ts fine; sendHeartbeat() reports
+  // `not_configured` rather than the tick failing.
+  HEARTBEAT_PING_URL: z.url("HEARTBEAT_PING_URL must be a valid URL").optional(),
 });
 
 export type WorkerEnv = z.infer<typeof workerEnvSchema>;
