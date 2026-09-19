@@ -1,10 +1,10 @@
 ---
 change_id: archive-and-learning-loop
 title: Archive and learning loop
-status: impl_reviewed
+status: archived
 created: 2026-09-16
 updated: 2026-09-19
-archived_at: null
+archived_at: 2026-09-19T08:27:32Z
 ---
 
 ## Notes
