@@ -267,8 +267,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Prerequisites:** S-08, S-02
 - **Parallel with:** S-10
 - **Blockers:** —
-- **Unknowns:**
-  - Retention policy for full-fidelity archive material given local disk on the Pi — Owner: operator. Block: no. (PRD Open Question #5.)
+- **Unknowns:** — (OQ#5 resolved: keep everything indefinitely; see Open Roadmap Questions #5.)
 - **Risk:** Feeding picks/passes back into the rubric changes rubric behavior, so this depends on S-02's eval harness to catch drift — the learning loop is only safe because the regression gate exists.
 - **Status:** proposed
 
@@ -310,7 +309,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 2. **Visual-template (Canva) API access — paid tier, possible access application with external lead time.** — Owner: operator. Block: S-06 (non-blocking to the roadmap, but file the request early).
 3. **Carousel length — fixed, or driven by story count?** — Owner: operator. Block: S-06.
 4. **Selection granularity — pick the cluster or a specific article within it?** — Owner: operator. Block: S-04.
-5. **Retention policy for full-fidelity archive material on local disk.** — Owner: operator. Block: S-09.
+5. ~~**Retention policy for full-fidelity archive material on local disk.**~~ — **Resolved 2026-09-19 at S-09 planning: keep everything indefinitely.** Archive material (visuals) lives in Supabase Storage (a cloud service), not the Pi's local disk as the question was originally worded — reachable regardless of where the app runs. Per-digest footprint is small (order of 1-2MB of images/week), so no expiry/cleanup mechanism is warranted. Revisit only if Supabase storage cost becomes a real concern.
 6. ~~**Second notification channel for the time-critical Monday reminder?**~~ — **Resolved 2026-09-12 at S-07 planning: no.** The reminder ships email-only through the F-04 harness; no second channel, no notification abstraction. Revisit only if a Monday is actually missed in practice.
 7. ~~**Late-Sunday news window — shrink to Sun 17:00, or roll into next week?**~~ — **Resolved 2026-07-24: roll into next week.** Windows tile from the previous digest's `collection_completed_at` checkpoint to the current run's start time, so the calendar is covered exactly once and a late-Sunday story is never dropped — it lands in the following run. No declared cutoff to maintain. Implemented in S-01 Phase 4 (`src/lib/collection/window.ts`).
 8. **Delivery timeline soft target.** — Owner: operator. Block: roadmap-wide. Resolved stance: `main_goal: quality`, `mvp_weeks` intentionally unbounded; sequence by dependency, not by calendar. Set a soft milestone only if downstream coordination needs one.

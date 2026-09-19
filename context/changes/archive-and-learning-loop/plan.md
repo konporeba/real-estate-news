@@ -596,24 +596,24 @@ optional fields, one new module, one new env var with a safe default.
 
 #### Automated
 
-- [x] 5.1 New unit tests for `findEvalOverlap` pass
-- [x] 5.2 `RANKING_EVAL=1 npm test` passes
-- [x] 5.3 Type checking passes: `npm run typecheck`
-- [x] 5.4 Linting passes: `npm run lint`
+- [x] 5.1 New unit tests for `findEvalOverlap` pass — c99d506
+- [x] 5.2 `RANKING_EVAL=1 npm test` passes — c99d506
+- [x] 5.3 Type checking passes: `npm run typecheck` — c99d506
+- [x] 5.4 Linting passes: `npm run lint` — c99d506
 
 ### Phase 6: End-to-end verification and closing OQ#5
 
 #### Automated
 
-- [ ] 6.1 Full test suite passes: `npm test`
-- [ ] 6.2 `RANKING_EVAL=1 npm test` passes against real historical data
-- [ ] 6.3 Type checking passes: `npm run typecheck`
-- [ ] 6.4 Linting passes: `npm run lint`
-- [ ] 6.5 Production build succeeds: `npm run build`
+- [x] 6.1 Full test suite passes: `npm test`
+- [x] 6.2 `RANKING_EVAL=1 npm test` passes against real historical data
+- [x] 6.3 Type checking passes: `npm run typecheck`
+- [x] 6.4 Linting passes: `npm run lint`
+- [x] 6.5 Production build succeeds: `npm run build`
 
 #### Manual
 
-- [ ] 6.6 Full archive browse (shortlist + approve page) verified on a real past digest
-- [ ] 6.7 Pagination and filter verified past 25 digests
-- [ ] 6.8 Cache engagement confirmed via `cacheReadTokens`/`cacheCreationTokens`
-- [ ] 6.9 Kill-switch confirmed to revert behavior with no deploy
+- [x] 6.6 Full archive browse (shortlist + approve page) verified on a real past digest
+- [x] 6.7 Pagination and filter verified past 25 digests
+- [x] 6.8 Cache engagement confirmed via `cacheReadTokens`/`cacheCreationTokens`
+- [x] 6.9 Kill-switch confirmed to revert behavior with no deploy
