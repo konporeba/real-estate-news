@@ -524,14 +524,14 @@ new optional environment variable with no default, matching every other optional
 
 #### Automated
 
-- [x] 5.1 Full test suite passes: `npm test`
-- [x] 5.2 Type checking passes: `npm run typecheck`
-- [x] 5.3 Linting passes: `npm run lint`
-- [x] 5.4 Production build succeeds: `npm run build`
+- [x] 5.1 Full test suite passes: `npm test` — 4831965
+- [x] 5.2 Type checking passes: `npm run typecheck` — 4831965
+- [x] 5.3 Linting passes: `npm run lint` — 4831965
+- [x] 5.4 Production build succeeds: `npm run build` — 4831965
 
 #### Manual
 
-- [x] 5.5 `HEARTBEAT_LIVE_SMOKE=1` run passes against a real healthchecks.io check
+- [x] 5.5 `HEARTBEAT_LIVE_SMOKE=1` run passes against a real healthchecks.io check — 4831965
 - [x] 5.6 Local `npm run scheduled-run` with `HEARTBEAT_PING_URL` set shows a successful heartbeat
-      log line, reflected on the dashboard
-- [x] 5.7 Real Pi deployment acknowledged as a carried-forward manual step, not verified here
+      log line, reflected on the dashboard — 4831965
+- [x] 5.7 Real Pi deployment acknowledged as a carried-forward manual step, not verified here — 4831965
