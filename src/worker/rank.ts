@@ -176,7 +176,10 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
   // targeted the digest they meant before any spend happens.
   console.log(`ranking digest ${digest.id} for week ${digest.window_start} -> ${digest.window_end}`);
 
-  const outcome = await rankDigest(llm, client, digest, { ceilingUsd: env.LLM_COST_CEILING_USD });
+  const outcome = await rankDigest(llm, client, digest, {
+    ceilingUsd: env.LLM_COST_CEILING_USD,
+    fewShot: { enabled: env.RANKING_FEWSHOT_ENABLED, limitPerLabel: env.RANKING_FEWSHOT_LIMIT_PER_LABEL },
+  });
 
   if (!outcome.ok) {
     console.error(`ranking did not complete: ${outcome.reason}: ${outcome.message}`);

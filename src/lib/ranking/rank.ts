@@ -11,6 +11,7 @@
 // concluded the digest cannot proceed. Callers check `outcome.data.digest.status` to tell the two
 // apart, exactly as `src/worker/collect.ts` does.
 import { clusterArticles, type ClusterableArticle } from "@/lib/ranking/cluster";
+import { fetchFewShotExamples, type FewShotExample } from "@/lib/ranking/few-shot";
 import { orderClusters, type ScoredCluster } from "@/lib/ranking/rank-order";
 import { scoreClusters, type ScorableCluster } from "@/lib/ranking/score-clusters";
 import { translateShortlist, type TranslatableArticle, type Translation } from "@/lib/ranking/translate-shortlist";
@@ -25,6 +26,10 @@ const SHORTLIST_SIZE = 15;
 
 export interface RankOptions {
   ceilingUsd: number;
+  /** S-09/FR-025: real-history few-shot content for the rubric prompt. Optional — omitting it (or
+   *  `enabled: false`) reproduces the pre-S-09 zero-shot rubric exactly, which is what every
+   *  caller that predates this option (and every existing test) still gets. */
+  fewShot?: { enabled: boolean; limitPerLabel: number };
 }
 
 export interface RankOutcome {
@@ -212,7 +217,22 @@ export async function rankDigest(
     }),
   }));
 
-  const scored = await scoreClusters(llm, client, digest.id, scorable, options);
+  let fewShotExamples: FewShotExample[] = [];
+  if (options.fewShot?.enabled) {
+    const fewShot = await fetchFewShotExamples(client, {
+      limitPerLabel: options.fewShot.limitPerLabel,
+      excludeDigestId: digest.id,
+    });
+    if (!fewShot.ok) {
+      return failDigest(client, digest.id, `few-shot retrieval ${fewShot.reason}: ${fewShot.message}`);
+    }
+    fewShotExamples = fewShot.data;
+  }
+
+  const scored = await scoreClusters(llm, client, digest.id, scorable, {
+    ceilingUsd: options.ceilingUsd,
+    fewShotExamples,
+  });
   if (!scored.ok) {
     return failDigest(client, digest.id, `scoring ${scored.reason}: ${scored.message}`);
   }

@@ -60,6 +60,18 @@ const workerEnvSchema = z.object({
   META_IG_USER_ID: z.string().min(1, "META_IG_USER_ID must not be empty").optional(),
   LINKEDIN_ACCESS_TOKEN: z.string().min(1, "LINKEDIN_ACCESS_TOKEN must not be empty").optional(),
   LINKEDIN_ORGANIZATION_URN: z.string().min(1, "LINKEDIN_ORGANIZATION_URN must not be empty").optional(),
+  // S-09/FR-025: the ranking rubric's few-shot kill-switch. An enum, not z.coerce.boolean() —
+  // z.coerce.boolean() treats ANY non-empty string (including "0") as true via `Boolean(value)`,
+  // which would make the kill-switch itself unable to be switched off.
+  RANKING_FEWSHOT_ENABLED: z
+    .enum(["0", "1"])
+    .default("1")
+    .transform((v) => v === "1"),
+  RANKING_FEWSHOT_LIMIT_PER_LABEL: z.coerce
+    .number()
+    .int()
+    .positive("RANKING_FEWSHOT_LIMIT_PER_LABEL must be a positive integer")
+    .default(8),
 });
 
 export type WorkerEnv = z.infer<typeof workerEnvSchema>;

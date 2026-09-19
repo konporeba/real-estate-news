@@ -574,18 +574,18 @@ optional fields, one new module, one new env var with a safe default.
 
 #### Automated
 
-- [x] 3.1 New unit tests pass: `npm test -- few-shot`
-- [x] 3.2 Type checking passes: `npm run typecheck`
-- [x] 3.3 Linting passes: `npm run lint`
+- [x] 3.1 New unit tests pass: `npm test -- few-shot` — dcf09c3
+- [x] 3.2 Type checking passes: `npm run typecheck` — dcf09c3
+- [x] 3.3 Linting passes: `npm run lint` — dcf09c3
 
 ### Phase 4: Wire few-shot into the rubric prompt behind a config flag
 
 #### Automated
 
-- [ ] 4.1 Existing ranking tests pass with flag on and no fixture selection_item rows
-- [ ] 4.2 New unit tests for `buildRubricSystemPrompt` pass
-- [ ] 4.3 Type checking passes: `npm run typecheck`
-- [ ] 4.4 Linting passes: `npm run lint`
+- [x] 4.1 Existing ranking tests pass with flag on and no fixture selection_item rows
+- [x] 4.2 New unit tests for `buildRubricSystemPrompt` pass
+- [x] 4.3 Type checking passes: `npm run typecheck`
+- [x] 4.4 Linting passes: `npm run lint`
 
 #### Manual
 

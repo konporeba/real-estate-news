@@ -1,10 +1,13 @@
 // WORKER-SIDE. The geography-first editorial rubric (FR-007) as a stable system prompt — the
 // product's judgment in words. Zero-shot by design: the held-out eval set never appears here, so
 // the eval measures generalization, not memorization (any future few-shot, from S-09, must also be
-// disjoint from the eval set).
+// disjoint from the eval set — enforced by src/lib/ranking/eval/disjointness.ts).
 //
 // Stable and reused across every scoring call, so it is passed with cacheSystem:true (F-03) — a
-// worthwhile cache prefix that bills repeat input at ~0.1x.
+// worthwhile cache prefix that bills repeat input at ~0.1x. buildRubricSystemPrompt's optional
+// few-shot section (S-09/FR-025) is appended to this same string, so it stays inside that one
+// cached prefix rather than becoming a second, uncached block.
+import type { FewShotExample } from "@/lib/ranking/few-shot";
 import { GEOGRAPHY_TIERS, TIER_BANDS } from "@/lib/ranking/score";
 
 function band(tier: (typeof GEOGRAPHY_TIERS)[number]): string {
@@ -34,6 +37,30 @@ SCORE. Give each story a 0–100 relevance score that sits inside its tier's ban
 Because the bands do not overlap, tier alone determines the broad order and the score refines within it. Never let a discard story outscore an on-topic one.
 
 For each story you also give: "topics" (short tags like "rental-prices", "mortgage-rates", "housing-regulation", "new-construction", or [] for a discard) and a one-line "rationale" naming the geography and topic that drove the score.`;
+
+const FEW_SHOT_HEADER = `
+
+PAST EDITORIAL DECISIONS. The operator has previously picked or passed over these real stories.
+Use them as a guide to their actual taste — they refine judgment within the rules above, they
+never override them.`;
+
+function formatFewShotExample(example: FewShotExample): string {
+  const label = example.picked ? "PICKED" : "PASSED";
+  const lede = example.lede ? `\n  ${example.lede}` : "";
+  return `- ${example.title}${lede}\n  → ${label} (${example.tier}): ${example.rationale}`;
+}
+
+/**
+ * S-09/FR-025: the rubric system prompt, optionally extended with a "PAST EDITORIAL DECISIONS"
+ * section built from real picks/passes (`fetchFewShotExamples`). Returns `GEOGRAPHY_RUBRIC_SYSTEM`
+ * unchanged when `fewShot` is empty — the zero-shot eval baseline and the disabled-flag path both
+ * still need the bare rubric text.
+ */
+export function buildRubricSystemPrompt(fewShot: FewShotExample[]): string {
+  if (fewShot.length === 0) return GEOGRAPHY_RUBRIC_SYSTEM;
+  const examples = fewShot.map(formatFewShotExample).join("\n\n");
+  return `${GEOGRAPHY_RUBRIC_SYSTEM}${FEW_SHOT_HEADER}\n\n${examples}`;
+}
 
 /** The user message for a scoring batch: the clusters to score, each with a stable local id. */
 export function buildScoringPrompt(

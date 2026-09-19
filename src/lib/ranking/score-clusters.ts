@@ -12,7 +12,8 @@ import type { LlmTransport } from "@/lib/llm/client";
 import { invoke } from "@/lib/llm/invoke";
 import { DEFAULT_MODEL } from "@/lib/llm/pricing";
 import type { LabeledExample } from "@/lib/ranking/eval/harness";
-import { buildScoringPrompt, GEOGRAPHY_RUBRIC_SYSTEM } from "@/lib/ranking/rubric";
+import type { FewShotExample } from "@/lib/ranking/few-shot";
+import { buildRubricSystemPrompt, buildScoringPrompt } from "@/lib/ranking/rubric";
 import { assertScoreInRange, type ClusterScore, clusterScoreSchema } from "@/lib/ranking/score";
 import type { ServiceClient } from "@/lib/supabase-service";
 import type { LlmResult } from "@/types";
@@ -73,7 +74,7 @@ export async function scoreClusters(
   db: ServiceClient,
   digestId: string,
   clusters: ScorableCluster[],
-  options: { ceilingUsd: number },
+  options: { ceilingUsd: number; fewShotExamples?: FewShotExample[] },
 ): Promise<LlmResult<Map<string, ClusterScore>>> {
   if (clusters.length === 0) return { ok: true, data: new Map() };
 
@@ -106,7 +107,7 @@ async function scoreBatch(
   db: ServiceClient,
   digestId: string,
   batch: ScorableCluster[],
-  options: { ceilingUsd: number },
+  options: { ceilingUsd: number; fewShotExamples?: FewShotExample[] },
 ): Promise<LlmResult<Map<string, ClusterScore>>> {
   const result = await invoke(
     llm,
@@ -114,7 +115,7 @@ async function scoreBatch(
     digestId,
     {
       model: DEFAULT_MODEL,
-      system: GEOGRAPHY_RUBRIC_SYSTEM,
+      system: buildRubricSystemPrompt(options.fewShotExamples ?? []),
       cacheSystem: true,
       messages: [{ role: "user", content: buildScoringPrompt(batch) }],
       maxTokens: batch.length * MAX_TOKENS_PER_CLUSTER + MAX_TOKENS_FLOOR,
@@ -144,9 +145,10 @@ export async function scoreExample(
   digestId: string,
   example: LabeledExample,
   ceilingUsd: number,
+  fewShotExamples: FewShotExample[] = [],
 ): Promise<ClusterScore> {
   const cluster: ScorableCluster = { id: example.id, articles: [{ title: example.title, lede: example.lede }] };
-  const result = await scoreClusters(llm, db, digestId, [cluster], { ceilingUsd });
+  const result = await scoreClusters(llm, db, digestId, [cluster], { ceilingUsd, fewShotExamples });
   if (!result.ok) throw new Error(`scoring failed: ${result.reason}: ${result.message}`);
   const score = result.data.get(example.id);
   if (!score) throw new Error(`no score returned for ${example.id}`);
