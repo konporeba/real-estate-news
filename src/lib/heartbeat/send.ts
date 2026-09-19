@@ -8,6 +8,14 @@
 import type { HeartbeatResult } from "@/types";
 
 /**
+ * Ping budget. `reportHeartbeat()` (scheduled-run.ts) is the last await in main(), so a hanging
+ * connection here — not just a slow one — would block every subsequent 15-minute tick, since the
+ * systemd service is a singleton by name. Mirrors the "one hanging call must not stall the whole
+ * run" precedent already established for rss.ts (FETCH_TIMEOUT_MS) and source-text.ts.
+ */
+const PING_TIMEOUT_MS = 10_000;
+
+/**
  * healthchecks.io's own ping API convention: a check's failure URL is always its success URL with
  * `/fail` appended. This is a healthchecks.io-specific assumption baked in deliberately (see the
  * plan's Critical Implementation Details) — swapping monitor providers later needs a code change
@@ -26,7 +34,7 @@ export async function sendHeartbeat(
   if (!pingUrl) return { ok: false, reason: "not_configured", message: "no heartbeat ping URL configured" };
 
   try {
-    const response = await fetchImpl(urlFor(pingUrl, outcome));
+    const response = await fetchImpl(urlFor(pingUrl, outcome), { signal: AbortSignal.timeout(PING_TIMEOUT_MS) });
     if (!response.ok) {
       return { ok: false, reason: "send_failed", message: `heartbeat ping returned ${String(response.status)}` };
     }

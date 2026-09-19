@@ -22,7 +22,9 @@ describe("sendHeartbeat", () => {
     const result = await sendHeartbeat(fetchImpl, "https://hc-ping.com/abc", { ok: true });
 
     expect(result).toEqual({ ok: true });
-    expect(fetchImpl).toHaveBeenCalledWith("https://hc-ping.com/abc");
+    const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("https://hc-ping.com/abc");
+    expect(init.signal).toBeInstanceOf(AbortSignal);
   });
 
   it("GETs the /fail-suffixed URL on a failed outcome", async () => {
@@ -31,7 +33,8 @@ describe("sendHeartbeat", () => {
     const result = await sendHeartbeat(fetchImpl, "https://hc-ping.com/abc", { ok: false });
 
     expect(result).toEqual({ ok: true });
-    expect(fetchImpl).toHaveBeenCalledWith("https://hc-ping.com/abc/fail");
+    const [url] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("https://hc-ping.com/abc/fail");
   });
 
   it("returns send_failed with the status when the response is not ok", async () => {

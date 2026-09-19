@@ -35,13 +35,16 @@ describe("reportHeartbeat", () => {
   it("GETs the plain ping URL when ok is true", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
     await reportHeartbeat(fetchImpl, "https://hc-ping.com/abc", true);
-    expect(fetchImpl).toHaveBeenCalledWith("https://hc-ping.com/abc");
+    const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("https://hc-ping.com/abc");
+    expect(init.signal).toBeInstanceOf(AbortSignal);
   });
 
   it("GETs the /fail-suffixed URL when ok is false", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
     await reportHeartbeat(fetchImpl, "https://hc-ping.com/abc", false);
-    expect(fetchImpl).toHaveBeenCalledWith("https://hc-ping.com/abc/fail");
+    const [url] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("https://hc-ping.com/abc/fail");
   });
 });
 
