@@ -13,10 +13,16 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createLlmClient } from "@/lib/llm/client";
+import { findEvalOverlap } from "@/lib/ranking/eval/disjointness";
 import { EVAL_EXAMPLES, EXPECTED_ORDERINGS } from "@/lib/ranking/eval/examples";
 import { evaluateRubric, formatReport, type Scorer } from "@/lib/ranking/eval/harness";
+import { fetchFewShotExamples } from "@/lib/ranking/few-shot";
 import { scoreExample } from "@/lib/ranking/score-clusters";
 import { createServiceClient, type ServiceClient } from "@/lib/supabase-service";
+
+// Mirrors RANKING_FEWSHOT_LIMIT_PER_LABEL's production default (src/worker/env.ts) so the eval
+// exercises the same-sized few-shot section a real ranking run would send.
+const FEWSHOT_LIMIT_PER_LABEL = 8;
 
 const live = Boolean(
   process.env.RANKING_EVAL === "1" &&
@@ -58,8 +64,15 @@ describe.skipIf(!live)("geography rubric eval (gate)", () => {
   afterAll(purge);
 
   it("scores every labeled example in its correct tier and preserves every ordering", async () => {
+    const fewShotResult = await fetchFewShotExamples(db, { limitPerLabel: FEWSHOT_LIMIT_PER_LABEL });
+    if (!fewShotResult.ok) throw new Error(`few-shot fetch failed: ${fewShotResult.reason}: ${fewShotResult.message}`);
+    const fewShot = fewShotResult.data;
+
+    const overlap = findEvalOverlap(fewShot);
+    expect(overlap, `few-shot content overlaps the held-out eval set: ${overlap.join(", ")}`).toEqual([]);
+
     const llm = createLlmClient(requireEnv("ANTHROPIC_API_KEY"));
-    const scorer: Scorer = (example) => scoreExample(llm, db, digestId, example, EVAL_CEILING);
+    const scorer: Scorer = (example) => scoreExample(llm, db, digestId, example, EVAL_CEILING, fewShot);
 
     const report = await evaluateRubric(scorer, EVAL_EXAMPLES, EXPECTED_ORDERINGS);
 

@@ -582,24 +582,24 @@ optional fields, one new module, one new env var with a safe default.
 
 #### Automated
 
-- [x] 4.1 Existing ranking tests pass with flag on and no fixture selection_item rows
-- [x] 4.2 New unit tests for `buildRubricSystemPrompt` pass
-- [x] 4.3 Type checking passes: `npm run typecheck`
-- [x] 4.4 Linting passes: `npm run lint`
+- [x] 4.1 Existing ranking tests pass with flag on and no fixture selection_item rows — a3ea8b1
+- [x] 4.2 New unit tests for `buildRubricSystemPrompt` pass — a3ea8b1
+- [x] 4.3 Type checking passes: `npm run typecheck` — a3ea8b1
+- [x] 4.4 Linting passes: `npm run lint` — a3ea8b1
 
 #### Manual
 
-- [ ] 4.5 Flag off reproduces pre-S-09 scoring behavior exactly
-- [ ] 4.6 Flag on with real selection data includes the few-shot section in the sent prompt
+- [x] 4.5 Flag off reproduces pre-S-09 scoring behavior exactly — a3ea8b1
+- [x] 4.6 Flag on with real selection data includes the few-shot section in the sent prompt — a3ea8b1
 
 ### Phase 5: Eval-set disjointness guarantee
 
 #### Automated
 
-- [ ] 5.1 New unit tests for `findEvalOverlap` pass
-- [ ] 5.2 `RANKING_EVAL=1 npm test` passes
-- [ ] 5.3 Type checking passes: `npm run typecheck`
-- [ ] 5.4 Linting passes: `npm run lint`
+- [x] 5.1 New unit tests for `findEvalOverlap` pass
+- [x] 5.2 `RANKING_EVAL=1 npm test` passes
+- [x] 5.3 Type checking passes: `npm run typecheck`
+- [x] 5.4 Linting passes: `npm run lint`
 
 ### Phase 6: End-to-end verification and closing OQ#5
 
