@@ -4,7 +4,14 @@
 // module has no LLM and no database, which makes thorough coverage nearly free.
 import { describe, expect, it } from "vitest";
 
-import { assertFiguresPresent, describeMissing, extractFigures } from "@/lib/generation/numerals";
+import {
+  assertFiguresPresent,
+  assertNoInventedFigures,
+  describeInvented,
+  describeMissing,
+  extractFigures,
+  sourceValues,
+} from "@/lib/generation/numerals";
 
 /** Values only — the assertion most cases care about. */
 function values(text: string): number[] {
@@ -278,5 +285,64 @@ describe("describeMissing", () => {
     const missing = extractFigures("El precio es 1.234 €");
 
     expect(describeMissing(missing)).toBe("1.234 (currency, 1234)");
+  });
+});
+
+describe("assertNoInventedFigures", () => {
+  // The real 2026-10-26 failure: a table of rates. Under the new rule the copy may carry only some.
+  const mortgageSource =
+    "El precio de las hipotecas escala al 3,08%, máximo desde enero de 2025. Bankinter ofrece un 3,01%, " +
+    "Sabadell un 3,81% y el BBVA un 4,12%. El volumen alcanzó los 6.134 millones de euros.";
+
+  it("passes copy that carries only some of the source's figures", () => {
+    expect(assertNoInventedFigures(mortgageSource, "Oprocentowanie kredytów wzrosło do 3,08%.")).toEqual({ ok: true });
+  });
+
+  it("passes Polish formatting and a restated scale", () => {
+    const copy = "Wolumen wyniósł 6 134 mln €, a Sabadell oferuje 3,81%.";
+    expect(assertNoInventedFigures(mortgageSource, copy)).toEqual({ ok: true });
+    expect(assertNoInventedFigures(mortgageSource, "Wolumen: 6,134 mld €.")).toEqual({ ok: true });
+  });
+
+  // The danger the old gate never caught: a figure that is not in the source at all.
+  it("fails a rounded figure", () => {
+    const result = assertNoInventedFigures(mortgageSource, "Wolumen wyniósł 6,1 mld €.");
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.invented.map((f) => f.value)).toEqual([6_100_000_000]);
+  });
+
+  it("fails a made-up percentage and names it", () => {
+    const result = assertNoInventedFigures(mortgageSource, "Ceny wzrosły o 3,08%, a czynsze o 7,5%.");
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(describeInvented(result.invented)).toBe("7,5 (percentage, 7.5)");
+  });
+
+  // A faithful rewording must not read as invention: the source states the number without a
+  // qualifier the extractor recognises, the copy states it as a percentage.
+  it("accepts a value the source states without a recognised qualifier", () => {
+    const source = "El Euríbor sube 0,5 puntos en un mes.";
+    expect(assertNoInventedFigures(source, "Euribor wzrósł o 0,5 punktu procentowego.")).toEqual({ ok: true });
+  });
+
+  it("ignores bare numbers in the copy, such as years", () => {
+    expect(assertNoInventedFigures("Precio 3,08%.", "W 2027 roku oprocentowanie 3,08%.")).toEqual({ ok: true });
+  });
+
+  it("accepts both ends of a range", () => {
+    const source = "Los alquileres oscilan entre 1.000 y 2.000 euros.";
+    expect(assertNoInventedFigures(source, "Czynsze: od 1 000 € do 2 000 €.")).toEqual({ ok: true });
+  });
+});
+
+describe("sourceValues", () => {
+  it("returns every number, with magnitude-scaled numbers in both scales", () => {
+    const values = sourceValues("Unos 3,5 millones de euros en 12 promociones.");
+    expect(values).toContain(3_500_000);
+    expect(values).toContain(3.5);
+    expect(values).toContain(12);
+  });
+
+  it("returns nothing for empty text", () => {
+    expect(sourceValues("")).toEqual([]);
   });
 });

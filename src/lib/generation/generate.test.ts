@@ -243,8 +243,50 @@ describe.skipIf(!configured)("generateDigest (integration)", () => {
 
     // The retry must NAME what went missing, otherwise it is a re-roll, not a correction.
     const retryPrompt = (llm.calls[1] as { messages: { content: string }[] }).messages[0].content;
-    expect(retryPrompt).toContain("dropped or altered figures");
+    expect(retryPrompt).toContain("headline or lead MUST appear");
     expect(retryPrompt).toContain("8,3");
+  });
+
+  // The danger the old gate never caught: a figure the source does not contain.
+  it("retries once when the copy invents a figure, naming it, and succeeds", async () => {
+    const digest = await seedConfirmedDigest(1);
+    const llm = fakeLlmTransport([
+      fakeMessage({ text: copyResponse(["4 250 euro", "8,3%", "9,9%"]), usage }),
+      fakeMessage({ text: copyResponse(), usage }),
+    ]);
+
+    const result = await generateDigest(llm, db, digest, {
+      ceilingUsd: CEILING,
+      fetchImpl: fakeFetch({ body: ARTICLE_PAGE }),
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.message);
+    expect(result.data.digest.status).toBe("rendering");
+    const retryPrompt = (llm.calls[1] as { messages: { content: string }[] }).messages[0].content;
+    expect(retryPrompt).toContain("do not appear in the source");
+    expect(retryPrompt).toContain("9,9");
+  });
+
+  // The 2026-10-26 failure: a figure-dense article cannot be carried whole into a post. Only the
+  // headline and lead figures are required.
+  it("accepts copy that leaves out figures found only in the article body", async () => {
+    const digest = await seedConfirmedDigest(1);
+    const denserPage = ARTICLE_PAGE.replace(
+      "</p></article>",
+      " Bankinter ofrece un 3,01%, Sabadell un 3,81% y el BBVA un 4,12% en sus hipotecas.</p></article>",
+    );
+    const llm = fakeLlmTransport([fakeMessage({ text: copyResponse(), usage })]);
+
+    const result = await generateDigest(llm, db, digest, {
+      ceilingUsd: CEILING,
+      fetchImpl: fakeFetch({ body: denserPage }),
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.message);
+    expect(result.data.digest.status).toBe("rendering");
+    expect(llm.calls).toHaveLength(1);
   });
 
   // US-12: wrong figures fail the run rather than publish.

@@ -276,3 +276,48 @@ export function assertFiguresPresent(source: Figure[], output: string): FigureCh
 export function describeMissing(missing: Figure[]): string {
   return missing.map((figure) => `${figure.raw} (${figure.kind}, ${String(figure.value)})`).join("; ");
 }
+
+/**
+ * Every number in `text`, significant or not, as candidate values for the invented-figure check.
+ *
+ * Deliberately wider than {@link extractFigures}: a figure in the Polish copy is legitimate if its
+ * VALUE is anywhere in the source, qualified or not. The source may state "0,5 puntos" (no
+ * qualifier the extractor recognises) and the copy "0,5 punktu procentowego" (a percentage) —
+ * comparing only against qualified source figures would flag a faithful rewording as invented.
+ * A magnitude-scaled number contributes both values (`6.134 millones` -> 6134 and 6 134 000 000),
+ * so the copy may restate the scale either way.
+ */
+export function sourceValues(text: string): number[] {
+  if (!text) return [];
+
+  const candidates: Candidate[] = [];
+  NUMBER_RE.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = NUMBER_RE.exec(text)) !== null) {
+    candidates.push(classify(text, match));
+  }
+  inheritAcrossRanges(text, candidates);
+
+  return candidates.flatMap((candidate) =>
+    [candidate.value, parseNumber(candidate.raw)].filter((value) => Number.isFinite(value)),
+  );
+}
+
+export type InventionCheck = { ok: true } | { ok: false; invented: Figure[] };
+
+/**
+ * FR-014's other direction (operator decision, 2026-10-31): every significant figure in the
+ * generated copy must exist in the source. This is what keeps wrong numbers away from investors —
+ * a figure the model rounded (`6,1 mld` for `6.134 millones`), converted, or made up has no match
+ * and fails the story, whatever else the copy got right.
+ */
+export function assertNoInventedFigures(sourceText: string, output: string): InventionCheck {
+  const known = sourceValues(sourceText);
+  const invented = extractFigures(output).filter((figure) => !known.some((value) => sameValue(value, figure.value)));
+  return invented.length === 0 ? { ok: true } : { ok: false, invented };
+}
+
+/** One-line diagnostic for invented figures, the counterpart of {@link describeMissing}. */
+export function describeInvented(invented: Figure[]): string {
+  return invented.map((figure) => `${figure.raw} (${figure.kind}, ${String(figure.value)})`).join("; ");
+}

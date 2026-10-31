@@ -16,7 +16,13 @@
 // stories fall back to the stored title + lede and record `source_text_origin = 'lede'`.
 import { markStageComplete, transitionDigest } from "@/lib/digest/run-state";
 import { generateCopy } from "@/lib/generation/generate-copy";
-import { assertFiguresPresent, describeMissing, extractFigures } from "@/lib/generation/numerals";
+import {
+  assertFiguresPresent,
+  assertNoInventedFigures,
+  describeInvented,
+  describeMissing,
+  extractFigures,
+} from "@/lib/generation/numerals";
 import { fetchArticleText } from "@/lib/generation/source-text";
 import type { LlmTransport } from "@/lib/llm/client";
 import type { ServiceClient } from "@/lib/supabase-service";
@@ -167,8 +173,8 @@ function searchableOutput(copy: {
  * Generate one story and hold it to FR-014.
  *
  * The gate gets ONE corrective retry, mirroring `clusterArticles`'s partition retry: the model is
- * told exactly which figures went missing and asked again. A second failure is genuine — US-12 is
- * explicit that wrong figures fail the run rather than publish.
+ * told exactly which key figures went missing and which figures it invented, and asked again. A
+ * second failure is genuine — US-12 is explicit that wrong figures never publish.
  *
  * Returns `{ ok: false }` with a human-readable reason for `last_error`; the caller decides that
  * this fails the digest.
@@ -185,20 +191,20 @@ async function generateStory(
   const sourceText = fetched.ok ? fetched.text : `${story.title}. ${story.lede ?? ""}`.trim();
   const sourceTextOrigin: SourceTextOrigin = fetched.ok ? "article" : "lede";
 
-  const sourceFigures = extractFigures(sourceText);
+  // FR-014 as decided 2026-10-31: the figures of the story's HEADLINE AND LEAD must survive (the
+  // facts the operator picked it for), and NO figure may appear in the copy that the source does
+  // not contain. Requiring every figure in the article made a figure-dense story (a table of
+  // rates) impossible to adapt into a post, and never caught an invented or rounded number.
+  const keyFigures = extractFigures(`${story.title}\n${story.lede ?? ""}`);
+  const knownText = `${story.title}\n${story.lede ?? ""}\n${sourceText}`;
 
-  // Carries the first attempt's missing figures into the retry's correction. Without this the
-  // retry would be a plain re-roll: the model would be told it failed but not what it dropped,
-  // which is the difference between a corrective reprompt and hoping for better luck.
-  let missingFromLastAttempt = "";
+  // Carries the first attempt's problems into the retry's correction. Without this the retry
+  // would be a plain re-roll: the model would be told it failed but not why, which is the
+  // difference between a corrective reprompt and hoping for better luck.
+  let problemsWithLastAttempt = "";
 
   for (const attempt of [0, 1]) {
-    const correction =
-      attempt === 0
-        ? undefined
-        : "Your previous attempt dropped or altered figures from the source. These figures MUST appear " +
-          "in your output exactly as the source states them (Polish number formatting is fine, but the " +
-          `value must not change): ${missingFromLastAttempt}`;
+    const correction = attempt === 0 ? undefined : problemsWithLastAttempt;
 
     const generated = await generateCopy(llm, client, digestId, { title: story.title, sourceText }, format, {
       ceilingUsd: options.ceilingUsd,
@@ -208,8 +214,10 @@ async function generateStory(
       return { ok: false, message: `generation ${generated.reason}: ${generated.message}` };
     }
 
-    const check = assertFiguresPresent(sourceFigures, searchableOutput(generated.data));
-    if (check.ok) {
+    const output = searchableOutput(generated.data);
+    const missing = assertFiguresPresent(keyFigures, output);
+    const invented = assertNoInventedFigures(knownText, output);
+    if (missing.ok && invented.ok) {
       return {
         ok: true,
         data: {
@@ -221,14 +229,32 @@ async function generateStory(
       };
     }
 
+    const problems = [
+      missing.ok ? null : `missing ${describeMissing(missing.missing)}`,
+      invented.ok ? null : `invented ${describeInvented(invented.invented)}`,
+    ].filter((problem) => problem !== null);
+
     if (attempt === 1) {
       return {
         ok: false,
-        message: `numeric integrity failed for "${story.title}" after a corrective retry; missing ${describeMissing(check.missing)}`,
+        message: `numeric integrity failed for "${story.title}" after a corrective retry; ${problems.join("; ")}`,
       };
     }
 
-    missingFromLastAttempt = check.missing.map((figure) => figure.raw).join(", ");
+    problemsWithLastAttempt = [
+      missing.ok
+        ? null
+        : "These figures from the story's headline or lead MUST appear in your output exactly as the source " +
+          "states them (Polish number formatting is fine, but the value must not change): " +
+          missing.missing.map((figure) => figure.raw).join(", "),
+      invented.ok
+        ? null
+        : "These figures in your output do not appear in the source — remove them or replace them with the " +
+          "exact figure the source gives; never round, convert or estimate: " +
+          invented.invented.map((figure) => figure.raw).join(", "),
+    ]
+      .filter((line) => line !== null)
+      .join("\n");
   }
 
   // Unreachable: the loop either returns a result or fails on its second attempt.
