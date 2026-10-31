@@ -21,15 +21,7 @@ export const STORY_PLACEHOLDERS = [
   "STAT_3_VALUE",
 ] as const;
 
-/**
- * Placeholders on the PREVIOUS carousel deck's cover. The current carousel deck's cover carries
- * none; this survives only until the renderer reads the tag-based deck.
- */
-export const COVER_PLACEHOLDERS = ["COVER_TITLE", "COVER_SUBTITLE"] as const;
-
 export type StoryPlaceholder = (typeof STORY_PLACEHOLDERS)[number];
-export type CoverPlaceholder = (typeof COVER_PLACEHOLDERS)[number];
-export type Placeholder = StoryPlaceholder | CoverPlaceholder;
 
 /** The placeholder that carries the headline, and so the one the fit step resizes. */
 export const TITLE_PLACEHOLDER = "TITLE" satisfies StoryPlaceholder;
@@ -269,6 +261,12 @@ export interface CarouselStorySlide {
   section: CarouselSection;
   /** The text box holding `{{TITLE}}` then `{{DESCRIPTION}}` — the one the renderer sizes. */
   boxElementId: string;
+  /**
+   * Where each token starts in the box's text, in UTF-16 code units (the Slides API's index unit).
+   * The renderer derives each paragraph's range after replacement from these.
+   */
+  titleOffset: number;
+  descriptionOffset: number;
 }
 
 /** The carousel deck as the renderer sees it, plus everything wrong with it. */
@@ -284,10 +282,13 @@ export interface CarouselDeck {
  * "Nothing else" because the renderer sizes the box's paragraphs by character offsets — a stray
  * label typed into the same box would shift them.
  */
-function checkStoryBox(slide: Slide, label: string): { boxElementId: string | null; problems: DeckProblem[] } {
+function checkStoryBox(
+  slide: Slide,
+  label: string,
+): { box: Omit<CarouselStorySlide, "slide" | "section"> | null; problems: DeckProblem[] } {
   const problems: DeckProblem[] = [];
   const counts = new Map<string, number>();
-  let boxElementId: string | null = null;
+  let box: Omit<CarouselStorySlide, "slide" | "section"> | null = null;
   let boxReported = false;
 
   for (const element of slide.pageElements ?? []) {
@@ -309,7 +310,11 @@ function checkStoryBox(slide: Slide, label: string): { boxElementId: string | nu
             `title first, with nothing else in it (found "${text.trim().slice(0, 80)}")`,
         });
       } else {
-        boxElementId = element.objectId;
+        box = {
+          boxElementId: element.objectId,
+          titleOffset: text.indexOf(expected[0]),
+          descriptionOffset: text.indexOf(expected[1]),
+        };
       }
     }
   }
@@ -333,7 +338,7 @@ function checkStoryBox(slide: Slide, label: string): { boxElementId: string | nu
     }
   }
 
-  return { boxElementId: problems.length === 0 ? boxElementId : null, problems };
+  return { box: problems.length === 0 ? box : null, problems };
 }
 
 /**
@@ -367,9 +372,9 @@ export function readCarouselDeck(slides: Slide[]): CarouselDeck {
       return;
     }
 
-    const box = checkStoryBox(slide, label);
-    problems.push(...box.problems);
-    if (box.boxElementId) stories.push({ slide, section: tag.data.section, boxElementId: box.boxElementId });
+    const checked = checkStoryBox(slide, label);
+    problems.push(...checked.problems);
+    if (checked.box) stories.push({ slide, section: tag.data.section, ...checked.box });
   });
 
   if (covers.length !== 1) {

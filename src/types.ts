@@ -224,7 +224,13 @@ export type GeneratedAssetRow = Database["public"]["Tables"]["generated_asset"][
  * - `empty_title` — the story's Polish title is blank, so the card would render headline-less
  * - `title_too_long` — the headline is past the last fit tier; no font size renders it whole
  */
-export type VisualErrorReason = "malformed_statistics" | "insufficient_statistics" | "empty_title" | "title_too_long";
+export type VisualErrorReason =
+  | "malformed_statistics"
+  | "insufficient_statistics"
+  | "empty_title"
+  | "title_too_long"
+  | "empty_description"
+  | "text_too_long";
 
 export interface VisualError {
   ok: false;

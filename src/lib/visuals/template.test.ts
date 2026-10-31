@@ -361,6 +361,12 @@ describe("validateDeck — carousel", () => {
     expect(problems.some((m) => m.includes("unrecognised placeholder {{STAT_1_VALUE}}"))).toBe(true);
   });
 
+  // The renderer sizes each paragraph by range after replacement, starting from these offsets.
+  it("records where each token starts in the shared box", () => {
+    const story = readCarouselDeck(carouselDeck().slides).stories[0];
+    expect([story.titleOffset, story.descriptionOffset]).toEqual([0, "{{TITLE}}\n".length]);
+  });
+
   it("leaves a broken story slide out of the usable set", () => {
     const base = carouselDeck();
     base.slides[1] = tagged("b1", "role=story section=barcelona", [box(token("TITLE"))]);

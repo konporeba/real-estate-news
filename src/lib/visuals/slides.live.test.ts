@@ -109,6 +109,7 @@ describe.skipIf(!live)("Slides rendering (live smoke)", () => {
 
     const requests = buildPageRequests(
       {
+        kind: "single_post",
         slideIndex: 0,
         clusterId: FIXTURE.cluster_id,
         templatePageId: storySlide.objectId,

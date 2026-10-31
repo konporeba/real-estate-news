@@ -464,21 +464,21 @@ dashboard; on the Raspberry Pi, `git pull` + `npm ci` so the scheduled worker pi
 
 #### Automated
 
-- [x] 4.1 Unit tests (schema, harness, shortlist mapping) pass
-- [x] 4.2 Ranking eval passes with the real rubric: `RANKING_EVAL=1 npm test`
-- [x] 4.3 Lint, build pass
+- [x] 4.1 Unit tests (schema, harness, shortlist mapping) pass — b0c6aaf
+- [x] 4.2 Ranking eval passes with the real rubric: `RANKING_EVAL=1 npm test` — b0c6aaf
+- [x] 4.3 Lint, build pass — b0c6aaf
 
 #### Manual
 
-- [x] 4.4 Operator confirms the `expectedFinanceLaw` labels on the held-out examples
+- [x] 4.4 Operator confirms the `expectedFinanceLaw` labels on the held-out examples — b0c6aaf
 
 ### Phase 5: Section-aware carousel rendering
 
 #### Automated
 
-- [ ] 5.1 Section, rotation, fit, range-math and batch-shape unit tests pass
-- [ ] 5.2 Single-post render tests unchanged and green
-- [ ] 5.3 Lint, build pass
+- [x] 5.1 Section, rotation, fit, range-math and batch-shape unit tests pass
+- [x] 5.2 Single-post render tests unchanged and green
+- [x] 5.3 Lint, build pass
 
 ### Phase 6: Preview command and 4:5 approval page
 

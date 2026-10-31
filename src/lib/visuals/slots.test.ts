@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  buildCoverSlots,
+  buildCarouselSlots,
   buildSlotMap,
-  COVER_PLACEHOLDERS,
-  formatWindow,
   parseKeyStatistics,
   STAT_SLOT_COUNT,
   STORY_PLACEHOLDERS,
@@ -167,35 +165,34 @@ describe("parseKeyStatistics", () => {
   });
 });
 
-describe("formatWindow", () => {
-  it("collapses a same-month week to one month and year", () => {
-    expect(formatWindow("2026-09-01", "2026-09-07")).toBe("1–7 września 2026");
+describe("buildCarouselSlots", () => {
+  it("fills the headline and the caption summary, and nothing else", () => {
+    const result = buildCarouselSlots(copyRow({ caption_summary: "Ceny wzrosły o 8,3%." }));
+    expect(result).toEqual({
+      ok: true,
+      data: { TITLE: "Ceny mieszkań w Barcelonie rosną", DESCRIPTION: "Ceny wzrosły o 8,3%." },
+    });
   });
 
-  it("spells out both sides when the week crosses a month", () => {
-    expect(formatWindow("2026-08-31", "2026-09-06")).toBe("31 sierpnia 2026 – 6 września 2026");
+  // The carousel design has no statistic slots, so a story with none must still render.
+  it("does not require statistics", () => {
+    expect(buildCarouselSlots(copyRow({ key_statistics: [] })).ok).toBe(true);
   });
 
-  it("spells out both sides when the week crosses a year", () => {
-    expect(formatWindow("2026-12-28", "2027-01-03")).toBe("28 grudnia 2026 – 3 stycznia 2027");
+  // A line break would become a third paragraph and shift the ranges the renderer sizes.
+  it("collapses whitespace and line breaks to single spaces", () => {
+    const result = buildCarouselSlots(
+      copyRow({ polish_title: "  Ceny\n  rosną ", caption_summary: "Pierwsze zdanie.\n\nDrugie  zdanie." }),
+    );
+    expect(result.ok && result.data).toEqual({ TITLE: "Ceny rosną", DESCRIPTION: "Pierwsze zdanie. Drugie zdanie." });
   });
 
-  it("does not drift a day, whatever the host zone", () => {
-    // The columns are dates, not instants; parsed naively in a westward zone the start would
-    // print as the previous day. Pinning to UTC is what keeps this stable on the Pi and in CI.
-    expect(formatWindow("2026-09-01", "2026-09-01")).toBe("1–1 września 2026");
-  });
-
-  it("falls back to the raw strings rather than throwing on an unparseable date", () => {
-    expect(formatWindow("not-a-date", "2026-09-07")).toBe("not-a-date – 2026-09-07");
-  });
-});
-
-describe("buildCoverSlots", () => {
-  it("fills every cover placeholder", () => {
-    const slots = buildCoverSlots({ window_start: "2026-09-01", window_end: "2026-09-07" });
-    expect(Object.keys(slots).sort()).toEqual([...COVER_PLACEHOLDERS].sort());
-    expect(slots.COVER_SUBTITLE).toBe("1–7 września 2026");
-    expect(slots.COVER_TITLE).toBeTruthy();
+  it.each([
+    ["polish_title", "empty_title"],
+    ["caption_summary", "empty_description"],
+  ] as const)("rejects a blank %s as %s", (field, reason) => {
+    const result = buildCarouselSlots(copyRow({ [field]: "   " }));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe(reason);
   });
 });

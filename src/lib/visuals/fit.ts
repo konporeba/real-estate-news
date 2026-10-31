@@ -80,3 +80,87 @@ export function fitTitle(title: string): VisualResult<number> {
       `"${title.trim().slice(0, 80)}"`,
   };
 }
+
+// --- Carousel: one shared box, two paragraphs ---------------------------------------------------
+//
+// The carousel's story slide holds the headline and the description in ONE box (see
+// template-spec), so the question is not "how long is the title" but "do both paragraphs fit the
+// box together". Still no font metrics: each paragraph's line count is estimated from an average
+// glyph width, and the pair of sizes steps down until the estimated height fits.
+//
+// Calibrated on 2026-10-31 against a real render in the operator's deck (Arial, box 722 x 489 px
+// on the 1080 x 1350 page): a 98-character headline at 32 pt wrapped to 4 lines and a
+// 107-character description at 22 pt to 3, together 277 pt tall — which this model reproduces.
+
+/** The shared box, in points (the page is 1080 px = 810 pt wide). */
+export const CAROUSEL_BOX_PT = { width: 541.5, height: 366.75 } as const;
+
+/** Average glyph width as a fraction of the font size: bold Arial headline, regular description. */
+const TITLE_GLYPH_EM = 0.51;
+const DESCRIPTION_GLYPH_EM = 0.47;
+/** Word wrapping leaves the end of most lines empty; count only this share of the width as usable. */
+const WRAP_EFFICIENCY = 0.88;
+/** Line height as a multiple of the font size: Arial's ~1.15 times the deck's 110% / 140% spacing. */
+const TITLE_LINE_EM = 1.15 * 1.1;
+const DESCRIPTION_LINE_EM = 1.15 * 1.4;
+/** The deck's space above the description paragraph. */
+const PARAGRAPH_GAP_PT = 8;
+
+/** One step of the carousel ladder: both paragraphs' sizes, tried in order. */
+export interface CarouselSizeTier {
+  titlePt: number;
+  descriptionPt: number;
+}
+
+/**
+ * Largest first. The title steps down before the description does, because the headline has more
+ * size to give; the smallest rung is still readable on a phone at 1080 px.
+ */
+export const CAROUSEL_SIZE_TIERS: readonly CarouselSizeTier[] = [
+  { titlePt: 32, descriptionPt: 22 },
+  { titlePt: 28, descriptionPt: 22 },
+  { titlePt: 28, descriptionPt: 20 },
+  { titlePt: 24, descriptionPt: 20 },
+  { titlePt: 24, descriptionPt: 18 },
+];
+
+function estimatedLines(text: string, pointSize: number, glyphEm: number): number {
+  const perLine = Math.floor((CAROUSEL_BOX_PT.width * WRAP_EFFICIENCY) / (pointSize * glyphEm));
+  return Math.max(1, Math.ceil(titleLength(text) / perLine));
+}
+
+/** The estimated height, in points, of both paragraphs at one tier. */
+export function estimatedCarouselHeight(title: string, description: string, tier: CarouselSizeTier): number {
+  const titleHeight = estimatedLines(title, tier.titlePt, TITLE_GLYPH_EM) * tier.titlePt * TITLE_LINE_EM;
+  const descriptionHeight =
+    estimatedLines(description, tier.descriptionPt, DESCRIPTION_GLYPH_EM) * tier.descriptionPt * DESCRIPTION_LINE_EM;
+  return titleHeight + PARAGRAPH_GAP_PT + descriptionHeight;
+}
+
+/**
+ * Decide both paragraphs' sizes for one carousel story.
+ *
+ * Fails, like {@link fitTitle}, rather than shrinking past the last tier: text that does not fit
+ * at 24/18 pt is a generation problem, and the operator is better served by the story's name and
+ * character counts than by an image with text running off the panel.
+ */
+export function fitCarouselText(title: string, description: string): VisualResult<CarouselSizeTier> {
+  if (titleLength(title) === 0) {
+    return { ok: false, reason: "empty_title", message: "the story's Polish title is blank" };
+  }
+  if (titleLength(description) === 0) {
+    return { ok: false, reason: "empty_description", message: "the story's caption summary is blank" };
+  }
+
+  for (const tier of CAROUSEL_SIZE_TIERS) {
+    if (estimatedCarouselHeight(title, description, tier) <= CAROUSEL_BOX_PT.height) return { ok: true, data: tier };
+  }
+
+  return {
+    ok: false,
+    reason: "text_too_long",
+    message:
+      `title (${String(titleLength(title))} characters) and description (${String(titleLength(description))} ` +
+      `characters) do not fit the slide even at the smallest sizes: "${title.trim().slice(0, 80)}"`,
+  };
+}
