@@ -202,7 +202,7 @@ let assetsPartial = false;
 if (client && digest && !loadError && CONTENT_STATUSES.includes(digest.status)) {
   const { data: rows, error: assetsQueryError } = await client
     .from("generated_asset")
-    .select("slide_index, cluster_id, storage_path")
+    .select("slide_index, cluster_id, storage_path, width, height")
     .eq("digest_id", digest.id)
     .order("slide_index", { ascending: true });
 
@@ -244,6 +244,8 @@ if (client && digest && !loadError && CONTENT_STATUSES.includes(digest.status)) 
           {
             slideIndex: row.slide_index,
             url,
+            width: row.width,
+            height: row.height,
             label: row.cluster_id ? (titleByCluster.get(row.cluster_id) ?? "Story") : "Cover",
           },
         ];

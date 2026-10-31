@@ -3,6 +3,9 @@ export interface RenderedAsset {
   slideIndex: number;
   url: string;
   label: string;
+  /** The exported PNG's pixel size, as stored on `generated_asset`; null if it was never recorded. */
+  width: number | null;
+  height: number | null;
 }
 
 interface Props {
@@ -31,16 +34,19 @@ const { assets, partialFailure = false } = Astro.props;
     {
       assets.map((asset) => (
         <li class="bg-card w-[min(78vw,340px)] shrink-0 snap-start overflow-hidden rounded-2xl border">
-          {/* Square by construction: the templates are 1080x1080 and the validator fails a deck
-              that is not. aspect-square here means a wrong-sized export is visibly letterboxed
-              rather than silently stretched. */}
+          {/* Shaped by the export's own stored size — 4:5 for the carousel, square for a single
+              post — so the strip shows each slide exactly as it will be published, and the box is
+              reserved before the image loads. Without a stored size the image keeps its own shape. */}
           <img
             src={asset.url}
             alt={`Slide ${String(asset.slideIndex + 1)}: ${asset.label}`}
-            width="1080"
-            height="1080"
+            width={asset.width ?? undefined}
+            height={asset.height ?? undefined}
             loading="lazy"
-            class="bg-primary aspect-square w-full object-contain"
+            style={
+              asset.width && asset.height ? `aspect-ratio: ${String(asset.width)} / ${String(asset.height)}` : undefined
+            }
+            class="bg-primary w-full object-contain"
           />
           <div class="space-y-0.5 px-4 py-3">
             <p class="text-muted-foreground font-mono text-[12px]">Slide {asset.slideIndex + 1}</p>

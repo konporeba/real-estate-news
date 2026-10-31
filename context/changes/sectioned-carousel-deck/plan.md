@@ -476,20 +476,20 @@ dashboard; on the Raspberry Pi, `git pull` + `npm ci` so the scheduled worker pi
 
 #### Automated
 
-- [x] 5.1 Section, rotation, fit, range-math and batch-shape unit tests pass
-- [x] 5.2 Single-post render tests unchanged and green
-- [x] 5.3 Lint, build pass
+- [x] 5.1 Section, rotation, fit, range-math and batch-shape unit tests pass — 54571dc
+- [x] 5.2 Single-post render tests unchanged and green — 54571dc
+- [x] 5.3 Lint, build pass — 54571dc
 
 ### Phase 6: Preview command and 4:5 approval page
 
 #### Automated
 
-- [ ] 6.1 `npm run visuals:preview` writes 21 PNGs at 4:5
-- [ ] 6.2 Tests, lint, build pass
+- [x] 6.1 `npm run visuals:preview` writes 21 PNGs at 4:5
+- [x] 6.2 Tests, lint, build pass
 
 #### Manual
 
-- [ ] 6.3 Operator reviews the preview PNGs
+- [x] 6.3 Operator reviews the preview PNGs
 
 ### Phase 7: Real run, then deploy
 
