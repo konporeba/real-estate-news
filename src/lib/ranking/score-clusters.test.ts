@@ -57,7 +57,7 @@ function cluster(id: string): ScorableCluster {
 /** A fake batch response scoring the given ids. */
 function batchResponse(scores: { clusterId: string; tier: string; score: number }[]): string {
   return JSON.stringify({
-    scores: scores.map((s) => ({ ...s, topics: [], rationale: "because" })),
+    scores: scores.map((s) => ({ ...s, topics: [], rationale: "because", financeLaw: false })),
   });
 }
 

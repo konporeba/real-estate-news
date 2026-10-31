@@ -36,7 +36,9 @@ SCORE. Give each story a 0–100 relevance score that sits inside its tier's ban
 
 Because the bands do not overlap, tier alone determines the broad order and the score refines within it. Never let a discard story outscore an on-topic one.
 
-For each story you also give: "topics" (short tags like "rental-prices", "mortgage-rates", "housing-regulation", "new-construction", or [] for a discard) and a one-line "rationale" naming the geography and topic that drove the score.`;
+For each story you also give: "topics" (short tags like "rental-prices", "mortgage-rates", "housing-regulation", "new-construction", or [] for a discard) and a one-line "rationale" naming the geography and topic that drove the score.
+
+FINANCE/LAW FLAG. Also give "financeLaw": true when the story's core is property prices or rents, mortgages and loans (including Euribor and mortgage demand), taxes on property, or housing law and regulation (rental rules, protected-housing rules, decrees) — whatever its geography. It is false when an on-topic story is mainly about something else, such as construction activity or general market commentary without price, loan, tax or legal substance. Decide the tier first, exactly as above; the flag never makes a story on-topic. A "discard" story is always false, and the flag does not change the tier or the score.`;
 
 const FEW_SHOT_HEADER = `
 

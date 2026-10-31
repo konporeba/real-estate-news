@@ -3,15 +3,21 @@ import { describe, expect, it } from "vitest";
 import { evaluateRubric, type LabeledExample, type Scorer } from "@/lib/ranking/eval/harness";
 import type { ClusterScore, GeographyTier } from "@/lib/ranking/score";
 
-function example(id: string, expectedTier: GeographyTier): LabeledExample {
-  return { id, title: id, lede: null, expectedTier, note: "" };
+function example(id: string, expectedTier: GeographyTier, expectedFinanceLaw = false): LabeledExample {
+  return { id, title: id, lede: null, expectedTier, expectedFinanceLaw, note: "" };
 }
 
 /** A deterministic scorer driven by a fixed map — no API, no jitter. */
-function scorerFrom(map: Record<string, { tier: GeographyTier; score: number }>): Scorer {
+function scorerFrom(map: Record<string, { tier: GeographyTier; score: number; financeLaw?: boolean }>): Scorer {
   return (ex) => {
     const s = map[ex.id];
-    const result: ClusterScore = { tier: s.tier, topics: [], score: s.score, rationale: "" };
+    const result: ClusterScore = {
+      tier: s.tier,
+      topics: [],
+      score: s.score,
+      rationale: "",
+      financeLaw: s.financeLaw ?? false,
+    };
     return Promise.resolve(result);
   };
 }
@@ -78,12 +84,44 @@ describe("evaluateRubric", () => {
     let calls = 0;
     const scorer: Scorer = (ex) => {
       calls += 1;
-      return Promise.resolve({ tier: ex.expectedTier, topics: [], score: 55, rationale: "" });
+      return Promise.resolve({
+        tier: ex.expectedTier,
+        topics: [],
+        score: 55,
+        rationale: "",
+        financeLaw: ex.expectedFinanceLaw,
+      });
     };
 
     const report = await evaluateRubric(scorer, examples, [["a", "b"]]);
 
     expect(calls).toBe(2); // one pass over the set, reused for the ordering check
     expect(Object.keys(report.scores).sort()).toEqual(["a", "b"]);
+  });
+});
+
+describe("evaluateRubric — finance/law flag", () => {
+  it("reports a flag mismatch in either direction and fails the gate", async () => {
+    const examples = [example("euribor", "national", true), example("foreign-buyers", "national", false)];
+    const scorer = scorerFrom({
+      euribor: { tier: "national", score: 70, financeLaw: false },
+      "foreign-buyers": { tier: "national", score: 60, financeLaw: true },
+    });
+
+    const report = await evaluateRubric(scorer, examples, []);
+
+    expect(report.passed).toBe(false);
+    expect(report.tierFailures).toHaveLength(0);
+    expect(report.financeLawFailures).toEqual([
+      { id: "euribor", expected: true, actual: false },
+      { id: "foreign-buyers", expected: false, actual: true },
+    ]);
+  });
+
+  it("passes when every flag matches", async () => {
+    const examples = [example("euribor", "national", true)];
+    const scorer = scorerFrom({ euribor: { tier: "national", score: 70, financeLaw: true } });
+
+    expect((await evaluateRubric(scorer, examples, [])).passed).toBe(true);
   });
 });

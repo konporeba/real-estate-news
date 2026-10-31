@@ -454,23 +454,23 @@ dashboard; on the Raspberry Pi, `git pull` + `npm ci` so the scheduled worker pi
 
 #### Automated
 
-- [x] 3.1 `npm run visuals:validate` passes for both decks
+- [x] 3.1 `npm run visuals:validate` passes for both decks — 9c2e560
 
 #### Manual
 
-- [x] 3.2 Operator reviews before/after thumbnails of the 20 slides and confirms the look
+- [x] 3.2 Operator reviews before/after thumbnails of the 20 slides and confirms the look — 9c2e560
 
 ### Phase 4: Finance/law flag in ranking
 
 #### Automated
 
-- [ ] 4.1 Unit tests (schema, harness, shortlist mapping) pass
-- [ ] 4.2 Ranking eval passes with the real rubric: `RANKING_EVAL=1 npm test`
-- [ ] 4.3 Lint, build pass
+- [x] 4.1 Unit tests (schema, harness, shortlist mapping) pass
+- [x] 4.2 Ranking eval passes with the real rubric: `RANKING_EVAL=1 npm test`
+- [x] 4.3 Lint, build pass
 
 #### Manual
 
-- [ ] 4.4 Operator confirms the `expectedFinanceLaw` labels on the held-out examples
+- [x] 4.4 Operator confirms the `expectedFinanceLaw` labels on the held-out examples
 
 ### Phase 5: Section-aware carousel rendering
 

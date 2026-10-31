@@ -121,6 +121,8 @@ export interface ShortlistItem {
   score: number | null;
   /** The rubric's one-line editorial reasoning (S-09 archive view). */
   rationale: string | null;
+  /** Ranking flagged it for the carousel's finance/law section. False for pre-flag clusters. */
+  financeLaw: boolean;
   coverageCount: number;
   /** Null until the translation stage has run over this cluster's representative. */
   polishTitle: string | null;

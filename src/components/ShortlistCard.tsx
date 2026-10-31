@@ -57,6 +57,11 @@ export function ShortlistCard({
             {tier.label}
           </span>
         )}
+        {item.financeLaw && (
+          <span className="border-input text-foreground inline-flex h-6.5 items-center rounded-md border px-2.5 text-[13px] font-medium">
+            Ceny/prawo
+          </span>
+        )}
         {item.score !== null && <span className="font-mono">score {item.score}</span>}
         <span>
           · {item.coverageCount} source{item.coverageCount === 1 ? "" : "s"}

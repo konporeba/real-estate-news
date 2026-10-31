@@ -118,7 +118,12 @@ if (client && digest && !NOT_READY_STATUSES.includes(digest.status) && digest.st
     // fetchDigestReadyItems in src/worker/rank.ts makes for the identical edge.
     const representative = clusterArticles.find((a) => a.polish_title) ?? clusterArticles.at(0);
     if (!representative) return [];
-    const detail = cluster.scoring_detail as { tier?: string; score?: number; rationale?: string } | null;
+    const detail = cluster.scoring_detail as {
+      tier?: string;
+      score?: number;
+      rationale?: string;
+      financeLaw?: boolean;
+    } | null;
     const tier = detail?.tier ?? null;
     const score = detail?.score ?? null;
     const rationale = detail?.rationale ?? null;
@@ -129,6 +134,7 @@ if (client && digest && !NOT_READY_STATUSES.includes(digest.status) && digest.st
         tier,
         score,
         rationale,
+        financeLaw: detail?.financeLaw === true,
         coverageCount: cluster.coverage_count,
         polishTitle: representative.polish_title,
         polishSummary: representative.polish_summary,

@@ -10,6 +10,10 @@
 //      → `catalonia`; Spain-wide nationally-applicable → `national` (a Madrid-announced national
 //      rule is national, not "Madrid news"); global with direct Spanish-market impact → `global`;
 //      another region's purely local real-estate → `discard`.
+//   3. `expectedFinanceLaw` (sectioned-carousel-deck): true when the story's core is prices/rents,
+//      mortgages/loans, property tax, or housing law/regulation, whatever the tier; always false
+//      for `discard`. Only one on-topic story here is false (the foreign-buyers market analysis),
+//      so the gate mostly guards the true side and the discard rule.
 //
 // The set is deliberately heavy on the misjudgment cases the PRD flags: right-geography-off-topic,
 // right-topic-wrong-region, and the published-vs-effects national announcement. Operator review
@@ -23,6 +27,7 @@ export const EVAL_EXAMPLES: LabeledExample[] = [
     title: "Cataluña plantea por ley nuevas restricciones al sector privado para movilizar VPO",
     lede: "Las nuevas promociones sólo podrán usarse para vivienda habitual propia o de un familiar, segunda residencia o alquiler.",
     expectedTier: "catalonia",
+    expectedFinanceLaw: true,
     note: "Catalonia housing regulation (VPO/protected housing) — core geography + core topic.",
   },
   {
@@ -30,6 +35,7 @@ export const EVAL_EXAMPLES: LabeledExample[] = [
     title: "Govern i Comuns proposen convertir locals, hotels i oficines en habitatge protegit",
     lede: "En plena crisi de l'habitatge, el Govern ha fet de l'habitatge de protecció oficial (HPO) un dels seus projectes bandera.",
     expectedTier: "catalonia",
+    expectedFinanceLaw: true,
     note: "Catalonia protected-housing policy (Catalan-language). Catalonia + housing regulation.",
   },
 
@@ -39,6 +45,7 @@ export const EVAL_EXAMPLES: LabeledExample[] = [
     title: "El precio del euríbor hoy, 24 de julio: cierre de semana amargo si tienes una hipoteca",
     lede: "Euríbor es uno de los índices fundamentales del panorama financiero europeo; su cálculo condiciona las hipotecas.",
     expectedTier: "national",
+    expectedFinanceLaw: true,
     note: "Spain-wide mortgage index — nationally applicable money/real-estate.",
   },
   {
@@ -46,6 +53,7 @@ export const EVAL_EXAMPLES: LabeledExample[] = [
     title: "Los bancos detectan las primeras caídas de demanda de hipotecas desde la invasión de Ucrania",
     lede: "Las subidas del Euribor y el endurecimiento de los criterios de concesión de crédito condicionan la actividad.",
     expectedTier: "national",
+    expectedFinanceLaw: true,
     note: "Spain-wide mortgage demand.",
   },
   {
@@ -53,6 +61,7 @@ export const EVAL_EXAMPLES: LabeledExample[] = [
     title: "El precio de la vivienda se dispara un 17,2% en el segundo trimestre: ¿dónde sube y dónde baja?",
     lede: "España ha alcanzado máximos en el precio de la vivienda en cuatro meses distintos.",
     expectedTier: "national",
+    expectedFinanceLaw: true,
     note: "Spain-wide house prices — core national real-estate.",
   },
   {
@@ -60,6 +69,7 @@ export const EVAL_EXAMPLES: LabeledExample[] = [
     title: "El Gobierno plantea un castigo fiscal a las Socimis de viviendas",
     lede: "El nuevo Real Decreto de vivienda plantea elevar el gravamen sobre las Socimis.",
     expectedTier: "national",
+    expectedFinanceLaw: true,
     note: "National housing-tax regulation.",
   },
   {
@@ -67,6 +77,7 @@ export const EVAL_EXAMPLES: LabeledExample[] = [
     title: "El Gobierno incluye una prórroga de alquileres hasta 2028 en el nuevo decreto de vivienda",
     lede: "PSOE y Sumar han acordado una 'prórroga reforzada' de los alquileres en el nuevo decreto de vivienda.",
     expectedTier: "national",
+    expectedFinanceLaw: true,
     note: "PUBLISHED-VS-EFFECTS: announced by the Madrid-based national government, but the effect is nationwide rental law — national, NOT 'Madrid news'.",
   },
   {
@@ -74,6 +85,7 @@ export const EVAL_EXAMPLES: LabeledExample[] = [
     title: "¿Dónde compran vivienda los extranjeros en España?",
     lede: "Las costas españolas del Mediterráneo siguen siendo uno de los destinos favoritos del inversor internacional.",
     expectedTier: "national",
+    expectedFinanceLaw: false,
     note: "Spain-wide housing-market analysis.",
   },
 
@@ -88,6 +100,7 @@ export const EVAL_EXAMPLES: LabeledExample[] = [
     title: "Segro rechaza una tercera opa de Prologis de 15.875 millones",
     lede: "Segro, firma británica de inversión inmobiliaria, ha rechazado una tercera opa de su rival estadounidense Prologis.",
     expectedTier: "discard",
+    expectedFinanceLaw: false,
     note: "Two foreign (UK/US) industrial REITs with no explicit Spanish-market angle in the story — foreign corporate news, so discard (operator call 2026-07-25). Not 'global': global requires a DIRECT Spanish effect, not an inferred one.",
   },
   {
@@ -95,6 +108,7 @@ export const EVAL_EXAMPLES: LabeledExample[] = [
     title: "Adiós a uno de los chiringuitos más famosos del Maresme: este domingo cierra sus puertas para siempre",
     lede: "El restaurante La Caleta, en Sant Vicenç de Montalt (Maresme, Barcelona), cerrará tras 71 años.",
     expectedTier: "discard",
+    expectedFinanceLaw: false,
     note: "NUANCE — Catalonia geography but a restaurant closing: off real-estate topic, so discard.",
   },
   {
@@ -102,6 +116,7 @@ export const EVAL_EXAMPLES: LabeledExample[] = [
     title: "El Puerto de Barcelona crece en tráfico pese al caos ferroviario, la peste porcina y la geopolítica",
     lede: "Hasta marzo las mercancías transportadas suben un 3,5% hasta los 35,87 millones de toneladas.",
     expectedTier: "discard",
+    expectedFinanceLaw: false,
     note: "NUANCE — Barcelona geography but port/logistics traffic: off real-estate topic, so discard.",
   },
   {
@@ -109,6 +124,7 @@ export const EVAL_EXAMPLES: LabeledExample[] = [
     title: "Culmia invertirá 65 millones en una promoción en Galicia",
     lede: "Culmia compra a Aliseda un suelo en Sanxenxo para desarrollar un proyecto residencial.",
     expectedTier: "discard",
+    expectedFinanceLaw: false,
     note: "NUANCE — real-estate topic but Galicia (another region's purely local development), so discard.",
   },
   {
@@ -116,6 +132,7 @@ export const EVAL_EXAMPLES: LabeledExample[] = [
     title: "El dueño del mayor rascacielos de Andalucía prepara su salida a bolsa",
     lede: "El propietario de Torre Sevilla, el mayor rascacielos de Andalucía, prepara su salto a bolsa.",
     expectedTier: "discard",
+    expectedFinanceLaw: false,
     note: "NUANCE — real-estate topic but Andalucía (other-region local), so discard.",
   },
   {
@@ -123,6 +140,7 @@ export const EVAL_EXAMPLES: LabeledExample[] = [
     title: "Amancio Ortega compra el complejo de oficinas parisino Capital 8 por un récord de 850 millones",
     lede: "El fundador de Inditex ha adquirido el complejo de oficinas Capital 8 de París.",
     expectedTier: "discard",
+    expectedFinanceLaw: false,
     note: "NUANCE — Spanish investor, but a Paris asset with no direct Spanish-market effect: discard, not global.",
   },
   {
@@ -130,6 +148,7 @@ export const EVAL_EXAMPLES: LabeledExample[] = [
     title: "Trump acelera sus nuevos aranceles",
     lede: "El subterfugio legal de la Casa Blanca choca con las garantías laborales en Canadá o la UE.",
     expectedTier: "discard",
+    expectedFinanceLaw: false,
     note: "Global trade/tariffs — off real-estate topic, so discard.",
   },
   {
@@ -137,6 +156,7 @@ export const EVAL_EXAMPLES: LabeledExample[] = [
     title: "El Gobierno aprueba el Auto+, las ayudas para comprar coche eléctrico o híbrido enchufable",
     lede: "Con hasta 4.500 euros de ayuda, la cuantía dependerá del origen, el precio y la motorización.",
     expectedTier: "discard",
+    expectedFinanceLaw: false,
     note: "National consumer subsidy but cars, not real estate — off topic, so discard.",
   },
 ];

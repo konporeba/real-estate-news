@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { FewShotExample } from "@/lib/ranking/few-shot";
+import { EVAL_EXAMPLES } from "@/lib/ranking/eval/examples";
 import { buildRubricSystemPrompt, GEOGRAPHY_RUBRIC_SYSTEM } from "@/lib/ranking/rubric";
 
 describe("buildRubricSystemPrompt", () => {
@@ -46,5 +47,17 @@ describe("buildRubricSystemPrompt", () => {
     const prompt = buildRubricSystemPrompt(examples);
 
     expect(prompt).toContain("- Solo title\n  → PICKED (catalonia): r");
+  });
+});
+
+describe("GEOGRAPHY_RUBRIC_SYSTEM", () => {
+  it("asks for the finance/law flag the carousel sections depend on", () => {
+    expect(GEOGRAPHY_RUBRIC_SYSTEM).toContain('"financeLaw"');
+  });
+
+  // The eval only measures generalization while its stories stay out of the prompt — easy to
+  // break by quoting a "typical" example while tuning the wording.
+  it("contains none of the held-out eval stories", () => {
+    for (const example of EVAL_EXAMPLES) expect(GEOGRAPHY_RUBRIC_SYSTEM).not.toContain(example.title);
   });
 });
