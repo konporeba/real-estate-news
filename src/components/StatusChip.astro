@@ -1,0 +1,24 @@
+---
+import { STATUS_PRESENTATION, type StatusTone } from "@/lib/digest/presentation";
+import { cn } from "@/lib/utils";
+import type { DigestStatus } from "@/types";
+
+interface Props {
+  status: DigestStatus;
+}
+
+const { status } = Astro.props;
+const { label, tone } = STATUS_PRESENTATION[status];
+
+const TONE_CLASSES: Record<StatusTone, string> = {
+  turn: "bg-signal font-semibold text-signal-foreground",
+  progress: "border bg-muted font-medium text-foreground",
+  done: "bg-primary font-medium text-primary-foreground",
+  quiet: "border border-dashed border-input bg-card font-medium text-foreground",
+  problem: "border border-destructive bg-destructive-tint font-semibold text-destructive",
+};
+---
+
+<span class:list={cn("inline-flex h-7 shrink-0 items-center rounded-full px-3 text-[13px]", TONE_CLASSES[tone])}>
+  {label}
+</span>

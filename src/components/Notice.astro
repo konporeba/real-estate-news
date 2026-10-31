@@ -1,0 +1,25 @@
+---
+// A full-width message box: load failures, "not ready yet" states, decision outcomes. Replaces the
+// hand-styled paragraphs each page used to repeat with slightly different colours.
+import { cn } from "@/lib/utils";
+
+interface Props {
+  tone?: "neutral" | "turn" | "problem";
+  class?: string;
+}
+
+const { tone = "neutral", class: className } = Astro.props;
+---
+
+<div
+  class:list={cn(
+    "[&_code]:bg-muted rounded-2xl border p-5 text-[15px] leading-relaxed [&_code]:rounded [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[13px]",
+    tone === "neutral" && "bg-card text-foreground",
+    tone === "turn" && "border-signal bg-signal-tint text-foreground",
+    tone === "problem" && "border-destructive bg-destructive-tint text-destructive",
+    className,
+  )}
+  role={tone === "problem" ? "alert" : undefined}
+>
+  <slot />
+</div>

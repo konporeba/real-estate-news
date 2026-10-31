@@ -9,6 +9,8 @@ import cloudflare from "@astrojs/cloudflare";
 // https://astro.build/config
 export default defineConfig({
   output: "server",
+  // The operator's only destination; the middleware sends a signed-out visitor on to /auth/pin.
+  redirects: { "/": "/dashboard" },
   integrations: [react(), sitemap()],
   vite: {
     plugins: [tailwindcss()],

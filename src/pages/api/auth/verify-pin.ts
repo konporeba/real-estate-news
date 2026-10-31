@@ -56,7 +56,9 @@ export const POST: APIRoute = async (context) => {
   const token = await createSessionToken(SESSION_SECRET, SESSION_MAX_AGE_SECONDS);
   context.cookies.set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
-    secure: true,
+    // Secure wherever the request is HTTPS (always, in production on Cloudflare). Pinning it to
+    // true broke `astro dev`: Safari drops Secure cookies on http://localhost, so login looped.
+    secure: context.url.protocol === "https:",
     sameSite: "strict",
     path: "/",
     maxAge: SESSION_MAX_AGE_SECONDS,

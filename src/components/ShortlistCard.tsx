@@ -8,25 +8,27 @@
 // The read-only usages are rendered by Astro WITHOUT a client directive, so they ship as static
 // HTML with no JavaScript; only SelectionForm hydrates. Keeping one component is what stops the
 // FR-009a two-language layout from drifting between the selectable and read-only views.
+import type { ReactNode } from "react";
+
 import { cn, isSafeUrl } from "@/lib/utils";
 import type { ShortlistItem } from "@/types";
 
-const TIER_STYLES: Record<string, string> = {
-  catalonia: "border-green-400/40 bg-green-500/20 text-green-300",
-  national: "border-amber-400/40 bg-amber-500/20 text-amber-300",
-  global: "border-sky-400/40 bg-sky-500/20 text-sky-300",
-  discard: "border-white/20 bg-white/10 text-blue-100/60",
+/** Tiers differ in lightness, not just hue, so they stay distinguishable without colour vision. */
+const TIERS: Record<string, { label: string; className: string }> = {
+  catalonia: { label: "Catalonia", className: "bg-signal font-semibold text-signal-foreground" },
+  national: { label: "Spain", className: "bg-primary font-medium text-primary-foreground" },
+  global: { label: "Global", className: "border border-input bg-card font-medium text-foreground" },
+  discard: { label: "Discard", className: "border border-dashed border-input bg-card text-muted-foreground" },
 };
-const DEFAULT_TIER_STYLE = "border-white/20 bg-white/10 text-blue-100/60";
 
 /** FR-009a: each side of the card is language-flagged, so an odd translation can be checked
  * against its source. A null `language` renders no flag rather than a wrong one. */
 const LANGUAGE_CHIP =
-  "rounded border border-white/15 bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-blue-100/70";
+  "shrink-0 rounded border border-input px-1.5 py-px text-[11px] font-bold tracking-wider text-foreground";
 
 export interface ShortlistCardProps {
   item: ShortlistItem;
-  /** Renders the checkbox. Omitted for both read-only modes. */
+  /** Renders the checkbox and makes the whole card the click target. Omitted for both read-only modes. */
   selectable?: boolean;
   selected?: boolean;
   onToggle?: (clusterId: string) => void;
@@ -42,85 +44,100 @@ export function ShortlistCard({
   picked = false,
 }: ShortlistCardProps) {
   const highlighted = selected || picked;
+  const tier = item.tier ? (TIERS[item.tier] ?? { label: item.tier, className: TIERS.discard.className }) : null;
+  const title = item.translated ? item.polishTitle : item.originalTitle;
+  const summary = item.translated ? item.polishSummary : item.originalLede;
 
-  return (
-    <li
-      className={cn(
-        "rounded-xl border p-4 transition-colors",
-        highlighted ? "border-purple-400/50 bg-purple-500/15" : "border-white/10 bg-white/10",
-      )}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          {selectable && (
-            <input
-              type="checkbox"
-              checked={selected}
-              onChange={() => onToggle?.(item.clusterId)}
-              // The accessible name is the story itself; the visible title is not a <label>
-              // target because it is a heading rendered below.
-              aria-label={`Select: ${item.polishTitle ?? item.originalTitle}`}
-              className="size-4 shrink-0 accent-purple-500"
-            />
-          )}
-          <span className="text-blue-100/50">#{item.rank}</span>
-          {picked && (
-            <span className="rounded-full border border-purple-400/40 bg-purple-500/20 px-2 py-0.5 text-[10px] font-semibold tracking-wider text-purple-200 uppercase">
-              selected
-            </span>
-          )}
-        </div>
-        {item.tier && (
-          <span
-            className={cn(
-              "rounded-full border px-3 py-1 text-xs tracking-wide uppercase",
-              TIER_STYLES[item.tier] ?? DEFAULT_TIER_STYLE,
-            )}
-          >
-            {item.tier}
-            {item.score !== null && <span className="ml-1 normal-case">· {item.score}</span>}
+  const body: ReactNode = (
+    <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+      <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-[13px]">
+        <span className="font-mono">#{item.rank}</span>
+        {tier && (
+          <span className={cn("inline-flex h-6.5 items-center rounded-md px-2.5 text-[13px]", tier.className)}>
+            {tier.label}
+          </span>
+        )}
+        {item.score !== null && <span className="font-mono">score {item.score}</span>}
+        <span>
+          · {item.coverageCount} source{item.coverageCount === 1 ? "" : "s"}
+        </span>
+        {picked && (
+          <span className="bg-signal text-signal-foreground inline-flex h-6.5 items-center rounded-full px-2.5 font-semibold">
+            Picked
+          </span>
+        )}
+        {!item.translated && (
+          <span className="border-input text-foreground inline-flex h-6.5 items-center rounded-full border border-dashed px-2.5">
+            Not translated
           </span>
         )}
       </div>
 
-      {item.translated ? (
-        <>
-          <div className="mt-2 flex items-start gap-2">
-            <span className={LANGUAGE_CHIP}>PL</span>
-            <h2 className="text-lg font-semibold">{item.polishTitle}</h2>
+      <div className="flex items-start gap-2">
+        {item.translated ? (
+          <span className={cn(LANGUAGE_CHIP, "mt-1")}>PL</span>
+        ) : (
+          item.originalLanguage && (
+            <span className={cn(LANGUAGE_CHIP, "mt-1")}>{item.originalLanguage.toUpperCase()}</span>
+          )
+        )}
+        <h2 className="text-[19px] leading-snug font-semibold tracking-tight">{title}</h2>
+      </div>
+      {summary && <p className="text-[15px] leading-relaxed">{summary}</p>}
+
+      {item.translated && (
+        <div className="flex items-baseline gap-2 border-t pt-2.5">
+          {item.originalLanguage && <span className={LANGUAGE_CHIP}>{item.originalLanguage.toUpperCase()}</span>}
+          <div className="min-w-0">
+            <h3 className="text-muted-foreground text-sm leading-snug font-medium">{item.originalTitle}</h3>
+            {item.originalLede && (
+              <p className="text-muted-foreground mt-1 text-sm leading-snug">{item.originalLede}</p>
+            )}
           </div>
-          {item.polishSummary && <p className="mt-1 text-sm text-blue-100/70">{item.polishSummary}</p>}
-          <div className="mt-3 border-t border-white/10 pt-3">
-            <div className="flex items-start gap-2">
-              {item.originalLanguage && <span className={LANGUAGE_CHIP}>{item.originalLanguage.toUpperCase()}</span>}
-              <h3 className="text-sm font-medium text-blue-100/80">{item.originalTitle}</h3>
-            </div>
-            {item.originalLede && <p className="mt-1 text-sm text-blue-100/50">{item.originalLede}</p>}
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="mt-2 flex items-start gap-2">
-            {item.originalLanguage && <span className={LANGUAGE_CHIP}>{item.originalLanguage.toUpperCase()}</span>}
-            <h2 className="text-lg font-semibold">{item.originalTitle}</h2>
-          </div>
-          {item.originalLede && <p className="mt-1 text-sm text-blue-100/70">{item.originalLede}</p>}
-        </>
+        </div>
       )}
 
-      {item.rationale && <p className="mt-2 text-xs text-blue-100/50 italic">{item.rationale}</p>}
-
-      <div className="mt-3 flex items-center gap-3 text-xs text-blue-100/60">
-        <span>
-          {item.coverageCount} source{item.coverageCount === 1 ? "" : "s"}
-        </span>
-        {!item.translated && <span className="text-amber-300">untranslated</span>}
+      <div className="flex flex-wrap items-baseline justify-between gap-2 text-[13px]">
+        {item.rationale ? <span className="text-muted-foreground">Why it ranked: {item.rationale}</span> : <span />}
         {item.sourceUrl && isSafeUrl(item.sourceUrl) && (
-          <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-300 hover:underline">
-            Read original →
+          <a
+            href={item.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-6 items-center font-semibold no-underline hover:underline"
+          >
+            Read source
           </a>
         )}
       </div>
+    </div>
+  );
+
+  const frame = cn(
+    "flex gap-4 rounded-2xl bg-card transition-shadow",
+    highlighted
+      ? "border-2 border-signal px-[21px] py-[19px] shadow-[0_0_0_4px_var(--signal-tint)]"
+      : "border px-[22px] py-5",
+  );
+
+  if (!selectable) {
+    return <li className={frame}>{body}</li>;
+  }
+
+  return (
+    <li>
+      {/* The whole card is the click target, not just a 16px box. A link inside a label keeps its
+          own activation, so "Read source" still opens the article rather than toggling the pick. */}
+      <label className={cn(frame, "hover:border-input cursor-pointer")}>
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={() => onToggle?.(item.clusterId)}
+          aria-label={`Pick: ${title}`}
+          className="accent-primary mt-0.5 size-5.5 shrink-0 cursor-pointer"
+        />
+        {body}
+      </label>
     </li>
   );
 }

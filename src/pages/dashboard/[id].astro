@@ -1,9 +1,12 @@
 ---
 import Layout from "@/layouts/Layout.astro";
 import AssetStrip, { type RenderedAsset } from "@/components/AssetStrip.astro";
-import OperatorHeader from "@/components/OperatorHeader.astro";
+import AppHeader from "@/components/AppHeader.astro";
+import Notice from "@/components/Notice.astro";
+import StatusChip from "@/components/StatusChip.astro";
 import { SelectionForm } from "@/components/SelectionForm";
 import { ShortlistCard } from "@/components/ShortlistCard";
+import { formatWeek } from "@/lib/digest/presentation";
 import { ASSET_BUCKET, SIGNED_URL_TTL_SECONDS } from "@/lib/digest/assets";
 import { FORMAT_LABELS, PLATFORM_LABELS } from "@/lib/selection/rules";
 import { createServiceClient } from "@/lib/supabase-admin";
@@ -259,101 +262,128 @@ if (client && digest && !loadError && RENDERED_STATUSES.includes(digest.status))
 const selectionOpen = digest?.status === "ready_for_selection" && !selection && !loadError;
 ---
 
-<Layout title="Digest">
-  <div class="bg-cosmic min-h-screen p-4 text-white">
-    <OperatorHeader title={digest ? `${digest.window_start} – ${digest.window_end}` : "Digest not found"} />
-    <main class="mx-auto mt-6 max-w-3xl">
-      {
-        !client ? (
-          <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">
-            Supabase is not configured — this digest cannot be loaded.
-          </p>
-        ) : loadError ? (
-          <p class="rounded-xl border border-red-400/30 bg-red-500/10 p-6 text-sm text-red-200">
-            Couldn't load this digest — please try again.
-          </p>
-        ) : !digest ? (
-          <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">
-            No digest with this id exists.
-          </p>
-        ) : NOT_READY_STATUSES.includes(digest.status) ? (
-          <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">
-            This digest is still <span class="font-semibold">{digest.status}</span> — the shortlist isn't ready yet.
-          </p>
-        ) : digest.status === "failed" ? (
-          <p class="rounded-xl border border-red-400/30 bg-red-500/10 p-6 text-sm text-red-200">
-            This digest failed: {digest.last_error ?? "no diagnostic recorded"}
-          </p>
-        ) : shortlist.length === 0 ? (
-          <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">
-            No shortlisted stories for this digest.
-          </p>
-        ) : selectionOpen ? (
-          <SelectionForm client:load digestId={digest.id} items={shortlist} />
-        ) : (
-          <Fragment>
-            {selection && (
-              <p class="mb-4 rounded-xl border border-purple-400/30 bg-purple-500/10 p-4 text-sm text-blue-100/80">
-                Selection confirmed — <span class="font-semibold">{pickedClusterIds.size}</span> stories going out as{" "}
-                <span class="font-semibold">{FORMAT_LABELS[selection.format]}</span> content for{" "}
-                <span class="font-semibold">{selection.platforms.map((p) => PLATFORM_LABELS[p]).join(", ")}</span>.
-              </p>
-            )}
-            {
-              // S-07: the approval gate lives on its own route -- this is only the entry point.
-              digest.status === "ready_for_approval" ? (
-                <p class="mb-4 rounded-xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-100">
-                  Content is ready for approval.{" "}
-                  <a href={`/dashboard/${digest.id}/approve`} class="font-semibold underline hover:no-underline">
-                    Review and decide →
-                  </a>
-                </p>
-              ) : digest.status === "approved" || digest.status === "rejected" ? (
-                <p class="mb-4 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-blue-100/70">
-                  This digest was <span class="font-semibold">{digest.status}</span>.{" "}
-                  <a href={`/dashboard/${digest.id}/approve`} class="text-blue-300 hover:underline">
-                    View the decision →
-                  </a>
-                </p>
-              ) : digest.status === "skipped" ? (
-                // S-08/US-19: a missed approval deadline skips the auto-publish but leaves the
-                // digest manually publishable -- the "Publish now" panel lives on the approve page.
-                <p class="mb-4 rounded-xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-100">
-                  This digest missed its approval deadline and was skipped.{" "}
-                  <a href={`/dashboard/${digest.id}/approve`} class="font-semibold underline hover:no-underline">
-                    Publish it manually →
-                  </a>
-                </p>
-              ) : digest.status === "published" ? (
-                <p class="mb-4 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-blue-100/70">
-                  This digest was published.{" "}
-                  <a href={`/dashboard/${digest.id}/approve`} class="text-blue-300 hover:underline">
-                    View publish results →
-                  </a>
-                </p>
-              ) : null
-            }
-            {assetsError ? (
-              <p class="mb-6 rounded-xl border border-red-400/30 bg-red-500/10 p-4 text-sm text-red-200">
-                Couldn't load this digest's rendered visuals — the images may still exist. Try reloading.
-              </p>
-            ) : assets.length > 0 ? (
-              <AssetStrip assets={assets} partialFailure={assetsPartial} />
+<Layout title={digest ? `Week of ${formatWeek(digest.window_start, digest.window_end)}` : "Digest not found"}>
+  <AppHeader
+    back={{ href: "/dashboard", label: "This week" }}
+    context={selectionOpen ? "Step 1 of 2 · Pick stories" : undefined}
+  />
+  <main class="mx-auto flex max-w-6xl flex-col gap-7 px-4 pt-9 pb-16 sm:px-6">
+    {
+      digest && (
+        <div class="space-y-2">
+          <h1 class="text-3xl leading-tight font-bold tracking-tight sm:text-[34px]">
+            {selectionOpen
+              ? "Pick this week's stories"
+              : `Week of ${formatWeek(digest.window_start, digest.window_end)}`}
+          </h1>
+          <div class="text-muted-foreground flex flex-wrap items-center gap-2.5 text-base">
+            {selectionOpen ? (
+              <span>
+                {formatWeek(digest.window_start, digest.window_end)} · {shortlist.length} shortlisted, best fit for
+                Barcelona and Catalonia first
+              </span>
             ) : (
-              RENDERED_STATUSES.includes(digest.status) && (
-                <p class="mb-6 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-blue-100/70">
-                  No visuals rendered yet — run <code class="font-mono">npm run visuals</code> for this digest.
-                </p>
-              )
+              <StatusChip status={digest.status} />
             )}
-            <ul class="space-y-3">
-              {shortlist.map((item) => (
-                <ShortlistCard item={item} picked={pickedClusterIds.has(item.clusterId)} />
-              ))}
-            </ul>
-          </Fragment>
-        )
-      }
-    </main>
-  </div>
+          </div>
+        </div>
+      )
+    }
+    {
+      !client ? (
+        <Notice>Supabase is not configured — this digest cannot be loaded.</Notice>
+      ) : loadError ? (
+        <Notice tone="problem">Couldn't load this digest — please try again.</Notice>
+      ) : !digest ? (
+        <Notice>No digest with this id exists.</Notice>
+      ) : NOT_READY_STATUSES.includes(digest.status) ? (
+        <Notice>
+          This week's news is still being gathered and ranked. You'll get an email when the shortlist is ready.
+        </Notice>
+      ) : digest.status === "failed" ? (
+        <Notice tone="problem">
+          <p class="font-semibold">This week's run stopped before it finished.</p>
+          <p class="mt-1">{digest.last_error ?? "No diagnostic was recorded."}</p>
+        </Notice>
+      ) : shortlist.length === 0 ? (
+        <Notice>No stories were shortlisted for this week.</Notice>
+      ) : selectionOpen ? (
+        <SelectionForm client:load digestId={digest.id} items={shortlist} />
+      ) : (
+        <Fragment>
+          {
+            // S-07: the approval gate lives on its own route -- this is only the entry point.
+            digest.status === "ready_for_approval" ? (
+              <Notice tone="turn" class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <p class="font-semibold">The finished post is ready for your review.</p>
+                  <p class="text-muted-foreground">Nothing is published without your approval.</p>
+                </div>
+                <a
+                  href={`/dashboard/${digest.id}/approve`}
+                  class="bg-primary text-primary-foreground inline-flex min-h-12 items-center rounded-xl px-5 font-semibold no-underline hover:opacity-90"
+                >
+                  Review the post
+                </a>
+              </Notice>
+            ) : digest.status === "skipped" ? (
+              // S-08/US-19: a missed approval deadline skips the auto-publish but leaves the
+              // digest manually publishable -- the "Publish now" panel lives on the approve page.
+              <Notice class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <p class="font-semibold">This post missed its approval deadline.</p>
+                  <p class="text-muted-foreground">
+                    Nothing was published. You can still review it and publish by hand.
+                  </p>
+                </div>
+                <a
+                  href={`/dashboard/${digest.id}/approve`}
+                  class="bg-primary text-primary-foreground inline-flex min-h-12 items-center rounded-xl px-5 font-semibold no-underline hover:opacity-90"
+                >
+                  Review and publish
+                </a>
+              </Notice>
+            ) : digest.status === "approved" || digest.status === "rejected" || digest.status === "published" ? (
+              <Notice class="flex flex-wrap items-center justify-between gap-4">
+                <p>
+                  {digest.status === "published"
+                    ? "This week's post was published."
+                    : digest.status === "approved"
+                      ? "You approved this post. It publishes on Tuesday at 17:00."
+                      : "You sent this post back for a rewrite."}
+                </p>
+                <a href={`/dashboard/${digest.id}/approve`} class="font-semibold no-underline hover:underline">
+                  {digest.status === "published" ? "View publish results →" : "View the post →"}
+                </a>
+              </Notice>
+            ) : null
+          }
+          {selection && (
+            <p class="text-muted-foreground text-[15px]">
+              <span class="text-foreground font-semibold">{pickedClusterIds.size} picked</span> ·{" "}
+              {FORMAT_LABELS[selection.format]} · {selection.platforms.map((p) => PLATFORM_LABELS[p]).join(", ")}
+            </p>
+          )}
+          {assetsError ? (
+            <Notice tone="problem">
+              Couldn't load this week's slides — the images may still exist. Try reloading.
+            </Notice>
+          ) : assets.length > 0 ? (
+            <AssetStrip assets={assets} partialFailure={assetsPartial} />
+          ) : (
+            RENDERED_STATUSES.includes(digest.status) && (
+              <Notice>
+                The slides haven't been designed yet. Run <code>npm run visuals</code> for this digest.
+              </Notice>
+            )
+          )}
+          <ul class="flex flex-col gap-3">
+            {shortlist.map((item) => (
+              <ShortlistCard item={item} picked={pickedClusterIds.has(item.clusterId)} />
+            ))}
+          </ul>
+        </Fragment>
+      )
+    }
+  </main>
 </Layout>

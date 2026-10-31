@@ -6,12 +6,16 @@
 // generation run) and unattended publishing follows an approval, so a review step stands between
 // the buttons and the transition. Everything it enforces is re-enforced by the endpoint and again
 // by record_approval(); this layer is the affordance, not the gate.
+//
+// Drawn as a bar fixed to the bottom of the screen, so the decision stays in reach however far
+// down the copy the operator has read.
 import { useState } from "react";
 
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useApproval } from "@/components/hooks/useApproval";
+import { PRIMARY_BUTTON, SECONDARY_BUTTON } from "@/components/ui/button-styles";
 import { MAX_NOTE_LENGTH } from "@/lib/approval/rules";
 import { FORMAT_LABELS, PLATFORM_LABELS } from "@/lib/selection/rules";
-import { cn } from "@/lib/utils";
 import type { SelectionFormat, SelectionPlatform } from "@/types";
 
 export interface ApprovalPanelProps {
@@ -21,122 +25,98 @@ export interface ApprovalPanelProps {
   platforms: SelectionPlatform[];
 }
 
-const APPROVE_BUTTON =
-  "rounded-lg bg-green-500 px-4 py-2 font-semibold text-white transition-colors hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-green-500";
-const REJECT_BUTTON =
-  "rounded-lg bg-red-500/90 px-4 py-2 font-semibold text-white transition-colors hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-red-500/90";
-const SECONDARY_BUTTON =
-  "rounded-lg border border-white/20 bg-white/5 px-4 py-2 font-semibold text-blue-100/80 transition-colors hover:bg-white/10";
-
 export function ApprovalPanel({ digestId, storyCount, format, platforms }: ApprovalPanelProps) {
   const approval = useApproval(digestId);
   const busy = approval.submit.status === "submitting";
   const [noteTouched, setNoteTouched] = useState(false);
   const noteTooLong = approval.note.trim().length > MAX_NOTE_LENGTH;
+  const approving = approval.decision === "approved";
 
   return (
-    <div className="sticky top-0 z-10 mb-4 rounded-xl border border-white/10 bg-slate-900/80 p-4 backdrop-blur">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold">Decide on this week’s post</p>
-          <p className="text-xs text-blue-100/60">Approving publishes this content; this cannot be undone.</p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            className={APPROVE_BUTTON}
-            disabled={busy}
-            onClick={() => {
-              approval.startReview("approved");
-            }}
+    <div className="bg-card fixed inset-x-0 bottom-0 z-10 border-t shadow-[0_-8px_24px_rgb(15_23_42/0.06)]">
+      <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:px-6">
+        {approval.submit.status === "error" && (
+          <p
+            role="alert"
+            className="border-destructive bg-destructive-tint text-destructive rounded-xl border p-3 text-sm"
           >
-            Approve
-          </button>
-          <button
-            type="button"
-            className={REJECT_BUTTON}
-            disabled={busy}
-            onClick={() => {
-              approval.startReview("rejected");
-            }}
-          >
-            Reject
-          </button>
+            {approval.submit.message}
+          </p>
+        )}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-base font-semibold">Approve, and it publishes on Tuesday at 17:00</p>
+            <p className="text-muted-foreground text-sm">Nothing is posted without your approval.</p>
+          </div>
+          <div className="flex flex-wrap gap-2.5">
+            <button
+              type="button"
+              className={SECONDARY_BUTTON}
+              disabled={busy}
+              onClick={() => {
+                approval.startReview("rejected");
+              }}
+            >
+              Send back for rewrite
+            </button>
+            <button
+              type="button"
+              className={PRIMARY_BUTTON}
+              disabled={busy}
+              onClick={() => {
+                approval.startReview("approved");
+              }}
+            >
+              Approve post
+            </button>
+          </div>
         </div>
       </div>
 
-      {approval.submit.status === "error" && (
-        <div className="mt-4 rounded-lg border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-200">
-          <p>{approval.submit.message}</p>
-        </div>
-      )}
-
-      {approval.reviewing && approval.decision && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={approval.decision === "approved" ? "Confirm approval" : "Confirm rejection"}
-          className="fixed inset-0 z-20 flex items-center justify-center bg-black/60 p-4"
-        >
-          <div className="max-h-full w-full max-w-lg overflow-y-auto rounded-xl border border-white/15 bg-slate-900 p-6 text-white shadow-xl">
-            {approval.decision === "approved" ? (
-              <>
-                <h2 className="text-lg font-semibold">Approve this week’s post</h2>
-                <p className="mt-1 text-sm text-blue-100/70">
-                  {storyCount} {storyCount === 1 ? "story" : "stories"} will publish as{" "}
-                  {FORMAT_LABELS[format].toLowerCase()} content for{" "}
-                  {platforms.map((p) => PLATFORM_LABELS[p]).join(", ")}. This cannot be undone.
-                </p>
-              </>
-            ) : (
-              <>
-                <h2 className="text-lg font-semibold">Reject this week’s post</h2>
-                <p className="mt-1 text-sm text-blue-100/70">
-                  Nothing will publish. You can regenerate fresh copy for the same picks afterward.
-                </p>
-                <label htmlFor="approval-note" className="mt-4 block text-xs tracking-wide text-blue-100/60 uppercase">
-                  Note (optional)
-                </label>
-                <textarea
-                  id="approval-note"
-                  rows={3}
-                  maxLength={MAX_NOTE_LENGTH}
-                  value={approval.note}
-                  onChange={(event) => {
-                    setNoteTouched(true);
-                    approval.setNote(event.target.value);
-                  }}
-                  placeholder="What should change?"
-                  className="mt-2 w-full rounded-lg border border-white/15 bg-white/5 p-3 text-sm text-white placeholder:text-blue-100/40"
-                />
-                {noteTouched && noteTooLong && (
-                  <p className="mt-1 text-xs text-red-300">note must be {MAX_NOTE_LENGTH} characters or fewer</p>
-                )}
-              </>
+      <ConfirmDialog
+        open={approval.reviewing && approval.decision !== null}
+        title={approving ? "Approve this week's post?" : "Send this post back?"}
+        busy={busy}
+        confirmDisabled={!approving && noteTooLong}
+        confirmLabel={busy ? "Saving…" : approving ? "Approve post" : "Send back"}
+        onCancel={approval.cancelReview}
+        onConfirm={() => {
+          void approval.confirm().then(() => {
+            approval.cancelReview();
+          });
+        }}
+      >
+        {approving ? (
+          <p className="text-muted-foreground text-[15px] leading-relaxed">
+            {storyCount} {storyCount === 1 ? "story" : "stories"} will publish as {FORMAT_LABELS[format].toLowerCase()}{" "}
+            content for {platforms.map((p) => PLATFORM_LABELS[p]).join(", ")} on Tuesday at 17:00. This can’t be undone.
+          </p>
+        ) : (
+          <>
+            <p className="text-muted-foreground text-[15px] leading-relaxed">
+              Nothing will be published. Fresh copy can be generated for the same picks afterwards.
+            </p>
+            <label htmlFor="approval-note" className="mt-4 block text-sm font-semibold">
+              What should change? <span className="text-muted-foreground font-normal">Optional</span>
+            </label>
+            <textarea
+              id="approval-note"
+              rows={3}
+              maxLength={MAX_NOTE_LENGTH}
+              value={approval.note}
+              onChange={(event) => {
+                setNoteTouched(true);
+                approval.setNote(event.target.value);
+              }}
+              placeholder="e.g. The second headline is too long"
+              className="border-input bg-card placeholder:text-muted-foreground mt-2 w-full rounded-xl border p-3 text-[15px]"
+            />
+            {noteTouched && noteTooLong && (
+              <p className="text-destructive mt-1 text-sm">Keep the note to {MAX_NOTE_LENGTH} characters or fewer.</p>
             )}
-
-            <div className="mt-6 flex justify-end gap-3">
-              <button type="button" className={SECONDARY_BUTTON} disabled={busy} onClick={approval.cancelReview}>
-                Back
-              </button>
-              <button
-                type="button"
-                className={cn(approval.decision === "approved" ? APPROVE_BUTTON : REJECT_BUTTON)}
-                disabled={busy || noteTooLong}
-                onClick={() => {
-                  // On success the page reloads and this never runs; on failure the dialog must
-                  // close, or the error banner it produced sits hidden behind this overlay.
-                  void approval.confirm().then(() => {
-                    approval.cancelReview();
-                  });
-                }}
-              >
-                {busy ? "Saving…" : approval.decision === "approved" ? "Confirm approval" : "Confirm rejection"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </ConfirmDialog>
     </div>
   );
 }
