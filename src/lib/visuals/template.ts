@@ -1,14 +1,16 @@
 // WORKER-SIDE, but pure: no network, no credentials, no clock. This module is the single
 // definition of the contract between the operator's design work in Google Slides and the code that
-// fills it. `template-spec.md` in the change folder is the human-facing rendering of exactly what
-// is declared here — if the two ever disagree, this file is right and the document is stale.
+// fills it. `context/foundation/slides-template-spec.md` is the human-facing rendering of exactly
+// what is declared here — if the two ever disagree, this file is right and the document is stale.
 //
 // The whole point of FR-015 is that the operator restyles without a deploy. That only holds if the
-// code depends on placeholder NAMES and nothing else: not positions, not colours, not fonts, not
-// the order of elements on the page. Everything below is name-based for that reason.
+// code depends on NAMES and nothing else: not positions, not colours, not fonts, not the order of
+// elements on the page. The single-post deck is found by placeholder names; the carousel deck by
+// the tags the operator writes in each slide's speaker notes, so photo slides can be added,
+// removed or reordered without a code change.
 import type { PageElement, Presentation, Slide } from "@/lib/visuals/slides-client";
 
-/** Placeholders on a story slide — one per selected story. */
+/** Placeholders on a single-post story slide — one per selected story. */
 export const STORY_PLACEHOLDERS = [
   "TITLE",
   "STAT_1_LABEL",
@@ -19,7 +21,10 @@ export const STORY_PLACEHOLDERS = [
   "STAT_3_VALUE",
 ] as const;
 
-/** Placeholders on a carousel's cover slide, which represents the week rather than a story. */
+/**
+ * Placeholders on the PREVIOUS carousel deck's cover. The current carousel deck's cover carries
+ * none; this survives only until the renderer reads the tag-based deck.
+ */
 export const COVER_PLACEHOLDERS = ["COVER_TITLE", "COVER_SUBTITLE"] as const;
 
 export type StoryPlaceholder = (typeof STORY_PLACEHOLDERS)[number];
@@ -44,6 +49,12 @@ const TOKEN_PATTERN = /\{\{([A-Z0-9_]+)\}\}/g;
  */
 export const TARGET_PAGE_EMU = 1080 * 9525;
 
+/**
+ * The carousel deck is portrait 4:5 — Instagram's tallest feed format, which Facebook and LinkedIn
+ * also show uncropped. 1080 x 1350 px.
+ */
+export const CAROUSEL_PAGE_EMU = { width: 1080 * 9525, height: 1350 * 9525 } as const;
+
 /** Page-size tolerance. Generous on purpose: aspect ratio is what platforms care about, not exact EMU. */
 const PAGE_SIZE_TOLERANCE = 0.02;
 
@@ -61,14 +72,64 @@ export const DECK_SPECS = {
     slideCount: 1,
     slides: [STORY_PLACEHOLDERS],
   },
-  // Slide 0 is the cover; slide 1 is the story template, duplicated once per story at render time.
-  carousel: {
-    slideCount: 2,
-    slides: [COVER_PLACEHOLDERS, STORY_PLACEHOLDERS],
-  },
 } as const satisfies Record<string, DeckSpec>;
 
-export type DeckKind = keyof typeof DECK_SPECS;
+/** The two decks: positional single-post (`DECK_SPECS`) and the tag-based carousel. */
+export type DeckKind = keyof typeof DECK_SPECS | "carousel";
+
+/**
+ * The carousel deck's visual sections. Every story slide belongs to exactly one; a week's
+ * stories are spread across them for variety.
+ */
+export const CAROUSEL_SECTIONS = ["barcelona", "spain", "finance_law"] as const;
+export type CarouselSection = (typeof CAROUSEL_SECTIONS)[number];
+
+/**
+ * Placeholders on a carousel story slide. They share ONE text box, title paragraph first: Slides
+ * resets a box's "resize to fit" whenever the API replaces its text, so two stacked boxes would
+ * overlap as soon as a headline wrapped. In one box the description simply flows under the title.
+ */
+export const CAROUSEL_STORY_PLACEHOLDERS = ["TITLE", "DESCRIPTION"] as const;
+export const DESCRIPTION_PLACEHOLDER = "DESCRIPTION" satisfies (typeof CAROUSEL_STORY_PLACEHOLDERS)[number];
+
+/** What a carousel slide's speaker notes declare it to be. */
+export type SlideTag = { role: "cover" } | { role: "story"; section: CarouselSection };
+
+/**
+ * Read a slide's tag from its speaker notes: whitespace-separated `key=value` pairs, any order,
+ * e.g. `role=story section=barcelona`. Strict about values — a typo'd section would otherwise
+ * silently drop a whole set of photos from rotation.
+ */
+export function parseSlideTag(notes: string): { ok: true; data: SlideTag } | { ok: false; message: string } {
+  const pairs = new Map<string, string>();
+  for (const part of notes.trim().split(/\s+/)) {
+    const [key, value] = part.split("=");
+    if (key && value) pairs.set(key.toLowerCase(), value.toLowerCase());
+  }
+
+  const role = pairs.get("role");
+  if (!role) return { ok: false, message: "has no `role=` tag in its speaker notes" };
+  if (role === "cover") return { ok: true, data: { role: "cover" } };
+  if (role !== "story") return { ok: false, message: `has an unknown role "${role}" (expected cover or story)` };
+
+  const section = pairs.get("section");
+  if (!section) return { ok: false, message: "is a story slide with no `section=` tag" };
+  if (!(CAROUSEL_SECTIONS as readonly string[]).includes(section)) {
+    return {
+      ok: false,
+      message: `has an unknown section "${section}" (expected one of ${CAROUSEL_SECTIONS.join(", ")})`,
+    };
+  }
+  return { ok: true, data: { role: "story", section: section as CarouselSection } };
+}
+
+/** The text of a slide's speaker notes, or "" when it has none. */
+export function speakerNotes(slide: Slide): string {
+  const notesPage = slide.slideProperties?.notesPage;
+  const id = notesPage?.notesProperties?.speakerNotesObjectId;
+  const shape = notesPage?.pageElements?.find((element) => element.objectId === id);
+  return shape ? elementText(shape) : "";
+}
 
 /** All the text on one page element, joined. Slides splits a run at every style change. */
 export function elementText(element: PageElement): string {
@@ -167,12 +228,163 @@ function checkSlide(slide: Slide, index: number, required: readonly string[]): D
     if (!requiredSet.has(name)) {
       problems.push({
         fatal: true,
-        message: `slide ${index + 1}: unrecognised placeholder ${token(name)} — check the spelling against template-spec.md`,
+        message: `slide ${index + 1}: unrecognised placeholder ${token(name)} — check the spelling against the template spec`,
       });
     }
   }
 
   return problems;
+}
+
+function checkPortraitPage(presentation: Presentation): DeckProblem[] {
+  const width = presentation.pageSize?.width?.magnitude;
+  const height = presentation.pageSize?.height?.magnitude;
+  if (typeof width !== "number" || typeof height !== "number") {
+    return [{ fatal: false, message: "could not read the deck's page size; skipping the size check" }];
+  }
+
+  const target = CAROUSEL_PAGE_EMU.width / CAROUSEL_PAGE_EMU.height;
+  const problems: DeckProblem[] = [];
+  if (Math.abs(width / height - target) > target * PAGE_SIZE_TOLERANCE) {
+    problems.push({
+      fatal: true,
+      message:
+        `page is not 4:5 portrait (${String(Math.round(width / 9525))} x ${String(Math.round(height / 9525))} px). ` +
+        `Set File > Page setup > Custom to 1080 x 1350 px.`,
+    });
+  } else if (Math.abs(width - CAROUSEL_PAGE_EMU.width) > CAROUSEL_PAGE_EMU.width * PAGE_SIZE_TOLERANCE) {
+    problems.push({
+      fatal: false,
+      message:
+        `page is 4:5 but not 1080 px wide (${String(Math.round(width / 9525))} px). ` +
+        `This still renders; it is only a density difference.`,
+    });
+  }
+  return problems;
+}
+
+/** One carousel story slide the renderer may duplicate. */
+export interface CarouselStorySlide {
+  slide: Slide;
+  section: CarouselSection;
+  /** The text box holding `{{TITLE}}` then `{{DESCRIPTION}}` — the one the renderer sizes. */
+  boxElementId: string;
+}
+
+/** The carousel deck as the renderer sees it, plus everything wrong with it. */
+export interface CarouselDeck {
+  cover: Slide | null;
+  /** Usable story slides, in deck order. Slides with problems are left out. */
+  stories: CarouselStorySlide[];
+  problems: DeckProblem[];
+}
+
+/**
+ * The story slide's single text box: both carousel placeholders, title first, nothing else in it.
+ * "Nothing else" because the renderer sizes the box's paragraphs by character offsets — a stray
+ * label typed into the same box would shift them.
+ */
+function checkStoryBox(slide: Slide, label: string): { boxElementId: string | null; problems: DeckProblem[] } {
+  const problems: DeckProblem[] = [];
+  const counts = new Map<string, number>();
+  let boxElementId: string | null = null;
+  let boxReported = false;
+
+  for (const element of slide.pageElements ?? []) {
+    const text = elementText(element);
+    const found = placeholdersIn(text);
+    for (const name of found) counts.set(name, (counts.get(name) ?? 0) + 1);
+
+    if (found.includes(TITLE_PLACEHOLDER) || found.includes(DESCRIPTION_PLACEHOLDER)) {
+      const expected = CAROUSEL_STORY_PLACEHOLDERS.map(token);
+      const rest = text.replace(expected[0], "").replace(expected[1], "").trim();
+      if (found.join(" ") !== CAROUSEL_STORY_PLACEHOLDERS.join(" ") || rest !== "") {
+        // Once per slide: two separate boxes would otherwise each report the same mistake.
+        if (boxReported) continue;
+        boxReported = true;
+        problems.push({
+          fatal: true,
+          message:
+            `${label}: ${token(TITLE_PLACEHOLDER)} and ${token(DESCRIPTION_PLACEHOLDER)} must share one text box, ` +
+            `title first, with nothing else in it (found "${text.trim().slice(0, 80)}")`,
+        });
+      } else {
+        boxElementId = element.objectId;
+      }
+    }
+  }
+
+  for (const name of CAROUSEL_STORY_PLACEHOLDERS) {
+    const count = counts.get(name) ?? 0;
+    if (count === 0) problems.push({ fatal: true, message: `${label}: missing ${token(name)}` });
+    if (count > 1) {
+      problems.push({
+        fatal: true,
+        message: `${label}: ${token(name)} appears ${String(count)} times; it must appear exactly once`,
+      });
+    }
+  }
+  for (const name of counts.keys()) {
+    if (!(CAROUSEL_STORY_PLACEHOLDERS as readonly string[]).includes(name)) {
+      problems.push({
+        fatal: true,
+        message: `${label}: unrecognised placeholder ${token(name)} — check the spelling against the template spec`,
+      });
+    }
+  }
+
+  return { boxElementId: problems.length === 0 ? boxElementId : null, problems };
+}
+
+/**
+ * Read the tag-based carousel deck: exactly one cover, and story slides in every section.
+ *
+ * Shared by the validator and the renderer so the two can never disagree about which slide is
+ * which. The renderer refuses a deck with any fatal problem rather than rendering around it.
+ */
+export function readCarouselDeck(slides: Slide[]): CarouselDeck {
+  const problems: DeckProblem[] = [];
+  const covers: Slide[] = [];
+  const stories: CarouselStorySlide[] = [];
+
+  slides.forEach((slide, index) => {
+    const label = `slide ${String(index + 1)}`;
+    const tag = parseSlideTag(speakerNotes(slide));
+    if (!tag.ok) {
+      problems.push({ fatal: true, message: `${label} ${tag.message}` });
+      return;
+    }
+
+    if (tag.data.role === "cover") {
+      covers.push(slide);
+      const tokens = (slide.pageElements ?? []).flatMap((element) => placeholdersIn(elementText(element)));
+      if (tokens.length > 0) {
+        problems.push({
+          fatal: true,
+          message: `${label}: the cover is exported as designed and takes no placeholders (found ${tokens.map(token).join(" ")})`,
+        });
+      }
+      return;
+    }
+
+    const box = checkStoryBox(slide, label);
+    problems.push(...box.problems);
+    if (box.boxElementId) stories.push({ slide, section: tag.data.section, boxElementId: box.boxElementId });
+  });
+
+  if (covers.length !== 1) {
+    problems.push({
+      fatal: true,
+      message: `expected exactly one slide tagged role=cover, found ${String(covers.length)}`,
+    });
+  }
+  for (const section of CAROUSEL_SECTIONS) {
+    if (!stories.some((story) => story.section === section)) {
+      problems.push({ fatal: true, message: `no usable story slide tagged section=${section}` });
+    }
+  }
+
+  return { cover: covers.length === 1 ? covers[0] : null, stories, problems };
 }
 
 /**
@@ -183,6 +395,11 @@ function checkSlide(slide: Slide, index: number, required: readonly string[]): D
  * figures. Catching them at setup time is the entire reason this function exists.
  */
 export function validateDeck(kind: DeckKind, presentation: Presentation): DeckReport {
+  if (kind === "carousel") {
+    const problems = [...checkPortraitPage(presentation), ...readCarouselDeck(presentation.slides).problems];
+    return { kind, presentationId: presentation.presentationId, problems };
+  }
+
   const spec: DeckSpec = DECK_SPECS[kind];
   const problems: DeckProblem[] = [...checkPageSize(presentation)];
   const slides = presentation.slides;

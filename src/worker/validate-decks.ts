@@ -109,7 +109,7 @@ export async function main(): Promise<number> {
   if (broken.length > 0) {
     console.error(
       `\n${String(broken.length)} deck(s) need fixing before the rendering stage can run. ` +
-        "See context/changes/brand-visual-assets/template-spec.md.",
+        "See context/foundation/slides-template-spec.md.",
     );
     return 1;
   }

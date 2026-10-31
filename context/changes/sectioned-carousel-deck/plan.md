@@ -439,16 +439,16 @@ dashboard; on the Raspberry Pi, `git pull` + `npm ci` so the scheduled worker pi
 
 #### Automated
 
-- [x] 1.1 Tests pass: `npm test`
-- [x] 1.2 Lint passes with 0 errors: `npm run lint`
-- [x] 1.3 Build passes: `npm run build`
+- [x] 1.1 Tests pass: `npm test` — b34f9d9
+- [x] 1.2 Lint passes with 0 errors: `npm run lint` — b34f9d9
+- [x] 1.3 Build passes: `npm run build` — b34f9d9
 
 ### Phase 2: Tag-based carousel deck contract and validator
 
 #### Automated
 
-- [ ] 2.1 Unit tests for tag parsing and every fatal/warning rule pass
-- [ ] 2.2 Full suite, lint, build pass
+- [x] 2.1 Unit tests for tag parsing and every fatal/warning rule pass
+- [x] 2.2 Full suite, lint, build pass
 
 ### Phase 3: Migrate the deck's story slides to the shared box
 
