@@ -447,18 +447,18 @@ dashboard; on the Raspberry Pi, `git pull` + `npm ci` so the scheduled worker pi
 
 #### Automated
 
-- [x] 2.1 Unit tests for tag parsing and every fatal/warning rule pass
-- [x] 2.2 Full suite, lint, build pass
+- [x] 2.1 Unit tests for tag parsing and every fatal/warning rule pass — f7a21db
+- [x] 2.2 Full suite, lint, build pass — f7a21db
 
 ### Phase 3: Migrate the deck's story slides to the shared box
 
 #### Automated
 
-- [ ] 3.1 `npm run visuals:validate` passes for both decks
+- [x] 3.1 `npm run visuals:validate` passes for both decks
 
 #### Manual
 
-- [ ] 3.2 Operator reviews before/after thumbnails of the 20 slides and confirms the look
+- [x] 3.2 Operator reviews before/after thumbnails of the 20 slides and confirms the look
 
 ### Phase 4: Finance/law flag in ranking
 
