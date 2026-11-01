@@ -3,6 +3,7 @@ import Layout from "@/layouts/Layout.astro";
 import AppHeader from "@/components/AppHeader.astro";
 import Notice from "@/components/Notice.astro";
 import StatusChip from "@/components/StatusChip.astro";
+import { WeekActions } from "@/components/WeekActions";
 import { WeekList } from "@/components/WeekList";
 import { currentStepIndex, formatWeek, PIPELINE_STEPS } from "@/lib/digest/presentation";
 import { loadWeekPage, parseWeekPageQuery, WEEK_ROW_COLUMNS, type WeekRow } from "@/lib/digest/week-list";
@@ -171,6 +172,9 @@ const TODAY = new Intl.DateTimeFormat("en-GB", {
                 <StatusChip status={current.status} />
                 <span class="text-muted-foreground text-sm">
                   Week of {formatWeek(current.window_start, current.window_end)}
+                </span>
+                <span class="ml-auto">
+                  <WeekActions client:load week={current} />
                 </span>
               </div>
               <h2 id="week-title" class="max-w-xl text-2xl leading-tight font-bold tracking-tight sm:text-[30px]">

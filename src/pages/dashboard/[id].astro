@@ -6,6 +6,7 @@ import Notice from "@/components/Notice.astro";
 import StatusChip from "@/components/StatusChip.astro";
 import { SelectionForm } from "@/components/SelectionForm";
 import { ShortlistCard } from "@/components/ShortlistCard";
+import { WeekActions } from "@/components/WeekActions";
 import { formatWeek } from "@/lib/digest/presentation";
 import { ASSET_BUCKET, SIGNED_URL_TTL_SECONDS } from "@/lib/digest/assets";
 import { FORMAT_LABELS, PLATFORM_LABELS } from "@/lib/selection/rules";
@@ -30,6 +31,7 @@ interface DigestSummary {
   window_end: string;
   status: DigestStatus;
   last_error: string | null;
+  updated_at: string;
 }
 
 const { id } = Astro.params;
@@ -41,7 +43,7 @@ let digest: DigestSummary | null = null;
 if (client) {
   const { data, error } = await client
     .from("digest")
-    .select("id, window_start, window_end, status, last_error")
+    .select("id, window_start, window_end, status, last_error, updated_at")
     .eq("id", id)
     .maybeSingle();
   if (error) {
@@ -278,22 +280,25 @@ const selectionOpen = digest?.status === "ready_for_selection" && !selection && 
   <main class="mx-auto flex max-w-6xl flex-col gap-7 px-4 pt-9 pb-16 sm:px-6">
     {
       digest && (
-        <div class="space-y-2">
-          <h1 class="text-3xl leading-tight font-bold tracking-tight sm:text-[34px]">
-            {selectionOpen
-              ? "Pick this week's stories"
-              : `Week of ${formatWeek(digest.window_start, digest.window_end)}`}
-          </h1>
-          <div class="text-muted-foreground flex flex-wrap items-center gap-2.5 text-base">
-            {selectionOpen ? (
-              <span>
-                {formatWeek(digest.window_start, digest.window_end)} · {shortlist.length} shortlisted, best fit for
-                Barcelona and Catalonia first
-              </span>
-            ) : (
-              <StatusChip status={digest.status} />
-            )}
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div class="space-y-2">
+            <h1 class="text-3xl leading-tight font-bold tracking-tight sm:text-[34px]">
+              {selectionOpen
+                ? "Pick this week's stories"
+                : `Week of ${formatWeek(digest.window_start, digest.window_end)}`}
+            </h1>
+            <div class="text-muted-foreground flex flex-wrap items-center gap-2.5 text-base">
+              {selectionOpen ? (
+                <span>
+                  {formatWeek(digest.window_start, digest.window_end)} · {shortlist.length} shortlisted, best fit for
+                  Barcelona and Catalonia first
+                </span>
+              ) : (
+                <StatusChip status={digest.status} />
+              )}
+            </div>
           </div>
+          <WeekActions client:load week={digest} variant="button" />
         </div>
       )
     }

@@ -314,23 +314,23 @@ page shows a "Updating the slides" notice while the week is in `rendering`.
 
 #### Automated
 
-- [x] 3.1 API route tests, lint, build pass
+- [x] 3.1 API route tests, lint, build pass — 05d1e9a
 
 #### Manual
 
-- [x] 3.2 Filters switch without a reload; back button works
+- [x] 3.2 Filters switch without a reload; back button works — 05d1e9a
 
 ### Phase 4: Delete, close, retry
 
 #### Automated
 
-- [ ] 4.1 week-actions unit tests pass
-- [ ] 4.2 Action API integration tests pass
-- [ ] 4.3 Full suite, lint, build pass
+- [x] 4.1 week-actions unit tests pass
+- [x] 4.2 Action API integration tests pass
+- [x] 4.3 Full suite, lint, build pass
 
 #### Manual
 
-- [ ] 4.4 Operator closes the 31 Aug week and clears the other outdated weeks
+- [x] 4.4 Operator closes the 31 Aug week and clears the other outdated weeks
 
 ### Phase 5: Edit the post text
 

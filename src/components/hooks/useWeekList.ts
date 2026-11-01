@@ -24,6 +24,8 @@ export interface UseWeekList {
   error: string | null;
   selectView: (view: WeekView) => void;
   loadOlder: () => void;
+  /** Reload the current filter's first page — after a week was retried, closed or deleted. */
+  refresh: () => void;
 }
 
 export interface WeekListInitial {
@@ -99,6 +101,10 @@ export function useWeekList(initial: WeekListInitial): UseWeekList {
     [show],
   );
 
+  const refresh = useCallback(() => {
+    void show(view, false);
+  }, [show, view]);
+
   const loadOlder = useCallback(() => {
     if (!nextBefore || loading || loadingOlder) return;
     const controller = new AbortController();
@@ -130,5 +136,5 @@ export function useWeekList(initial: WeekListInitial): UseWeekList {
     };
   }, [show]);
 
-  return { view, weeks, nextBefore, loading, loadingOlder, error, selectView, loadOlder };
+  return { view, weeks, nextBefore, loading, loadingOlder, error, selectView, loadOlder, refresh };
 }

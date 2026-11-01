@@ -2,9 +2,11 @@
 // (useWeekList fetches the page and updates the URL) instead of reloading the whole dashboard. Each
 // button and "Show older weeks" keep a real href, so a middle-click opens a new tab and the list
 // still works if JavaScript never loads.
-import type { MouseEvent } from "react";
+import { useCallback, useState, type MouseEvent } from "react";
 
 import { StatusBadge } from "@/components/StatusBadge";
+import { WeekActions } from "@/components/WeekActions";
+import type { WeekActionDone } from "@/components/hooks/useWeekAction";
 import { useWeekList, type WeekListInitial } from "@/components/hooks/useWeekList";
 import { formatWeek } from "@/lib/digest/presentation";
 import { WEEK_VIEWS, weekRowNote, weekViewHref, type WeekView } from "@/lib/digest/week-list";
@@ -26,8 +28,26 @@ function emptyMessage(view: WeekView, hasCurrent: boolean): string {
   return hasCurrent ? "No earlier weeks yet." : "No digests yet. The first one is collected on Sunday at 17:00.";
 }
 
+const DONE_MESSAGE: Record<WeekActionDone["action"], string> = {
+  retry: "Retry started. It runs within 5 minutes.",
+  close: "Week closed. It won't be published.",
+  delete: "Week deleted.",
+};
+
 export function WeekList({ title, ...initial }: WeekListProps) {
   const list = useWeekList(initial);
+  const [notice, setNotice] = useState<string | null>(null);
+  const { refresh } = list;
+
+  // Refetch rather than patch the row: a closed week leaves "Needs me", a retried one changes
+  // chip, and the server's answer for the current filter is the one that is right.
+  const onDone = useCallback(
+    (done: WeekActionDone) => {
+      setNotice(done.warning ? `${DONE_MESSAGE[done.action]} ${done.warning}` : DONE_MESSAGE[done.action]);
+      refresh();
+    },
+    [refresh],
+  );
 
   const olderHref = list.nextBefore
     ? `/dashboard?before=${list.nextBefore}${list.view === "all" ? "" : `&view=${list.view}`}`
@@ -63,6 +83,12 @@ export function WeekList({ title, ...initial }: WeekListProps) {
         </nav>
       </div>
 
+      {notice && (
+        <p role="status" className="text-muted-foreground text-[15px]">
+          {notice}
+        </p>
+      )}
+
       {list.error && (
         <div
           role="alert"
@@ -84,10 +110,10 @@ export function WeekList({ title, ...initial }: WeekListProps) {
             {list.weeks.map((week) => {
               const note = weekRowNote(week);
               return (
-                <li key={week.id} className="border-b last:border-b-0">
+                <li key={week.id} className="flex items-center border-b pr-2 last:border-b-0 sm:pr-3">
                   <a
                     href={`/dashboard/${week.id}`}
-                    className="text-foreground hover:bg-muted flex flex-wrap items-center gap-x-6 gap-y-2 px-5 py-4 no-underline transition-colors sm:px-6"
+                    className="text-foreground hover:bg-muted flex min-w-0 flex-1 flex-wrap items-center gap-x-6 gap-y-2 py-4 pr-3 pl-5 no-underline transition-colors sm:pl-6"
                   >
                     <span className="min-w-0 flex-[1_1_220px]">
                       <span className="block text-base font-semibold">
@@ -109,6 +135,7 @@ export function WeekList({ title, ...initial }: WeekListProps) {
                       Open →
                     </span>
                   </a>
+                  <WeekActions week={week} onDone={onDone} />
                 </li>
               );
             })}
