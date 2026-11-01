@@ -1,9 +1,9 @@
 ---
 change_id: resilient-story-generation
 title: A week never fails because of article choice — stricter number check plus per-story safety net
-status: implementing
+status: implemented
 created: 2026-10-31
-updated: 2026-10-31
+updated: 2026-11-01
 archived_at: null
 ---
 

@@ -136,8 +136,8 @@ All stories are from the perspective of the single operator unless marked _(syst
 
 - **Given** a source article containing prices and percentages
 - **When** the generated Polish copy is produced
-- **Then** every numeral extracted from the source is asserted present in the output
-- **And** if any is missing or altered, the run fails rather than publishing wrong figures
+- **Then** every figure in the output is asserted to exist in the source, and the figures of the story's headline and lead are asserted present
+- **And** if any figure is invented, altered or (for headline/lead figures) missing after one corrective retry, that story is left out rather than published with wrong figures, and the operator sees it listed as "Not included" (revised 2026-10-31)
 
 ### US-13: I control the design without touching code
 
@@ -256,7 +256,7 @@ All stories are from the perspective of the single operator unless marked _(syst
 ### Generation
 
 - FR-013: The system gives only the selected stories full treatment — a complete Spanish→Polish adaptation for social media: compelling title, caption-ready summary, longer body copy for slides, and pulled-out key statistics. Priority: must-have
-- FR-014: The system verifies numeric integrity deterministically, not via a prompt promise — numerals (prices, percentages, dates) are extracted from the source and asserted present in the output; failure fails the run. Priority: must-have
+- FR-014: The system verifies numeric integrity deterministically, not via a prompt promise — every significant figure (prices, percentages, amounts) in the generated copy must exist in the source, and the figures in the story's headline and lead must be present in the copy. A story that still fails after one corrective retry is left out of the week and shown to the operator as "Not included"; the run fails only if fewer than the minimum number of stories remain. (Revised 2026-10-31: the original "every source figure must appear" rule made figure-dense articles impossible to adapt and never caught invented figures.) Priority: must-have
 - FR-015: The system produces visual output from brand templates via named-slot autofill — the operator owns the design directly in a visual editor and the system fills the slots; one template per platform format; design changes require no code change or deployment. Priority: must-have
 - FR-016: The system enforces a hard per-run cost ceiling and halts the run when accumulated cost reaches it. Priority: must-have
 - FR-017: The system handles malformed model output with staged recovery plus bounded backoff retries, bounded by the FR-016 ceiling. Priority: must-have

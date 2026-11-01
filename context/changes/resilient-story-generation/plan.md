@@ -151,12 +151,12 @@ reason ("its copy didn't pass the number check or couldn't be generated").
 
 #### Automated
 
-- [x] 2.1 Generation integration tests for drop / too-few-left / infrastructure-still-fails pass
-- [x] 2.2 Full suite, lint, build pass
+- [x] 2.1 Generation integration tests for drop / too-few-left / infrastructure-still-fails pass — b25effe
+- [x] 2.2 Full suite, lint, build pass — b25effe
 
 #### Manual
 
-- [x] 2.3 Real digest generates and renders; approval page shows the carousel and any "Not included" story
+- [x] 2.3 Real digest generates and renders; approval page shows the carousel and any "Not included" story — b25effe
 
 ### Phase 3: Docs
 
