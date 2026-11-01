@@ -25,7 +25,9 @@ its corrective retry is left out of the week instead of failing it.
 - One corrective retry names both kinds of problem.
 - A story that still fails — the check, a refusal, malformed/truncated output, context overflow —
   is left out; the week continues if at least `MIN_PICKS` (2) stories remain, else it fails as today.
-  Cost ceiling, `api_error` and `not_configured` still fail the week (infrastructure, retryable).
+  Cost ceiling and `not_configured` still fail the week at once. `api_error` (incl. timeouts) leaves
+  the story out — revised 2026-11-01 after this week's figure-dense story timed out three times; a
+  real outage still fails the week because every story errors and fewer than `MIN_PICKS` remain.
 - The approval page lists picked stories that were left out under "Not included".
 - Verified on the real 2026-10-26 digest: `npm run generate -- --digest=e0e4a533…` reaches `rendering`.
 
@@ -141,23 +143,23 @@ reason ("its copy didn't pass the number check or couldn't be generated").
 
 #### Automated
 
-- [x] 1.1 Numerals unit tests pass
-- [x] 1.2 Generation integration tests pass
-- [x] 1.3 Full suite, lint, build pass
+- [x] 1.1 Numerals unit tests pass — c0f7aa1
+- [x] 1.2 Generation integration tests pass — c0f7aa1
+- [x] 1.3 Full suite, lint, build pass — c0f7aa1
 
 ### Phase 2: Per-story safety net and "Not included"
 
 #### Automated
 
-- [ ] 2.1 Generation integration tests for drop / too-few-left / infrastructure-still-fails pass
-- [ ] 2.2 Full suite, lint, build pass
+- [x] 2.1 Generation integration tests for drop / too-few-left / infrastructure-still-fails pass
+- [x] 2.2 Full suite, lint, build pass
 
 #### Manual
 
-- [ ] 2.3 Real digest generates and renders; approval page shows the carousel and any "Not included" story
+- [x] 2.3 Real digest generates and renders; approval page shows the carousel and any "Not included" story
 
 ### Phase 3: Docs
 
 #### Automated
 
-- [ ] 3.1 Lint and format pass
+- [x] 3.1 Lint and format pass

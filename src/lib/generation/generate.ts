@@ -25,6 +25,7 @@ import {
 } from "@/lib/generation/numerals";
 import { fetchArticleText } from "@/lib/generation/source-text";
 import type { LlmTransport } from "@/lib/llm/client";
+import { MIN_PICKS } from "@/lib/selection/rules";
 import type { ServiceClient } from "@/lib/supabase-service";
 import type { DigestRun, KeyStatistic, RunStateResult, SelectionFormat, SourceTextOrigin } from "@/types";
 
@@ -38,7 +39,28 @@ export interface GenerateOutcome {
   digest: DigestRun;
   /** Stories persisted this run. 0 when the stage concluded in `failed` before persisting. */
   storyCount: number;
+  /** Picked stories left out of the week because their copy could not be produced safely. */
+  dropped: DroppedStory[];
 }
+
+/** A picked story the stage left out, and why — for the worker log and the approval page. */
+export interface DroppedStory {
+  clusterId: string;
+  title: string;
+  reason: string;
+}
+
+/**
+ * Why one story could not be generated. `story` failures leave that story out: a figure check it
+ * cannot pass, a refusal, output the model could not shape — and an API error, because the one
+ * observed in practice was article-specific (a figure-dense table that timed out three times while
+ * the other stories went through). A real outage still fails the week: every story errors, fewer
+ * than MIN_PICKS remain, and the bound below stops the run. `infrastructure` — the cost ceiling or
+ * a missing key — would hit every remaining story identically, so it fails the week at once.
+ */
+type StoryFailureKind = "story" | "infrastructure";
+
+const INFRASTRUCTURE_REASONS = new Set(["ceiling_reached", "not_configured"]);
 
 /** One picked story, as the stage reads it out of the database. */
 interface PickedStory {
@@ -60,7 +82,7 @@ async function failDigest(
 ): Promise<RunStateResult<GenerateOutcome>> {
   const failed = await transitionDigest(client, digestId, "failed", { lastError: message });
   if (!failed.ok) return failed;
-  return { ok: true, data: { digest: failed.data, storyCount: 0 } };
+  return { ok: true, data: { digest: failed.data, storyCount: 0, dropped: [] } };
 }
 
 /**
@@ -186,7 +208,7 @@ async function generateStory(
   story: PickedStory,
   format: SelectionFormat,
   options: GenerateOptions,
-): Promise<{ ok: true; data: StoryResult } | { ok: false; message: string }> {
+): Promise<{ ok: true; data: StoryResult } | { ok: false; kind: StoryFailureKind; message: string }> {
   const fetched = await fetchArticleText(story.sourceUrl, { fetchImpl: options.fetchImpl });
   const sourceText = fetched.ok ? fetched.text : `${story.title}. ${story.lede ?? ""}`.trim();
   const sourceTextOrigin: SourceTextOrigin = fetched.ok ? "article" : "lede";
@@ -211,7 +233,11 @@ async function generateStory(
       correction,
     });
     if (!generated.ok) {
-      return { ok: false, message: `generation ${generated.reason}: ${generated.message}` };
+      return {
+        ok: false,
+        kind: INFRASTRUCTURE_REASONS.has(generated.reason) ? "infrastructure" : "story",
+        message: `generation ${generated.reason}: ${generated.message}`,
+      };
     }
 
     const output = searchableOutput(generated.data);
@@ -237,6 +263,7 @@ async function generateStory(
     if (attempt === 1) {
       return {
         ok: false,
+        kind: "story",
         message: `numeric integrity failed for "${story.title}" after a corrective retry; ${problems.join("; ")}`,
       };
     }
@@ -258,7 +285,7 @@ async function generateStory(
   }
 
   // Unreachable: the loop either returns a result or fails on its second attempt.
-  return { ok: false, message: "generation produced no result" };
+  return { ok: false, kind: "story", message: "generation produced no result" };
 }
 
 async function persistCopy(
@@ -305,10 +332,28 @@ export async function generateDigest(
   }
 
   const results: StoryResult[] = [];
+  const dropped: DroppedStory[] = [];
   for (const story of picked.data.stories) {
     const generated = await generateStory(llm, client, digest.id, story, picked.data.format, options);
-    if (!generated.ok) return failDigest(client, digest.id, generated.message);
-    results.push(generated.data);
+    if (generated.ok) {
+      results.push(generated.data);
+      continue;
+    }
+    if (generated.kind === "infrastructure") return failDigest(client, digest.id, generated.message);
+    // The article cannot be adapted safely: leave it out rather than lose the whole week to it.
+    // The approval page lists it as "Not included", so the operator sees exactly what happened.
+    dropped.push({ clusterId: story.clusterId, title: story.title, reason: generated.message });
+  }
+
+  // Leaving stories out must never take the week below FR-012's lower bound. (The selection gate
+  // owns that bound for what was picked; this only guards what the drops leave behind.)
+  if (dropped.length > 0 && results.length < MIN_PICKS) {
+    return failDigest(
+      client,
+      digest.id,
+      `only ${String(results.length)} of ${String(picked.data.stories.length)} stories could be generated; ` +
+        `at least ${String(MIN_PICKS)} are needed. ${dropped.map((story) => story.reason).join(" | ")}`,
+    );
   }
 
   const cleared = await clearExistingCopy(client, digest.id);
@@ -325,5 +370,5 @@ export async function generateDigest(
   const transitioned = await transitionDigest(client, digest.id, "rendering");
   if (!transitioned.ok) return transitioned;
 
-  return { ok: true, data: { digest: transitioned.data, storyCount: results.length } };
+  return { ok: true, data: { digest: transitioned.data, storyCount: results.length, dropped } };
 }

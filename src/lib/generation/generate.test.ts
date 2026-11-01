@@ -316,6 +316,115 @@ describe.skipIf(!configured)("generateDigest (integration)", () => {
     expect(await copyRows(digest.id)).toHaveLength(0);
   });
 
+  // resilient-story-generation: one article the copy cannot adapt safely no longer costs the week.
+  it("leaves out a story that still fails the check and continues with the rest", async () => {
+    const digest = await seedConfirmedDigest(3);
+    const llm = fakeLlmTransport([
+      fakeMessage({ text: copyResponse(), usage }),
+      fakeMessage({ text: copyResponse(["4 250 euro"]), usage }),
+      fakeMessage({ text: copyResponse(["4 250 euro"]), usage }),
+      fakeMessage({ text: copyResponse(), usage }),
+    ]);
+
+    const result = await generateDigest(llm, db, digest, {
+      ceilingUsd: CEILING,
+      fetchImpl: fakeFetch({ body: ARTICLE_PAGE }),
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.message);
+    expect(result.data.digest.status).toBe("rendering");
+    expect(result.data.storyCount).toBe(2);
+    expect(result.data.dropped).toHaveLength(1);
+    expect(result.data.dropped[0].reason).toContain("numeric integrity failed");
+
+    const picked = await pickedClusterIds(digest.id);
+    const rows = await copyRows(digest.id);
+    expect(rows).toHaveLength(2);
+    expect(rows.map((row) => row.cluster_id)).not.toContain(result.data.dropped[0].clusterId);
+    expect(picked).toContain(result.data.dropped[0].clusterId);
+  });
+
+  it("leaves out a story the model refuses", async () => {
+    const digest = await seedConfirmedDigest(3);
+    const llm = fakeLlmTransport([
+      fakeMessage({ text: copyResponse(), usage }),
+      fakeMessage({ stopReason: "refusal", usage }),
+      fakeMessage({ text: copyResponse(), usage }),
+    ]);
+
+    const result = await generateDigest(llm, db, digest, {
+      ceilingUsd: CEILING,
+      fetchImpl: fakeFetch({ body: ARTICLE_PAGE }),
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.message);
+    expect(result.data.digest.status).toBe("rendering");
+    expect(result.data.dropped.map((story) => story.reason)).toEqual([expect.stringContaining("refusal")]);
+  });
+
+  // FR-012's lower bound still applies to what reaches the approval gate.
+  it("fails the week when fewer than two stories remain", async () => {
+    const digest = await seedConfirmedDigest(2);
+    const llm = fakeLlmTransport([
+      fakeMessage({ text: copyResponse(), usage }),
+      fakeMessage({ text: copyResponse(["4 250 euro"]), usage }),
+      fakeMessage({ text: copyResponse(["4 250 euro"]), usage }),
+    ]);
+
+    const result = await generateDigest(llm, db, digest, {
+      ceilingUsd: CEILING,
+      fetchImpl: fakeFetch({ body: ARTICLE_PAGE }),
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.message);
+    expect(result.data.digest.status).toBe("failed");
+    const { last_error } = await statusOf(digest.id);
+    expect(last_error).toContain("only 1 of 2 stories");
+    expect(last_error).toContain("numeric integrity failed");
+    expect(await copyRows(digest.id)).toHaveLength(0);
+  });
+
+  // The 2026-10-31 run: one figure-dense article timed out three times while the others went through.
+  it("leaves out a story whose AI call times out", async () => {
+    const digest = await seedConfirmedDigest(3);
+    const llm = fakeLlmTransport([
+      fakeMessage({ text: copyResponse(), usage }),
+      new Error("Request timed out."),
+      fakeMessage({ text: copyResponse(), usage }),
+    ]);
+
+    const result = await generateDigest(llm, db, digest, {
+      ceilingUsd: CEILING,
+      fetchImpl: fakeFetch({ body: ARTICLE_PAGE }),
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.message);
+    expect(result.data.digest.status).toBe("rendering");
+    expect(result.data.dropped.map((story) => story.reason)).toEqual([expect.stringContaining("api_error")]);
+  });
+
+  // A real outage is not one article's fault: every story errors and the bound fails the week.
+  it("still fails the week when the AI service fails on every story", async () => {
+    const digest = await seedConfirmedDigest(2);
+    const llm = fakeLlmTransport([new Error("Connection error."), new Error("Connection error.")]);
+
+    const result = await generateDigest(llm, db, digest, {
+      ceilingUsd: CEILING,
+      fetchImpl: fakeFetch({ body: ARTICLE_PAGE }),
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.message);
+    expect(result.data.digest.status).toBe("failed");
+    const { last_error } = await statusOf(digest.id);
+    expect(last_error).toContain("only 0 of 2 stories");
+    expect(last_error).toContain("api_error");
+  });
+
   it("fails the digest on a ceiling hit rather than throwing", async () => {
     const digest = await seedConfirmedDigest(1);
     const llm = fakeLlmTransport([fakeMessage({ text: copyResponse(), usage })]);
