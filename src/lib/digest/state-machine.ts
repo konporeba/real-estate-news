@@ -11,29 +11,33 @@ export type { DigestStatus };
 
 /** Legal `from → to` moves. Must stay identical to the trigger's allowed map. */
 export const TRANSITIONS: Record<DigestStatus, readonly DigestStatus[]> = {
-  collecting: ["ranking", "failed"],
-  ranking: ["ready_for_selection", "failed"],
-  ready_for_selection: ["generating", "skipped", "failed"],
+  collecting: ["ranking", "failed", "closed"],
+  ranking: ["ready_for_selection", "failed", "closed"],
+  ready_for_selection: ["generating", "skipped", "failed", "closed"],
   // S-06: generation hands off to the rendering stage, not straight to the approval gate.
-  generating: ["rendering", "failed"],
-  rendering: ["ready_for_approval", "failed"],
+  generating: ["rendering", "failed", "closed"],
+  rendering: ["ready_for_approval", "failed", "closed"],
   // S-07: `rejected` is deliberately separate from `skipped` -- `skipped` is US-19's
   // missed-deadline state and stays manually publishable (skipped -> published). A digest the
   // operator rejected must never be publishable, and S-08 must be able to tell the two apart.
-  ready_for_approval: ["approved", "rejected", "skipped", "failed"],
-  approved: ["published", "skipped", "failed"],
+  // week-management: `rendering` when the operator edits the text and the slides are redrawn.
+  ready_for_approval: ["approved", "rejected", "skipped", "failed", "rendering", "closed"],
+  approved: ["published", "skipped", "failed", "closed"],
   // US-19: a missed-deadline digest stays manually publishable.
-  skipped: ["published"],
+  skipped: ["published", "closed"],
   // S-07: the sole recovery path out of a rejection -- fresh copy on the same confirmed
   // selection, mirroring `failed -> generating` (S-05 impl-review F2). Never publishable
   // directly.
-  rejected: ["generating"],
+  rejected: ["generating", "closed"],
   // FR-018: re-trigger a failed run in place -- from the top for a collection failure, from
   // the selection gate's output for a generation failure (S-05 impl-review F2), which would
   // otherwise discard the confirmed selection and re-pay the whole ranking stage, or from the
   // generated copy for a render failure (S-06), which costs nothing to redo.
-  failed: ["collecting", "generating", "rendering"],
+  failed: ["collecting", "generating", "rendering", "closed"],
   published: [],
+  // week-management: the operator ended the week without publishing it. Reachable from every state
+  // but `published`; no way out (only delete). Never publishable, unlike `skipped`.
+  closed: [],
 };
 
 /**
@@ -47,6 +51,7 @@ export const TERMINAL_STATES = [
   "skipped",
   "failed",
   "rejected",
+  "closed",
 ] as const satisfies readonly DigestStatus[];
 
 export function isTerminal(status: DigestStatus): boolean {

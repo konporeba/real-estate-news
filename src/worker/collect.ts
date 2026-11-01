@@ -87,7 +87,7 @@ async function getLatestRecoverableDigestForWeek(
     .from("digest")
     .select("*")
     .eq("window_start", week)
-    .not("status", "in", "(published,skipped)")
+    .not("status", "in", "(published,skipped,closed)")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();

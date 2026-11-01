@@ -296,19 +296,19 @@ page shows a "Updating the slides" notice while the week is in `rendering`.
 
 #### Automated
 
-- [x] 1.1 Scheduler/advance tests pass
-- [x] 1.2 Full suite, lint, build pass
+- [x] 1.1 Scheduler/advance tests pass — 6bcb5c3
+- [x] 1.2 Full suite, lint, build pass — 6bcb5c3
 
 ### Phase 2: `closed` status and the edit edge
 
 #### Automated
 
-- [ ] 2.1 State-machine drift test passes against the new migration
-- [ ] 2.2 Presentation tests, full suite, lint, build pass
+- [x] 2.1 State-machine drift test passes against the new migration
+- [x] 2.2 Presentation tests, full suite, lint, build pass
 
 #### Manual
 
-- [ ] 2.3 Migrations applied in the Supabase SQL Editor; integration suite green
+- [x] 2.3 Migrations applied in the Supabase SQL Editor; integration suite green
 
 ### Phase 3: Instant filters
 

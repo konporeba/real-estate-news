@@ -334,6 +334,11 @@ const selectionOpen = digest?.status === "ready_for_selection" && !selection && 
                   Review the post
                 </a>
               </Notice>
+            ) : digest.status === "closed" ? (
+              <Notice>
+                <p class="font-semibold">You closed this week.</p>
+                <p class="text-muted-foreground">Nothing from it was or will be published.</p>
+              </Notice>
             ) : digest.status === "skipped" ? (
               // S-08/US-19: a missed approval deadline skips the auto-publish but leaves the
               // digest manually publishable -- the "Publish now" panel lives on the approve page.

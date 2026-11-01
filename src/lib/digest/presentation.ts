@@ -20,6 +20,7 @@ export const STATUS_PRESENTATION: Record<DigestStatus, { label: string; tone: St
   rejected: { label: "Sent back", tone: "quiet" },
   published: { label: "Published", tone: "done" },
   skipped: { label: "Skipped · Missed deadline", tone: "quiet" },
+  closed: { label: "Closed", tone: "quiet" },
   failed: { label: "Needs attention", tone: "problem" },
 };
 
@@ -49,7 +50,8 @@ export const PIPELINE_STEPS = [
 /**
  * Index into PIPELINE_STEPS of the step a digest is on; steps before it are done.
  * `PIPELINE_STEPS.length` means every step is done. Null for `failed`, which does not record
- * which stage it stopped at in the status alone — the timeline is not drawn for it.
+ * which stage it stopped at in the status alone, and for `closed`, which ended the run off the
+ * pipeline — the timeline is not drawn for either.
  */
 export function currentStepIndex(status: DigestStatus): number | null {
   switch (status) {
@@ -72,6 +74,7 @@ export function currentStepIndex(status: DigestStatus): number | null {
     case "published":
       return PIPELINE_STEPS.length;
     case "failed":
+    case "closed":
       return null;
   }
 }

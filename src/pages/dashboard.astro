@@ -151,6 +151,12 @@ function focusFor(digest: DigestRow): { headline: string; body: string; cta?: { 
         body: "Nothing was published. You can still review it and publish it by hand.",
         cta: { href: approve, label: "Review and publish" },
       };
+    case "closed":
+      return {
+        headline: "You closed this week.",
+        body: "Nothing from it was or will be published. Next week's news is collected on Sunday at 17:00.",
+        cta: { href: detail, label: "See details" },
+      };
     case "failed":
       return {
         headline: "This week's run stopped before it finished.",
@@ -167,6 +173,7 @@ const stepIndex = current ? currentStepIndex(current.status) : null;
 function rowNote(digest: DigestRow): string {
   switch (digest.status) {
     case "skipped":
+    case "closed":
       return "Nothing was published";
     case "failed":
       return digest.last_error ?? "Stopped without a diagnostic";

@@ -121,6 +121,19 @@ describe("canTransition", () => {
   it("allows a failed generation to be retried in place", () => {
     expect(canTransition("failed", "generating")).toBe(true);
   });
+
+  // week-management: the operator can end any week that has not been published -- including a
+  // dead run stuck in a working state -- and a closed week never comes back.
+  it("lets every unpublished week be closed, and nothing leave closed", () => {
+    for (const status of ALL_STATUSES) {
+      expect(canTransition(status, "closed")).toBe(status !== "published" && status !== "closed");
+    }
+    expect(TRANSITIONS.closed).toEqual([]);
+  });
+
+  it("sends an edited post back to rendering from the approval gate", () => {
+    expect(canTransition("ready_for_approval", "rendering")).toBe(true);
+  });
 });
 
 describe("TERMINAL_STATES", () => {

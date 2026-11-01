@@ -29,6 +29,10 @@ describe("NEEDS_OPERATOR_STATUSES", () => {
     expect(NEEDS_OPERATOR_STATUSES).toContain("ready_for_selection");
     expect(NEEDS_OPERATOR_STATUSES).toContain("ready_for_approval");
   });
+
+  it("leaves a closed week out: closing is how the operator stops it asking", () => {
+    expect(NEEDS_OPERATOR_STATUSES).not.toContain("closed");
+  });
 });
 
 describe("currentStepIndex", () => {
@@ -53,8 +57,9 @@ describe("currentStepIndex", () => {
     expect(indexes.at(-1)).toBe(PIPELINE_STEPS.length);
   });
 
-  it("draws no timeline for a failed digest", () => {
+  it("draws no timeline for a failed or closed digest", () => {
     expect(currentStepIndex("failed")).toBeNull();
+    expect(currentStepIndex("closed")).toBeNull();
   });
 });
 
