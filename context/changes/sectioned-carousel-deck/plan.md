@@ -484,12 +484,12 @@ dashboard; on the Raspberry Pi, `git pull` + `npm ci` so the scheduled worker pi
 
 #### Automated
 
-- [x] 6.1 `npm run visuals:preview` writes 21 PNGs at 4:5
-- [x] 6.2 Tests, lint, build pass
+- [x] 6.1 `npm run visuals:preview` writes 21 PNGs at 4:5 — 4abe767
+- [x] 6.2 Tests, lint, build pass — 4abe767
 
 #### Manual
 
-- [x] 6.3 Operator reviews the preview PNGs
+- [x] 6.3 Operator reviews the preview PNGs — 4abe767
 
 ### Phase 7: Real run, then deploy
 
@@ -499,6 +499,6 @@ dashboard; on the Raspberry Pi, `git pull` + `npm ci` so the scheduled worker pi
 
 #### Manual
 
-- [ ] 7.2 Real digest's carousel on the approval page is correct
+- [x] 7.2 Real digest's carousel on the approval page is correct
 - [ ] 7.3 Production dashboard loads after `wrangler deploy`
 - [ ] 7.4 Pi renders with the new deck

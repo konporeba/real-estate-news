@@ -3,7 +3,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { fakeLlmTransport, fakeMessage } from "@/lib/llm/testing";
-import { scoreClusters, type ScorableCluster } from "@/lib/ranking/score-clusters";
+import { MAX_TOKENS_PER_CLUSTER, scoreClusters, type ScorableCluster } from "@/lib/ranking/score-clusters";
 import { createServiceClient, type ServiceClient } from "@/lib/supabase-service";
 
 const configured = Boolean(
@@ -95,6 +95,9 @@ describe.skipIf(!configured)("scoreClusters (integration)", () => {
     expect(result.data.get("c2")?.score).toBe(60);
     expect(result.data.get("c3")?.tier).toBe("discard");
     expect(llm.calls).toHaveLength(1); // 3 clusters fit one batch
+    // The 2026-09-14 failure: 200 per cluster truncated a real batch. Budget grows with the batch.
+    expect((llm.calls[0] as { max_tokens: number }).max_tokens).toBe(3 * MAX_TOKENS_PER_CLUSTER + 400);
+    expect(MAX_TOKENS_PER_CLUSTER).toBeGreaterThanOrEqual(300);
   });
 
   it("triggers F-03's reprompt on a malformed batch, then succeeds", async () => {
