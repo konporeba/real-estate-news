@@ -12,7 +12,8 @@ import { createDigest, transitionDigest } from "@/lib/digest/run-state";
 import { createServiceClient, type ServiceClient } from "@/lib/supabase-service";
 import type { Presentation, SlidesRequest, SlidesResult, SlidesTransport } from "@/lib/visuals/slides-client";
 import { buildPageRequests, type PagePlan, RENDER_PAGE_PREFIX, renderDigest } from "@/lib/visuals/render";
-import { COVER_PLACEHOLDERS, STORY_PLACEHOLDERS } from "@/lib/visuals/slots";
+import type { SectionDetail } from "@/lib/visuals/sections";
+import { STORY_PLACEHOLDERS } from "@/lib/visuals/slots";
 import type { AssetStore } from "@/lib/visuals/store";
 import { token } from "@/lib/visuals/template";
 import type { DigestRun, DigestWindow, RunStateResult, SelectionFormat } from "@/types";
@@ -82,13 +83,34 @@ const storySlide = (objectId: string) => ({
   pageElements: STORY_PLACEHOLDERS.map((name) => textBox(token(name), `${objectId}-${name}`)),
 });
 
-const coverSlide = (objectId: string) => ({
+/** A carousel slide tagged in its speaker notes, the way the operator's deck is. */
+const tagged = (objectId: string, notes: string, pageElements: ReturnType<typeof textBox>[] = []) => ({
   objectId,
-  pageElements: COVER_PLACEHOLDERS.map((name) => textBox(token(name), `${objectId}-${name}`)),
+  pageElements,
+  slideProperties: {
+    notesPage: {
+      notesProperties: { speakerNotesObjectId: `${objectId}-notes` },
+      pageElements: [textBox(notes, `${objectId}-notes`)],
+    },
+  },
 });
 
+const carouselStory = (objectId: string, section: string) =>
+  tagged(objectId, `role=story section=${section}`, [
+    textBox(`${token("TITLE")}\n${token("DESCRIPTION")}\n`, `${objectId}-box`),
+  ]);
+
+/** Cover first, then photo slides: two Barcelona, one Spain, one finance/law. */
+const carouselSlides = () => [
+  tagged("tplCover", "role=cover", [textBox("TYGODNIOWE PODSUMOWANIE", "tplCover-heading")]),
+  carouselStory("tplBcn1", "barcelona"),
+  carouselStory("tplBcn2", "barcelona"),
+  carouselStory("tplSpain1", "spain"),
+  carouselStory("tplLaw1", "finance_law"),
+];
+
 function deck(format: SelectionFormat, extraSlides: Presentation["slides"] = []): Presentation {
-  const slides = format === "carousel" ? [coverSlide("tplCover"), storySlide("tplStory")] : [storySlide("tplStory")];
+  const slides = format === "carousel" ? carouselSlides() : [storySlide("tplStory")];
   return { presentationId: DECKS[format], slides: [...slides, ...extraSlides] };
 }
 
@@ -104,6 +126,10 @@ interface SlidesHooks {
 interface FakeSlides {
   transport: SlidesTransport;
   batches: SlidesRequest[][];
+  /** Every page id a thumbnail was requested for, in order. */
+  exportedPageIds: string[];
+  /** The template page each duplicate was made from, in order. */
+  duplicatedSourceIds(): string[];
   duplicatedPageIds(): string[];
   deletedObjectIds(): string[];
   requestsOn(pageId: string): SlidesRequest[];
@@ -111,6 +137,7 @@ interface FakeSlides {
 
 function fakeSlides(presentation: Presentation, hooks: SlidesHooks = {}): FakeSlides {
   const batches: SlidesRequest[][] = [];
+  const exportedPageIds: string[] = [];
   let fills = 0;
   let thumbnails = 0;
 
@@ -134,7 +161,8 @@ function fakeSlides(presentation: Presentation, hooks: SlidesHooks = {}): FakeSl
       return Promise.resolve({ ok: true, data: undefined });
     },
 
-    getPageThumbnail: () => {
+    getPageThumbnail: (_presentationId, pageObjectId) => {
+      exportedPageIds.push(pageObjectId);
       thumbnails += 1;
       return Promise.resolve(hooks.thumbnail?.(thumbnails) ?? { ok: true, data: png() });
     },
@@ -143,6 +171,13 @@ function fakeSlides(presentation: Presentation, hooks: SlidesHooks = {}): FakeSl
   return {
     transport,
     batches,
+    exportedPageIds,
+    duplicatedSourceIds() {
+      return batches
+        .flat()
+        .filter((request) => has(request, "duplicateObject"))
+        .map((request) => field(request, "duplicateObject").objectId as string);
+    },
     duplicatedPageIds() {
       return batches.flat().flatMap((request) => {
         if (!has(request, "duplicateObject")) return [];
@@ -201,6 +236,8 @@ interface SeedOptions {
   /** Statistics per story. Below three, the slot map cannot fill the template. */
   statistics?: number;
   titles?: string[];
+  /** Ranking detail per story, in rank order — what decides each carousel story's section. */
+  details?: SectionDetail[];
 }
 
 /** A digest in `rendering` with `stories` generated_copy rows, ranked in insertion order. */
@@ -217,7 +254,14 @@ async function seedRenderingDigest(
   // project, and this helper runs in all seventeen cases below.
   const { data: clusters, error: clusterError } = await db
     .from("cluster")
-    .insert(Array.from({ length: stories }, (_, i) => ({ digest_id: digest.id, rank: i + 1, coverage_count: 1 })))
+    .insert(
+      Array.from({ length: stories }, (_, i) => ({
+        digest_id: digest.id,
+        rank: i + 1,
+        coverage_count: 1,
+        scoring_detail: options.details?.[i] ? { ...options.details[i] } : null,
+      })),
+    )
     .select("id, rank");
   if (clusterError) throw new Error(clusterError.message);
   const clusterIds = [...clusters].sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0)).map((cluster) => cluster.id);
@@ -276,8 +320,9 @@ async function statusOf(digestId: string): Promise<{ status: string; last_error:
 
 // --- pure request building -------------------------------------------------------------------
 
-describe("buildPageRequests", () => {
+describe("buildPageRequests — single post", () => {
   const plan: PagePlan = {
+    kind: "single_post",
     slideIndex: 1,
     clusterId: "cluster-1",
     templatePageId: "tplStory",
@@ -328,18 +373,79 @@ describe("buildPageRequests", () => {
       expect(replace.containsText.text).toMatch(/^\{\{[A-Z0-9_]+\}\}$/);
     }
   });
+});
 
-  it("omits the style request on a cover page, which has no headline to fit", () => {
-    const cover: PagePlan = {
-      slideIndex: 0,
-      clusterId: null,
-      templatePageId: "tplCover",
-      templateTitleElementId: null,
-      titlePointSize: null,
-      slots: { COVER_TITLE: "Rynek", COVER_SUBTITLE: "1–7 września 2026" },
+describe("buildPageRequests — carousel story", () => {
+  // "{{TITLE}}\n{{DESCRIPTION}}\n" in the template box: the title at 0, the description at 10.
+  const plan = {
+    kind: "carousel_story",
+    slideIndex: 2,
+    clusterId: "cluster-2",
+    section: "finance_law",
+    templatePageId: "tplLaw1",
+    templateBoxElementId: "tplLaw1-box",
+    titleOffset: 0,
+    descriptionOffset: 10,
+    title: "Euribor spada do 2,1%",
+    description: "Raty będą niższe o 60 €.",
+    titlePointSize: 28,
+    descriptionPointSize: 20,
+  } as const satisfies PagePlan;
+
+  const styles = (requests: ReturnType<typeof buildPageRequests>) =>
+    requests
+      .filter((request) => Object.hasOwn(request, "updateTextStyle"))
+      .map((request) => request.updateTextStyle as { objectId: string; textRange: unknown; style: unknown });
+
+  it("duplicates the photo slide and names the shared box", () => {
+    expect(buildPageRequests(plan, "renderx2p", "renderx2t")[0]).toEqual({
+      duplicateObject: { objectId: "tplLaw1", objectIds: { tplLaw1: "renderx2p", "tplLaw1-box": "renderx2t" } },
+    });
+  });
+
+  it("fills both tokens on the new page only", () => {
+    const replacements = buildPageRequests(plan, "renderx2p", "renderx2t")
+      .filter((request) => Object.hasOwn(request, "replaceAllText"))
+      .map((request) => request.replaceAllText as { containsText: { text: string }; pageObjectIds: string[] });
+    expect(replacements.map((r) => r.containsText.text)).toEqual(["{{TITLE}}", "{{DESCRIPTION}}"]);
+    for (const r of replacements) expect(r.pageObjectIds).toEqual(["renderx2p"]);
+  });
+
+  // The paragraphs only have their final positions once the text is in, so sizing comes last.
+  it("sizes each paragraph after the text is substituted", () => {
+    const requests = buildPageRequests(plan, "renderx2p", "renderx2t");
+    const lastReplace = requests.findLastIndex((request) => Object.hasOwn(request, "replaceAllText"));
+    const firstStyle = requests.findIndex((request) => Object.hasOwn(request, "updateTextStyle"));
+    expect(firstStyle).toBeGreaterThan(lastReplace);
+  });
+
+  // "ą", "ż" and "€" are single UTF-16 units, so plain .length lines up with Slides' indexes; the
+  // "\n" between the paragraphs is the one character the description's start skips.
+  it("computes both ranges in UTF-16 units across Polish diacritics", () => {
+    const boxText = `${plan.title}\n${plan.description}\n`;
+    const [title, description] = styles(buildPageRequests(plan, "renderx2p", "renderx2t"));
+
+    expect(title).toEqual({
+      objectId: "renderx2t",
+      textRange: { type: "FIXED_RANGE", startIndex: 0, endIndex: plan.title.length },
+      style: { fontSize: { magnitude: 28, unit: "PT" } },
+      fields: "fontSize",
+    });
+    const range = description.textRange as { startIndex: number; endIndex: number };
+    expect(boxText.slice(range.startIndex, range.endIndex)).toBe(plan.description);
+    expect(description.style).toEqual({ fontSize: { magnitude: 20, unit: "PT" } });
+  });
+
+  it("follows the template's offsets when the box does not start with the title", () => {
+    const shifted = { ...plan, titleOffset: 2, descriptionOffset: 12 };
+    const boxText = `  ${plan.title}\n${plan.description}\n`;
+    const [title, description] = styles(buildPageRequests(shifted, "renderx2p", "renderx2t"));
+    const at = (style: { textRange: unknown }) => {
+      const r = style.textRange as { startIndex: number; endIndex: number };
+      return boxText.slice(r.startIndex, r.endIndex);
     };
-    const requests = buildPageRequests(cover, "renderx0p", "renderx0t");
-    expect(requests.some((request) => Object.hasOwn(request, "updateTextStyle"))).toBe(false);
+    expect(at(title)).toBe(plan.title);
+    expect(at(description)).toBe(plan.description);
   });
 });
 
@@ -379,7 +485,7 @@ describe.skipIf(!configured)(
       expect(store.uploads).toEqual([`${digest.id}/0.png`, `${digest.id}/1.png`]);
     });
 
-    it("renders a cover plus one page per story for a carousel", async () => {
+    it("renders the cover plus one page per story for a carousel", async () => {
       const digest = await seedRenderingDigest("carousel", 2);
       const slides = fakeSlides(deck("carousel"));
 
@@ -388,18 +494,84 @@ describe.skipIf(!configured)(
       expect(result.ok).toBe(true);
       if (!result.ok) throw new Error(result.message);
       expect(result.data.assetCount).toBe(3);
+      expect(result.data.digest.status).toBe("ready_for_approval");
 
       const rows = await assetRows(digest.id);
       expect(rows.map((row) => row.slide_index)).toEqual([0, 1, 2]);
       // The cover represents the week, so it belongs to no story.
       expect(rows[0].cluster_id).toBeNull();
       expect(rows[1].cluster_id).not.toBeNull();
-      // Slide 0 comes from the cover template, slides 1+ from the story template.
-      const coverRequests = slides.requestsOn("renderx0p");
-      const coverTokens = coverRequests
-        .filter((request) => Object.hasOwn(request, "replaceAllText"))
-        .map((request) => (request.replaceAllText as { containsText: { text: string } }).containsText.text);
-      expect(coverTokens.sort()).toEqual([...COVER_PLACEHOLDERS].map(token).sort());
+      expect(rows[0].format).toBe("carousel");
+    });
+
+    // Nothing on the cover changes, so it is exported straight from the operator's slide.
+    it("exports the cover as designed, without duplicating it", async () => {
+      const digest = await seedRenderingDigest("carousel", 2);
+      const slides = fakeSlides(deck("carousel"));
+
+      await renderDigest(slides.transport, fakeStore(), db, digest, { decks: DECKS });
+
+      expect(slides.exportedPageIds[0]).toBe("tplCover");
+      expect(slides.duplicatedSourceIds()).not.toContain("tplCover");
+      expect(slides.duplicatedPageIds()).toHaveLength(2);
+    });
+
+    // The feature end to end: two Barcelona stories that are also finance/law split across the
+    // two sections, and a Spain story keeps Spain.
+    it("puts each story on a photo slide from its section, mixing sections", async () => {
+      const bcnLaw = { tier: "catalonia", financeLaw: true };
+      const digest = await seedRenderingDigest("carousel", 3, {
+        details: [bcnLaw, bcnLaw, { tier: "national", financeLaw: false }],
+      });
+      const slides = fakeSlides(deck("carousel"));
+
+      const result = await renderDigest(slides.transport, fakeStore(), db, digest, { decks: DECKS });
+
+      expect(result.ok).toBe(true);
+      const sources = slides.duplicatedSourceIds();
+      expect(sources).toHaveLength(3);
+      expect(sources[0]).toMatch(/^tplBcn/);
+      expect(sources[1]).toBe("tplLaw1");
+      expect(sources[2]).toBe("tplSpain1");
+    });
+
+    // A carousel story needs no statistics, unlike a single post.
+    it("renders carousel stories that have no statistics", async () => {
+      const digest = await seedRenderingDigest("carousel", 2, { statistics: 0 });
+
+      const result = await renderDigest(fakeSlides(deck("carousel")).transport, fakeStore(), db, digest, {
+        decks: DECKS,
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error(result.message);
+      expect(result.data.digest.status).toBe("ready_for_approval");
+    });
+
+    it("fails with a diagnostic when the carousel text cannot fit even at the smallest sizes", async () => {
+      const digest = await seedRenderingDigest("carousel", 2, { titles: ["a".repeat(600), "Krótki tytuł"] });
+      const slides = fakeSlides(deck("carousel"));
+
+      const result = await renderDigest(slides.transport, fakeStore(), db, digest, { decks: DECKS });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error(result.message);
+      expect(result.data.digest.status).toBe("failed");
+      expect(result.data.digest.last_error).toContain("text_too_long");
+      expect(slides.duplicatedPageIds()).toHaveLength(0);
+    });
+
+    it("fails with a pointer to the validator when the carousel deck has no cover", async () => {
+      const digest = await seedRenderingDigest("carousel", 2);
+      const coverless: Presentation = { presentationId: CAROUSEL_DECK, slides: carouselSlides().slice(1) };
+
+      const result = await renderDigest(fakeSlides(coverless).transport, fakeStore(), db, digest, { decks: DECKS });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error(result.message);
+      expect(result.data.digest.status).toBe("failed");
+      expect(result.data.digest.last_error).toContain("role=cover");
+      expect(result.data.digest.last_error).toContain("visuals:validate");
     });
 
     it("re-runs over a previous run's rows rather than colliding with them", async () => {
@@ -488,8 +660,10 @@ describe.skipIf(!configured)(
       await renderDigest(slides.transport, fakeStore(), db, digest, { decks: DECKS });
 
       const duplicated = slides.duplicatedPageIds();
-      expect(duplicated).toHaveLength(3);
+      expect(duplicated).toHaveLength(2);
       for (const pageId of duplicated) expect(slides.deletedObjectIds()).toContain(pageId);
+      // The operator's own cover is never deleted.
+      expect(slides.deletedObjectIds()).not.toContain("tplCover");
     });
 
     it("deletes every duplicated page on the failure path too", async () => {

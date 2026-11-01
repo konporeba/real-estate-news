@@ -1,60 +1,57 @@
 ---
-// APP-SIDE, static: no island, no interactivity. The rendered cards are read-only here — approving
-// or rejecting them is S-07's job, and a control that did nothing yet would read as one that does.
-//
-// Why a preview exists at all: US-13 says the operator owns the design and restyles without a code
-// change, and US-14 that each platform gets its asset. Neither is verifiable by reading a
-// `generated_asset` row — only by looking at the image. This is the looking.
 export interface RenderedAsset {
   slideIndex: number;
-  /** Short-lived signed URL; the bucket is private. Minted by the page, per render. */
   url: string;
-  /** The story this slide carries, or a label for a slide that belongs to no story. */
   label: string;
+  /** The exported PNG's pixel size, as stored on `generated_asset`; null if it was never recorded. */
+  width: number | null;
+  height: number | null;
 }
 
 interface Props {
   assets: RenderedAsset[];
-  /** True when at least one image could not be loaded or signed — never conflated with "none yet". */
   partialFailure?: boolean;
 }
 
 const { assets, partialFailure = false } = Astro.props;
 ---
 
-<section class="mb-6">
-  <h2 class="mb-3 text-sm font-semibold tracking-wide text-blue-100/80 uppercase">
-    Rendered visuals
-    <span class="ml-1 font-normal text-blue-100/50 normal-case">({assets.length})</span>
+<section aria-labelledby="slides-title" class="flex flex-col gap-4">
+  <h2 id="slides-title" class="text-[22px] font-bold tracking-tight">
+    The slides <span class="text-muted-foreground font-normal">({assets.length})</span>
   </h2>
 
   {
     partialFailure && (
-      <p class="mb-3 rounded-xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-200">
-        Some images could not be loaded. Re-run <code class="font-mono">npm run visuals</code> for this digest.
+      <p role="alert" class="border-destructive bg-destructive-tint text-destructive rounded-2xl border p-4 text-sm">
+        Some slides couldn't be loaded. Re-run <code class="font-mono">npm run visuals</code> for this digest.
       </p>
     )
   }
 
-  <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+  {/* A swipeable row, like the carousel itself: no script, so it works the same on a phone. */}
+  <ul class="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
     {
       assets.map((asset) => (
-        <li class="overflow-hidden rounded-xl border border-white/10 bg-white/5">
-          {/* Square by construction: the templates are 1080x1080 and the validator fails a deck
-              that is not. aspect-square here means a wrong-sized export is visibly letterboxed
-              rather than silently stretched. */}
+        <li class="bg-card w-[min(78vw,340px)] shrink-0 snap-start overflow-hidden rounded-2xl border">
+          {/* Shaped by the export's own stored size — 4:5 for the carousel, square for a single
+              post — so the strip shows each slide exactly as it will be published, and the box is
+              reserved before the image loads. Without a stored size the image keeps its own shape. */}
           <img
             src={asset.url}
             alt={`Slide ${String(asset.slideIndex + 1)}: ${asset.label}`}
-            width="1080"
-            height="1080"
+            width={asset.width ?? undefined}
+            height={asset.height ?? undefined}
             loading="lazy"
-            class="aspect-square w-full bg-black/20 object-contain"
+            style={
+              asset.width && asset.height ? `aspect-ratio: ${String(asset.width)} / ${String(asset.height)}` : undefined
+            }
+            class="bg-primary w-full object-contain"
           />
-          <p class="px-3 pt-2 text-[11px] font-semibold tracking-wide text-blue-100/50 uppercase">
-            Slide {asset.slideIndex + 1}
-          </p>
-          <p class="line-clamp-2 px-3 pb-3 text-xs text-blue-100/80">{asset.label}</p>
+          <div class="space-y-0.5 px-4 py-3">
+            <p class="text-muted-foreground font-mono text-[12px]">Slide {asset.slideIndex + 1}</p>
+            <p class="line-clamp-2 text-sm leading-snug font-medium">{asset.label}</p>
+          </div>
         </li>
       ))
     }

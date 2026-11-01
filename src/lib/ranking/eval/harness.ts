@@ -14,6 +14,8 @@ export interface LabeledExample {
   lede: string | null;
   /** The tier the operator judged correct — what the gate asserts. */
   expectedTier: GeographyTier;
+  /** Whether the story belongs in the carousel's finance/law section — also asserted. */
+  expectedFinanceLaw: boolean;
   /** Why, for the human reviewing the set (not sent to the model). */
   note: string;
 }
@@ -30,6 +32,12 @@ export interface TierFailure {
   actual: GeographyTier;
 }
 
+export interface FinanceLawFailure {
+  id: string;
+  expected: boolean;
+  actual: boolean;
+}
+
 export interface OrderingFailure {
   higher: string;
   lower: string;
@@ -40,6 +48,7 @@ export interface OrderingFailure {
 export interface EvalReport {
   passed: boolean;
   tierFailures: TierFailure[];
+  financeLawFailures: FinanceLawFailure[];
   orderingFailures: OrderingFailure[];
   /** Every example's score, keyed by id — for a readable drift report. */
   scores: Record<string, ClusterScore>;
@@ -74,6 +83,14 @@ export async function evaluateRubric(
     }
   }
 
+  const financeLawFailures: FinanceLawFailure[] = [];
+  for (const example of examples) {
+    const s = scored.get(example.id);
+    if (s && s.financeLaw !== example.expectedFinanceLaw) {
+      financeLawFailures.push({ id: example.id, expected: example.expectedFinanceLaw, actual: s.financeLaw });
+    }
+  }
+
   const orderingFailures: OrderingFailure[] = [];
   for (const [higher, lower] of orderings) {
     const hi = scored.get(higher);
@@ -94,8 +111,9 @@ export async function evaluateRubric(
   }
 
   return {
-    passed: tierFailures.length === 0 && orderingFailures.length === 0,
+    passed: tierFailures.length === 0 && financeLawFailures.length === 0 && orderingFailures.length === 0,
     tierFailures,
+    financeLawFailures,
     orderingFailures,
     scores: Object.fromEntries(scored),
   };
@@ -106,6 +124,9 @@ export function formatReport(report: EvalReport): string {
   const lines: string[] = [`eval ${report.passed ? "PASSED" : "FAILED"}`];
   for (const f of report.tierFailures) {
     lines.push(`  tier: ${f.id} expected ${f.expected}, got ${f.actual}`);
+  }
+  for (const f of report.financeLawFailures) {
+    lines.push(`  financeLaw: ${f.id} expected ${String(f.expected)}, got ${String(f.actual)}`);
   }
   for (const f of report.orderingFailures) {
     lines.push(`  order: ${f.higher} (${f.higherScore}) should outrank ${f.lower} (${f.lowerScore})`);

@@ -7,10 +7,15 @@
 import GeneratedStoryCard from "@/components/GeneratedStoryCard.astro";
 import AssetStrip, { type RenderedAsset } from "@/components/AssetStrip.astro";
 import { ApprovalPanel } from "@/components/ApprovalPanel";
-import OperatorHeader from "@/components/OperatorHeader.astro";
+import { StoryEditor } from "@/components/StoryEditor";
+import AppHeader from "@/components/AppHeader.astro";
+import Notice from "@/components/Notice.astro";
+import StatusChip from "@/components/StatusChip.astro";
 import { PublishPanel } from "@/components/PublishPanel";
 import PublicationResults, { type PublicationResultRow } from "@/components/PublicationResults.astro";
 import Layout from "@/layouts/Layout.astro";
+import { formatWeek } from "@/lib/digest/presentation";
+import { FORMAT_LABELS, PLATFORM_LABELS } from "@/lib/selection/rules";
 import { ASSET_BUCKET, SIGNED_URL_TTL_SECONDS } from "@/lib/digest/assets";
 import { createServiceClient } from "@/lib/supabase-admin";
 import { cn } from "@/lib/utils";
@@ -72,6 +77,8 @@ if (client) {
 }
 
 let stories: ApprovalStory[] = [];
+/** Titles of picked stories whose copy could not be produced safely, so they were left out. */
+let notIncluded: string[] = [];
 let selection: { format: SelectionFormat; platforms: SelectionPlatform[] } | null = null;
 let decided: { decision: ApprovalDecision; note: string | null; decidedAt: string } | null = null;
 let publications: PublicationResultRow[] = [];
@@ -134,9 +141,32 @@ if (client && digest && !loadError && CONTENT_STATUSES.includes(digest.status)) 
 
   const { data: selectionRow, error: selectionError } = await client
     .from("selection")
-    .select("format, platforms")
+    .select("format, platforms, selection_item(cluster_id, picked)")
     .eq("digest_id", digest.id)
     .maybeSingle();
+
+  // Picked stories the generation stage left out (resilient-story-generation): picked, but no copy
+  // row. Read-only and best-effort — a failure here hides the notice, it does not block approval.
+  const generatedIds = new Set(clusterIds);
+  const leftOutIds = (selectionRow?.selection_item ?? [])
+    .filter((item) => item.picked && !generatedIds.has(item.cluster_id))
+    .map((item) => item.cluster_id);
+  if (leftOutIds.length > 0) {
+    const { data: leftOutArticles, error: leftOutError } = await client
+      .from("article")
+      .select("cluster_id, original_title, polish_title")
+      .in("cluster_id", leftOutIds)
+      .order("published_at", { ascending: true });
+    if (leftOutError) {
+      console.error(`failed to load left-out stories for digest ${digest.id}: ${leftOutError.message}`);
+    } else {
+      notIncluded = leftOutIds.map((clusterId) => {
+        const clusterArticles = leftOutArticles.filter((article) => article.cluster_id === clusterId);
+        const article = clusterArticles.find((a) => a.polish_title) ?? clusterArticles.at(0);
+        return article?.polish_title ?? article?.original_title ?? "A picked story";
+      });
+    }
+  }
   if (selectionError) {
     console.error(
       `failed to load selection for digest ${digest.id}: ${selectionError.code}: ${selectionError.message}`,
@@ -198,7 +228,7 @@ let assetsPartial = false;
 if (client && digest && !loadError && CONTENT_STATUSES.includes(digest.status)) {
   const { data: rows, error: assetsQueryError } = await client
     .from("generated_asset")
-    .select("slide_index, cluster_id, storage_path")
+    .select("slide_index, cluster_id, storage_path, width, height")
     .eq("digest_id", digest.id)
     .order("slide_index", { ascending: true });
 
@@ -240,6 +270,8 @@ if (client && digest && !loadError && CONTENT_STATUSES.includes(digest.status)) 
           {
             slideIndex: row.slide_index,
             url,
+            width: row.width,
+            height: row.height,
             label: row.cluster_id ? (titleByCluster.get(row.cluster_id) ?? "Story") : "Cover",
           },
         ];
@@ -254,96 +286,154 @@ if (client && digest && !loadError && CONTENT_STATUSES.includes(digest.status)) 
 }
 ---
 
-<Layout title="Approve digest">
-  <div class="bg-cosmic min-h-screen p-4 text-white">
-    <OperatorHeader title={digest ? `Approve: ${digest.window_start} – ${digest.window_end}` : "Digest not found"} />
-    <main class="mx-auto mt-6 max-w-3xl">
-      {
-        !client ? (
-          <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">
-            Supabase is not configured — this digest cannot be loaded.
+<Layout title={digest ? `Approve · ${formatWeek(digest.window_start, digest.window_end)}` : "Digest not found"}>
+  <AppHeader
+    back={{ href: digest ? `/dashboard/${digest.id}` : "/dashboard", label: "This week" }}
+    context={digest?.status === "ready_for_approval" ? "Step 2 of 2 · Approve" : undefined}
+  />
+  <main
+    class:list={cn(
+      "mx-auto flex max-w-6xl flex-col gap-7 px-4 pt-9 sm:px-6",
+      // Room for the fixed decision bar, so it never covers the last story.
+      digest?.status === "ready_for_approval" ? "pb-44" : "pb-16",
+    )}
+  >
+    {
+      digest && (
+        <div class="space-y-2">
+          <h1 class="text-3xl leading-tight font-bold tracking-tight sm:text-[34px]">
+            {digest.status === "ready_for_approval"
+              ? "Is this ready to go out?"
+              : `Week of ${formatWeek(digest.window_start, digest.window_end)}`}
+          </h1>
+          <div class="text-muted-foreground flex flex-wrap items-center gap-2.5 text-base">
+            {digest.status !== "ready_for_approval" && <StatusChip status={digest.status} />}
+            <span>
+              {formatWeek(digest.window_start, digest.window_end)}
+              {selection &&
+                ` · ${FORMAT_LABELS[selection.format]}, ${String(stories.length)} ${stories.length === 1 ? "story" : "stories"} · ${selection.platforms.map((p) => PLATFORM_LABELS[p]).join(", ")}`}
+            </span>
+          </div>
+        </div>
+      )
+    }
+    {
+      !client ? (
+        <Notice>Supabase is not configured — this digest cannot be loaded.</Notice>
+      ) : loadError ? (
+        <Notice tone="problem">Couldn't load this digest — please try again.</Notice>
+      ) : !digest ? (
+        <Notice>No digest with this id exists.</Notice>
+      ) : digest.status === "failed" ? (
+        <Notice tone="problem">
+          <p class="font-semibold">This week's run stopped before it finished.</p>
+          <p class="mt-1">{digest.last_error ?? "No diagnostic was recorded."}</p>
+        </Notice>
+      ) : digest.status === "rendering" ? (
+        <Notice>
+          <p class="font-semibold">The slides are being drawn.</p>
+          <p class="text-muted-foreground mt-1">
+            If you just edited the text, it's saved and the slides are being redrawn with it. This starts within 5
+            minutes and takes a few more; you'll get the approval email when it's ready.
           </p>
-        ) : loadError ? (
-          <p class="rounded-xl border border-red-400/30 bg-red-500/10 p-6 text-sm text-red-200">
-            Couldn't load this digest — please try again.
-          </p>
-        ) : !digest ? (
-          <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">
-            No digest with this id exists.
-          </p>
-        ) : digest.status === "failed" ? (
-          <p class="rounded-xl border border-red-400/30 bg-red-500/10 p-6 text-sm text-red-200">
-            This digest failed: {digest.last_error ?? "no diagnostic recorded"}
-          </p>
-        ) : !CONTENT_STATUSES.includes(digest.status) ? (
-          <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">
-            This digest is still <span class="font-semibold">{digest.status}</span> — there is nothing generated to
-            review yet.
-          </p>
-        ) : stories.length === 0 ? (
-          <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">
-            No generated stories found for this digest.
-          </p>
-        ) : (
-          <Fragment>
-            {decided && (
-              <p
-                class:list={cn(
-                  "mb-4 rounded-xl border p-4 text-sm",
-                  decided.decision === "approved"
-                    ? "border-green-400/30 bg-green-500/10 text-green-200"
-                    : "border-red-400/30 bg-red-500/10 text-red-200",
-                )}
-              >
-                <span class="font-semibold">{decided.decision === "approved" ? "Approved" : "Rejected"}</span> on{" "}
-                {new Date(decided.decidedAt).toLocaleString()}.
-                {decided.decision === "rejected" && (
-                  <>
-                    {" "}
-                    Run <code class="font-mono">npm run generate -- --digest={digest.id}</code> to produce fresh copy on
-                    the same confirmed selection.
-                  </>
-                )}
-                {decided.note && <span class="mt-1 block text-blue-100/70">Note: {decided.note}</span>}
+        </Notice>
+      ) : !CONTENT_STATUSES.includes(digest.status) ? (
+        <Notice>
+          There's nothing to review yet — this week is at <span class="font-semibold">{digest.status}</span>. You'll get
+          an email when the post is ready.
+        </Notice>
+      ) : stories.length === 0 ? (
+        <Notice>No generated stories were found for this week.</Notice>
+      ) : (
+        <Fragment>
+          {decided && (
+            <Notice tone={decided.decision === "approved" ? "turn" : "neutral"}>
+              <p>
+                <span class="font-semibold">
+                  {decided.decision === "approved" ? "You approved this post" : "You sent this post back"}
+                </span>{" "}
+                on {new Date(decided.decidedAt).toLocaleString("en-GB", { timeZone: "Europe/Warsaw" })}.
+                {decided.decision === "approved" &&
+                  digest.status === "approved" &&
+                  " It publishes on Tuesday at 17:00."}
               </p>
-            )}
+              {decided.note && <p class="text-muted-foreground mt-1">Your note: {decided.note}</p>}
+              {decided.decision === "rejected" && (
+                <p class="text-muted-foreground mt-2">
+                  To get fresh copy on the same picks, open the week and choose Manage week → Retry.
+                </p>
+              )}
+            </Notice>
+          )}
 
-            {digest.status === "ready_for_approval" && selection && (
-              <ApprovalPanel
-                client:load
-                digestId={digest.id}
-                storyCount={stories.length}
-                format={selection.format}
-                platforms={selection.platforms}
-              />
-            )}
-
-            {PUBLISHABLE_STATUSES.includes(digest.status) && selection && (
-              <PublishPanel client:load digestId={digest.id} platforms={selection.platforms} />
-            )}
-
-            <PublicationResults results={publications} />
-
-            {assetsError ? (
-              <p class="mb-6 rounded-xl border border-red-400/30 bg-red-500/10 p-4 text-sm text-red-200">
-                Couldn't load this digest's rendered visuals — the images may still exist. Try reloading.
+          {notIncluded.length > 0 && (
+            <Notice>
+              <p class="font-semibold">Not included</p>
+              <p class="text-muted-foreground mt-1">
+                {notIncluded.length === 1 ? "This story was" : "These stories were"} left out because its copy couldn't
+                be produced safely — either the figure check failed or the AI service failed on it. The rest of the week
+                went ahead. To try again, send the post back, then choose Manage week → Retry on the week page.
               </p>
-            ) : assets.length > 0 ? (
-              <AssetStrip assets={assets} partialFailure={assetsPartial} />
-            ) : (
-              <p class="mb-6 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-blue-100/70">
-                No visuals rendered yet — run <code class="font-mono">npm run visuals</code> for this digest.
-              </p>
-            )}
+              <ul class="mt-2 list-disc pl-5">
+                {notIncluded.map((title) => (
+                  <li>{title}</li>
+                ))}
+              </ul>
+            </Notice>
+          )}
 
-            <ul class="space-y-3">
+          {PUBLISHABLE_STATUSES.includes(digest.status) && selection && (
+            <PublishPanel client:load digestId={digest.id} platforms={selection.platforms} />
+          )}
+
+          <PublicationResults results={publications} />
+
+          {assetsError ? (
+            <Notice tone="problem">
+              Couldn't load this week's slides — the images may still exist. Try reloading.
+            </Notice>
+          ) : assets.length > 0 ? (
+            <AssetStrip assets={assets} partialFailure={assetsPartial} />
+          ) : (
+            <Notice>The slides haven't been designed yet.</Notice>
+          )}
+
+          <section aria-labelledby="stories-title" class="flex flex-col gap-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <h2 id="stories-title" class="text-[22px] font-bold tracking-tight">
+                The copy
+              </h2>
+              {digest.status === "ready_for_approval" && selection && (
+                <StoryEditor
+                  client:load
+                  digestId={digest.id}
+                  format={selection.format}
+                  stories={stories.map((story) => ({
+                    clusterId: story.clusterId,
+                    polishTitle: story.polishTitle,
+                    captionSummary: story.captionSummary,
+                  }))}
+                />
+              )}
+            </div>
+            <ol class="flex flex-col gap-4">
               {stories.map((story, i) => (
-                <GeneratedStoryCard story={story} index={i + 1} />
+                <GeneratedStoryCard story={story} index={i + 1} total={stories.length} />
               ))}
-            </ul>
-          </Fragment>
-        )
-      }
-    </main>
-  </div>
+            </ol>
+          </section>
+
+          {digest.status === "ready_for_approval" && selection && (
+            <ApprovalPanel
+              client:load
+              digestId={digest.id}
+              storyCount={stories.length}
+              format={selection.format}
+              platforms={selection.platforms}
+            />
+          )}
+        </Fragment>
+      )
+    }
+  </main>
 </Layout>

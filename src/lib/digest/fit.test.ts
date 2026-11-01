@@ -4,7 +4,16 @@
 // to the last ceiling, loud past it — not the specific numbers, which are meant to be tuned.
 import { describe, expect, it } from "vitest";
 
-import { fitTitle, TITLE_MAX_CHARS, TITLE_SIZE_TIERS, titleLength } from "@/lib/visuals/fit";
+import {
+  CAROUSEL_BOX_PT,
+  CAROUSEL_SIZE_TIERS,
+  estimatedCarouselHeight,
+  fitCarouselText,
+  fitTitle,
+  TITLE_MAX_CHARS,
+  TITLE_SIZE_TIERS,
+  titleLength,
+} from "@/lib/digest/fit";
 
 /** A title of exactly `length` characters, with no whitespace to collapse. */
 const titleOf = (length: number) => "a".repeat(length);
@@ -94,5 +103,72 @@ describe("titleLength", () => {
   it("keeps a title that only overflows on whitespace inside its tier", () => {
     const padded = `${titleOf(TITLE_MAX_CHARS)}    `;
     expect(fitTitle(padded).ok).toBe(true);
+  });
+});
+
+describe("carousel text fit", () => {
+  // Real copy shape from the calibration render (2026-10-31): 98 + 107 characters, which wrapped
+  // to 4 + 3 lines at 32/22 pt and filled 277 pt of the 367 pt box.
+  const calibrationTitle =
+    "Euribor spada do 2,1% – raty kredytów hipotecznych w Hiszpanii będą niższe nawet o 60 € miesięcznie";
+  const calibrationDescription =
+    "Dla kredytu 200 000 € na 25 lat oznacza to oszczędność około 720 € rocznie przy następnej aktualizacji oprocentowania.";
+
+  it("reproduces the calibration render's height within a line", () => {
+    const height = estimatedCarouselHeight(calibrationTitle, calibrationDescription, CAROUSEL_SIZE_TIERS[0]);
+    expect(Math.abs(height - 277)).toBeLessThan(25);
+  });
+
+  it("keeps typical copy at the full sizes", () => {
+    expect(fitCarouselText(calibrationTitle, calibrationDescription)).toEqual({
+      ok: true,
+      data: { titlePt: 32, descriptionPt: 22 },
+    });
+  });
+
+  it("steps down for longer copy, title first", () => {
+    const result = fitCarouselText("a".repeat(110), "b".repeat(300));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data).not.toEqual(CAROUSEL_SIZE_TIERS[0]);
+    expect(result.data.titlePt).toBeLessThan(32);
+  });
+
+  it("returns the first tier that fits, never a smaller one", () => {
+    const result = fitCarouselText("a".repeat(120), "b".repeat(260));
+    if (!result.ok) throw new Error(result.message);
+    const index = CAROUSEL_SIZE_TIERS.findIndex((tier) => tier === result.data);
+    expect(index).toBeGreaterThan(-1);
+    for (const larger of CAROUSEL_SIZE_TIERS.slice(0, index)) {
+      expect(estimatedCarouselHeight("a".repeat(120), "b".repeat(260), larger)).toBeGreaterThan(CAROUSEL_BOX_PT.height);
+    }
+  });
+
+  it("fails past the smallest tier, naming both lengths", () => {
+    const result = fitCarouselText("a".repeat(200), "b".repeat(700));
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe("text_too_long");
+    expect(result.message).toContain("200 characters");
+    expect(result.message).toContain("700 characters");
+  });
+
+  it.each([
+    ["", "Opis", "empty_title"],
+    ["Tytuł", "  ", "empty_description"],
+  ])("rejects blank text (%j, %j) as %s", (title, description, reason) => {
+    const result = fitCarouselText(title, description);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe(reason);
+  });
+
+  it("orders the tiers from largest to smallest", () => {
+    for (let index = 1; index < CAROUSEL_SIZE_TIERS.length; index++) {
+      const previous = CAROUSEL_SIZE_TIERS[index - 1];
+      const current = CAROUSEL_SIZE_TIERS[index];
+      expect(current.titlePt + current.descriptionPt).toBeLessThan(previous.titlePt + previous.descriptionPt);
+      expect(current.titlePt).toBeLessThanOrEqual(previous.titlePt);
+      expect(current.descriptionPt).toBeLessThanOrEqual(previous.descriptionPt);
+    }
   });
 });

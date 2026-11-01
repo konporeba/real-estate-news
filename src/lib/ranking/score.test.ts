@@ -9,7 +9,13 @@ import {
 } from "@/lib/ranking/score";
 
 describe("clusterScoreSchema", () => {
-  const valid = { tier: "catalonia" as const, topics: ["rental-prices"], score: 88, rationale: "Barcelona rents" };
+  const valid = {
+    tier: "catalonia" as const,
+    topics: ["rental-prices"],
+    score: 88,
+    rationale: "Barcelona rents",
+    financeLaw: true,
+  };
 
   it("round-trips a valid score", () => {
     const parsed = clusterScoreSchema.parse(valid);

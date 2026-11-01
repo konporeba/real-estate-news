@@ -66,4 +66,9 @@ describe("isJobDue", () => {
     expect(isJobDue(SUNDAY_17_00, firedThreeWeeksAgo, now)).toBe(true);
     expect(mostRecentScheduledInstant(SUNDAY_17_00, now).toISOString()).toBe("2026-07-26T15:00:00.000Z");
   });
+
+  it("is always due for an every-run schedule, even one that just fired", () => {
+    expect(isJobDue({ every: "run" }, null, now)).toBe(true);
+    expect(isJobDue({ every: "run" }, now, now)).toBe(true);
+  });
 });

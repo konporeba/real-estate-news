@@ -136,8 +136,8 @@ All stories are from the perspective of the single operator unless marked _(syst
 
 - **Given** a source article containing prices and percentages
 - **When** the generated Polish copy is produced
-- **Then** every numeral extracted from the source is asserted present in the output
-- **And** if any is missing or altered, the run fails rather than publishing wrong figures
+- **Then** every figure in the output is asserted to exist in the source, and the figures of the story's headline and lead are asserted present
+- **And** if any figure is invented, altered or (for headline/lead figures) missing after one corrective retry, that story is left out rather than published with wrong figures, and the operator sees it listed as "Not included" (revised 2026-10-31)
 
 ### US-13: I control the design without touching code
 
@@ -235,7 +235,7 @@ All stories are from the perspective of the single operator unless marked _(syst
 - FR-001: The system can collect articles published within the Monday–Sunday window from a configured source list. Priority: must-have
 - FR-002: The system collects per-source using a tiered method rather than one global approach — a structured feed where the source offers one (preferred), a news API/aggregator second, and a rendered fetch only for sources that offer neither (some portals, e.g. Idealista, actively block automated fetching). Each source is configured with its own method. Priority: must-have
 - FR-003: If the candidate pool is below a configured threshold, the system can add fallback sources; AI web search remains the last resort. Priority: must-have
-- FR-018: The operator can manually re-trigger the collection run, so a failed Sunday run is recoverable without waiting seven days. Priority: must-have
+- FR-018: The operator can manually re-trigger the collection run, so a failed Sunday run is recoverable without waiting seven days. Priority: must-have. (Extended 2026-11-01: the dashboard's Retry re-runs any failed week from the stage that failed, and the scheduled worker carries it forward within minutes; the automatic Sunday run recovers only this week's or last week's failed collection, never a week waiting at a human gate.)
 
 ### Ranking (the editorial brain)
 
@@ -256,7 +256,7 @@ All stories are from the perspective of the single operator unless marked _(syst
 ### Generation
 
 - FR-013: The system gives only the selected stories full treatment — a complete Spanish→Polish adaptation for social media: compelling title, caption-ready summary, longer body copy for slides, and pulled-out key statistics. Priority: must-have
-- FR-014: The system verifies numeric integrity deterministically, not via a prompt promise — numerals (prices, percentages, dates) are extracted from the source and asserted present in the output; failure fails the run. Priority: must-have
+- FR-014: The system verifies numeric integrity deterministically, not via a prompt promise — every significant figure (prices, percentages, amounts) in the generated copy must exist in the source, and the figures in the story's headline and lead must be present in the copy. A story that still fails after one corrective retry is left out of the week and shown to the operator as "Not included"; the run fails only if fewer than the minimum number of stories remain. (Revised 2026-10-31: the original "every source figure must appear" rule made figure-dense articles impossible to adapt and never caught invented figures.) Priority: must-have
 - FR-015: The system produces visual output from brand templates via named-slot autofill — the operator owns the design directly in a visual editor and the system fills the slots; one template per platform format; design changes require no code change or deployment. Priority: must-have
 - FR-016: The system enforces a hard per-run cost ceiling and halts the run when accumulated cost reaches it. Priority: must-have
 - FR-017: The system handles malformed model output with staged recovery plus bounded backoff retries, bounded by the FR-016 ceiling. Priority: must-have
@@ -264,13 +264,15 @@ All stories are from the perspective of the single operator unless marked _(syst
 ### Human gate 2 — approval
 
 - FR-019: The system emails the operator when generated content is ready for approval. Priority: must-have
-- FR-020: The operator reviews the generated post and approves or rejects it before anything publishes. Priority: must-have
+- FR-020: The operator reviews the generated post and approves or rejects it before anything publishes. Priority: must-have. (Extended 2026-11-01: before deciding, the operator may edit each story's title and caption; the edit must still fit its slide, the slides are redrawn from it, and the post comes back for approval. The operator's own edits are not held to FR-014's figure check.)
 - FR-021: The system emails a Monday reminder if any step remains unvalidated. Priority: must-have
 
 ### Publishing
 
 - FR-022: The system publishes approved content Tuesday 17:00 `Europe/Warsaw` to the selected platforms, tracking per-platform success/failure independently and recording post IDs or error messages. Priority: must-have
 - FR-023: On a missed approval deadline, the system skips the scheduled publish, keeps the digest in an approved-and-pending state that the operator can publish manually later, and never publishes unapproved content. Priority: must-have
+
+- FR-029: The operator can manage any week from the dashboard: close it (it is never published, stops asking for attention, and frees its week) or delete it permanently with everything under it, including its slide images. A week the pipeline is working on right now cannot be changed until that step finishes. Priority: must-have (added 2026-11-01)
 
 ### Archive & learning
 

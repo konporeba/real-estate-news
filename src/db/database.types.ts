@@ -41,6 +41,8 @@
 //   - `publication` under public.Tables, `publication_status` under public.Enums and in
 //     Constants.public.Enums, `record_publication` under public.Functions
 //     (20260913120000_publication.sql)
+//   - `"closed"` in the `digest_status` enum (after "skipped") and in
+//     Constants.public.Enums.digest_status (20261101120000_closed_status_enum.sql)
 export type Json =
   | string
   | number
@@ -648,6 +650,7 @@ export type Database = {
         | "rejected"
         | "published"
         | "skipped"
+        | "closed"
         | "failed"
       publication_status: "success" | "failure"
       scheduled_job_status: "idle" | "running"
@@ -795,6 +798,7 @@ export const Constants = {
         "rejected",
         "published",
         "skipped",
+        "closed",
         "failed",
       ],
       publication_status: ["success", "failure"],

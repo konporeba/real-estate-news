@@ -121,6 +121,8 @@ export interface ShortlistItem {
   score: number | null;
   /** The rubric's one-line editorial reasoning (S-09 archive view). */
   rationale: string | null;
+  /** Ranking flagged it for the carousel's finance/law section. False for pre-flag clusters. */
+  financeLaw: boolean;
   coverageCount: number;
   /** Null until the translation stage has run over this cluster's representative. */
   polishTitle: string | null;
@@ -222,7 +224,13 @@ export type GeneratedAssetRow = Database["public"]["Tables"]["generated_asset"][
  * - `empty_title` — the story's Polish title is blank, so the card would render headline-less
  * - `title_too_long` — the headline is past the last fit tier; no font size renders it whole
  */
-export type VisualErrorReason = "malformed_statistics" | "insufficient_statistics" | "empty_title" | "title_too_long";
+export type VisualErrorReason =
+  | "malformed_statistics"
+  | "insufficient_statistics"
+  | "empty_title"
+  | "title_too_long"
+  | "empty_description"
+  | "text_too_long";
 
 export interface VisualError {
   ok: false;

@@ -4,11 +4,11 @@
 // "approval-reminder" below with zero changes to src/lib/scheduler/schedule.ts or the
 // orchestration entrypoint's due-check loop — exactly the generality this file's original
 // comment predicted; S-08 adds "publish" the same way.
-import type { WeeklySchedule } from "@/lib/scheduler/schedule";
+import type { JobSchedule } from "@/lib/scheduler/schedule";
 
 export interface ScheduledJobDefinition {
   name: string;
-  schedule: WeeklySchedule;
+  schedule: JobSchedule;
 }
 
 /** Sunday 17:00 Europe/Warsaw — the PRD's own reference point for the collection trigger. */
@@ -20,4 +20,7 @@ export const SCHEDULED_JOBS: readonly ScheduledJobDefinition[] = [
   { name: "approval-reminder", schedule: { dayOfWeek: 1, hour: 9, minute: 0 } },
   // S-08/FR-022: the automatic weekly publish. dayOfWeek 2 = Tuesday, the same convention.
   { name: "publish", schedule: { dayOfWeek: 2, hour: 17, minute: 0 } },
+  // Every tick: carry any week the operator set moving (confirmed picks, a retry, edited text)
+  // through the stages that follow. Last, so a long generation never delays the weekly jobs.
+  { name: "advance", schedule: { every: "run" } },
 ];

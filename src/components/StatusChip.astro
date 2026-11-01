@@ -1,0 +1,16 @@
+---
+import { STATUS_CHIP_CLASSES, STATUS_PRESENTATION, STATUS_TONE_CLASSES } from "@/lib/digest/presentation";
+import { cn } from "@/lib/utils";
+import type { DigestStatus } from "@/types";
+
+interface Props {
+  status: DigestStatus;
+}
+
+const { status } = Astro.props;
+const { label, tone } = STATUS_PRESENTATION[status];
+---
+
+<span class:list={cn(STATUS_CHIP_CLASSES, STATUS_TONE_CLASSES[tone])}>
+  {label}
+</span>

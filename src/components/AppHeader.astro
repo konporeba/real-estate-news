@@ -1,0 +1,60 @@
+---
+// The one header every operator page shares. The dashboard shows the main nav; a digest page shows
+// a way back plus where the operator is in the week's two decisions — the old header had neither,
+// so a digest page was a dead end without the browser's back button.
+interface Props {
+  /** Set on digest pages: replaces the nav with a back link. */
+  back?: { href: string; label: string };
+  /** Short "where am I" text shown on the right, e.g. "Step 1 of 2 · Pick stories". */
+  context?: string;
+}
+
+const { back, context } = Astro.props;
+---
+
+<header class="bg-card border-b">
+  <div class="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center justify-between gap-3 px-4 sm:px-6">
+    {
+      back ? (
+        <a
+          href={back.href}
+          class="text-foreground hover:text-signal-strong inline-flex min-h-11 items-center gap-2 text-[15px] font-semibold no-underline"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M19 12H5" />
+            <path d="m11 18-6-6 6-6" />
+          </svg>
+          {back.label}
+        </a>
+      ) : (
+        <a href="/dashboard" class="text-foreground inline-flex min-h-11 items-center gap-2.5 no-underline">
+          <span class="bg-primary inline-flex size-7 items-center justify-center rounded-lg" aria-hidden="true">
+            <span class="bg-signal size-2.5 rounded-[3px]" />
+          </span>
+          <span class="text-[17px] font-bold tracking-tight">Digest Desk</span>
+        </a>
+      )
+    }
+    <div class="flex flex-wrap items-center gap-1">
+      {context && <span class="text-muted-foreground mr-2 text-sm">{context}</span>}
+      <form method="POST" action="/api/auth/signout">
+        <button
+          type="submit"
+          class="text-muted-foreground hover:bg-muted hover:text-foreground inline-flex min-h-11 cursor-pointer items-center rounded-lg px-3.5 text-[15px] font-medium transition-colors"
+        >
+          Sign out
+        </button>
+      </form>
+    </div>
+  </div>
+</header>

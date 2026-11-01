@@ -16,6 +16,7 @@
     "generate": "tsx --env-file=.env src/worker/generate.ts",
     "visuals": "tsx --env-file=.env src/worker/visuals.ts",
     "visuals:validate": "tsx --env-file=.env src/worker/validate-decks.ts",
+    "visuals:preview": "tsx --env-file=.env src/worker/visuals-preview.ts",
     "scheduled-run": "tsx --env-file=.env src/worker/scheduled-run.ts",
     "remind": "tsx --env-file=.env src/worker/remind.ts",
     "publish": "tsx --env-file=.env src/worker/publish.ts",

@@ -45,6 +45,13 @@ export const clusterScoreSchema = z.object({
   score: z.number(),
   /** One-line editorial reasoning — aids rubric tuning and feeds S-09's learning loop. */
   rationale: z.string(),
+  /**
+   * True when the story's core is prices, mortgages/loans, taxes or housing law — the carousel's
+   * "Ceny, kredyty, podatki i prawo" section. Independent of tier (a Barcelona rent law is both
+   * `catalonia` and finance/law); always false for `discard`. Rows scored before this field
+   * existed lack it in `scoring_detail`, and readers treat that as false.
+   */
+  financeLaw: z.boolean(),
 });
 
 export type ClusterScore = z.infer<typeof clusterScoreSchema>;

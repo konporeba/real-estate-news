@@ -4,13 +4,16 @@
 // placeholder NAMES ("TITLE"), not tokens ("{{TITLE}}") — `token()` in template.ts owns the brace
 // syntax, and having one module know it keeps a future change to the delimiters from rippling.
 //
-// The interesting decision here is that a story with too few figures FAILS rather than rendering
+// Two maps: `buildSlotMap` for the single-post slide (headline + three statistics) and
+// `buildCarouselSlots` for the carousel story slide (headline + description, no statistics).
+//
+// The interesting decision for single-post is that a story with too few figures FAILS rather than rendering
 // with a gap. Slides cannot hide an element through the API, so an unfilled `{{STAT_3_VALUE}}`
 // would publish either as a literal `{{STAT_3_VALUE}}` or as an empty pill sitting in the layout.
 // A digest that stops with a diagnostic is recoverable in minutes; a card that looks finished and
 // is not reaches the approval gate looking publishable.
-import { COVER_PLACEHOLDERS, STORY_PLACEHOLDERS } from "@/lib/visuals/template";
-import type { DigestRun, GeneratedCopyRow, KeyStatistic, VisualResult } from "@/types";
+import { STORY_PLACEHOLDERS } from "@/lib/visuals/template";
+import type { GeneratedCopyRow, KeyStatistic, VisualResult } from "@/types";
 
 /**
  * How many figures the story template has room for. Fixed, not variable: see the module note.
@@ -98,37 +101,25 @@ export function buildSlotMap(copy: GeneratedCopyRow): VisualResult<Record<string
   return { ok: true, data: slots };
 }
 
-/** The carousel cover's heading. Polish, because unlike the dashboard this is published copy. */
-export const COVER_TITLE = "Rynek nieruchomości w Hiszpanii";
-
 /**
- * The digest window as a Polish date range, e.g. "1–7 września 2026".
+ * Map one story onto the carousel story slide: the headline and the caption summary, which share
+ * one text box (see template.ts). No statistics — the carousel design has no slots for them; they
+ * stay in `generated_copy` for the archive.
  *
- * `window_start` / `window_end` are `date` columns, so they arrive as `YYYY-MM-DD` with no time
- * and no zone. Formatting is pinned to UTC for exactly that reason: parsed as an instant they are
- * UTC midnight, and rendering them in a westward local zone would print the previous day.
+ * Whitespace is collapsed to single spaces: a line break the model emitted inside a caption would
+ * otherwise become a third paragraph and shift the ranges the renderer sizes.
  */
-export function formatWindow(windowStart: string, windowEnd: string): string {
-  const start = new Date(`${windowStart}T00:00:00Z`);
-  const end = new Date(`${windowEnd}T00:00:00Z`);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return `${windowStart} – ${windowEnd}`;
+export function buildCarouselSlots(copy: GeneratedCopyRow): VisualResult<{ TITLE: string; DESCRIPTION: string }> {
+  const title = copy.polish_title.trim().replace(/\s+/g, " ");
+  if (!title) return { ok: false, reason: "empty_title", message: "the story's Polish title is blank" };
 
-  const long = new Intl.DateTimeFormat("pl-PL", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
-  const day = new Intl.DateTimeFormat("pl-PL", { day: "numeric", timeZone: "UTC" });
+  const description = copy.caption_summary.trim().replace(/\s+/g, " ");
+  if (!description) {
+    return { ok: false, reason: "empty_description", message: "the story's caption summary is blank" };
+  }
 
-  // A week almost always sits inside one month, where repeating the month and year on both sides
-  // reads as noise: "1–7 września 2026" rather than "1 września 2026 – 7 września 2026".
-  const sameMonth = windowStart.slice(0, 7) === windowEnd.slice(0, 7);
-  return sameMonth ? `${day.format(start)}–${long.format(end)}` : `${long.format(start)} – ${long.format(end)}`;
+  return { ok: true, data: { TITLE: title, DESCRIPTION: description } };
 }
 
-/** Map the digest's week onto the cover slide's placeholders. The cover carries no story. */
-export function buildCoverSlots(digest: Pick<DigestRun, "window_start" | "window_end">): Record<string, string> {
-  return {
-    COVER_TITLE,
-    COVER_SUBTITLE: formatWindow(digest.window_start, digest.window_end),
-  };
-}
-
-/** Re-exported so the orchestrator and its tests reference one definition of each vocabulary. */
-export { COVER_PLACEHOLDERS, STORY_PLACEHOLDERS };
+/** Re-exported so the orchestrator and its tests reference one definition of the vocabulary. */
+export { STORY_PLACEHOLDERS };

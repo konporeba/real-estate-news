@@ -21,8 +21,13 @@ import type { LlmResult } from "@/types";
 /** Clusters per scoring call, and how many calls run at once. Both bound ceiling exposure. */
 const BATCH_SIZE = 12;
 const MAX_CONCURRENCY = 3;
-/** Output-token budget per cluster in a batch, plus a fixed floor — a score object is small. */
-const MAX_TOKENS_PER_CLUSTER = 200;
+/**
+ * Output-token budget per cluster in a batch, plus a fixed floor — a score object is small, but
+ * not that small: the 2026-09-14 digest failed with a full batch of 12 truncated at 200 per
+ * cluster (2800), before the `financeLaw` field added a few more. Only tokens actually produced
+ * are billed, so headroom here is free.
+ */
+export const MAX_TOKENS_PER_CLUSTER = 300;
 const MAX_TOKENS_FLOOR = 400;
 
 /** The input to scoring: a story (one or more articles' title+lede) with a stable local id. */

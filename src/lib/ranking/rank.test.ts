@@ -179,7 +179,7 @@ function fakeTransport(config: FakeConfig): { transport: LlmTransport; calls: un
         if (!idMatch) return null;
         const titles = [...block.matchAll(/^- (.+)$/gm)].map((m) => m[1]);
         const { tier, score } = config.tierOf(titles);
-        return { clusterId: idMatch[1], tier, topics: [], score, rationale: "fake" };
+        return { clusterId: idMatch[1], tier, topics: [], score, rationale: "fake", financeLaw: false };
       })
       .filter((s): s is NonNullable<typeof s> => s !== null);
     const text = JSON.stringify({ scores });

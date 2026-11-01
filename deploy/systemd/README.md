@@ -9,13 +9,15 @@
 ## What this is
 
 `real-estate-news-scheduled-run.timer` fires `real-estate-news-scheduled-run.service`
-every 15 minutes. The service runs `npm run scheduled-run`
+every 5 minutes. The service runs `npm run scheduled-run`
 (`src/worker/scheduled-run.ts`), which checks every job in the registry
-(`src/lib/scheduler/registry.ts`) for due-ness and runs whichever are due. The timer is
+(`src/lib/scheduler/registry.ts`) for due-ness and runs whichever are due. One job, `advance`,
+is due on every tick: it runs the writing and slide stages (and a retried collection) for any
+week the operator set moving from the dashboard, so nothing needs to be run by hand. The timer is
 deliberately frequent and deliberately dumb — DST-correctness, catch-up after an outage,
 and concurrency-safety all live in the in-repo due-check, not in the timer's own timing
 (see `context/changes/reliable-scheduler-backbone/plan.md`'s Implementation Approach).
-`Persistent=true` is a backstop for an outage long enough to miss the 15-minute cadence
+`Persistent=true` is a backstop for an outage long enough to miss the 5-minute cadence
 itself; systemd fires once on boot in that case, and the in-repo check decides whether
 that catch-up fire needs to do anything.
 
@@ -55,8 +57,8 @@ that catch-up fire needs to do anything.
   journalctl -u real-estate-news-scheduled-run.service -n 50 --no-pager
   ```
   A healthy run logs one `[scheduled-run] <job>: not due` or
-  `[scheduled-run] <job>: due, claimed — running` line per registered job (currently just
-  `collection`).
+  `[scheduled-run] <job>: due, claimed — running` line per registered job (`collection`,
+  `approval-reminder`, `publish`, `advance` — the last runs every tick).
 
 ## Heartbeat (S-10)
 
@@ -68,8 +70,8 @@ the timer/service itself stalled) surfaces as an alert instead of looking like "
 > **Status: reviewed, not verified against real hardware**, same caveat as the rest of this file.
 
 1. Sign up at healthchecks.io (free tier) and create a new check.
-2. Set the check's period/grace so it comfortably exceeds the 15-minute tick cadence — e.g. a
-   30-minute grace period. Too tight a grace period will false-alarm on an ordinary gap between
+2. Set the check's period/grace so it comfortably exceeds the 5-minute tick cadence plus the
+   longest tick (a generation run takes ~10 minutes) — e.g. a 30-minute grace period. Too tight a grace period will false-alarm on an ordinary gap between
    ticks; too loose delays a real outage alert.
 3. Copy the check's ping URL (`https://hc-ping.com/<uuid>`) into `HEARTBEAT_PING_URL` in the
    Pi's `.env`, alongside the other worker variables (see `.env.example`). A failed tick pings the

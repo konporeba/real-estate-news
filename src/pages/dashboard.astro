@@ -1,120 +1,299 @@
 ---
 import Layout from "@/layouts/Layout.astro";
-import OperatorHeader from "@/components/OperatorHeader.astro";
+import AppHeader from "@/components/AppHeader.astro";
+import Notice from "@/components/Notice.astro";
+import StatusChip from "@/components/StatusChip.astro";
+import { WeekActions } from "@/components/WeekActions";
+import { WeekList } from "@/components/WeekList";
+import { currentStepIndex, formatWeek, PIPELINE_STEPS } from "@/lib/digest/presentation";
+import { loadWeekPage, parseWeekPageQuery, WEEK_ROW_COLUMNS, type WeekRow } from "@/lib/digest/week-list";
 import { createServiceClient } from "@/lib/supabase-admin";
 import { cn } from "@/lib/utils";
-import type { DigestStatus } from "@/types";
-
-/** S-09: the "needs my attention now" set — everything before the operator's first gate. */
-const ACTIVE_STATUSES: DigestStatus[] = ["collecting", "ranking", "ready_for_selection"];
-const PAGE_SIZE = 25;
 
 const client = createServiceClient();
 
-const view = Astro.url.searchParams.get("view") === "active" ? "active" : "all";
-const beforeParam = Astro.url.searchParams.get("before");
-// window_start is a plain date (YYYY-MM-DD); a malformed cursor falls back to the unfiltered
-// first page rather than surfacing as a generic query error.
-const before = beforeParam && /^\d{4}-\d{2}-\d{2}$/.test(beforeParam) ? beforeParam : null;
+// A malformed view or cursor falls back to "all" / the first page (week-list.ts).
+const { view, before } = parseWeekPageQuery(Astro.url.searchParams);
 
-let digests: { id: string; window_start: string; window_end: string; status: DigestStatus }[] = [];
+let current: WeekRow | null = null;
+let shortlistSize: number | null = null;
+let digests: WeekRow[] = [];
+let nextBefore: string | null = null;
 let loadError = false;
-let hasMore = false;
 
 if (client) {
-  let query = client
-    .from("digest")
-    .select("id, window_start, window_end, status")
-    .order("window_start", { ascending: false })
-    .limit(PAGE_SIZE);
-  if (view === "active") query = query.in("status", ACTIVE_STATUSES);
-  // Keyset pagination on window_start rather than offset: the list is append-only by week, so a
-  // cursor on the last row's own window_start never skips or repeats a digest as new ones arrive.
-  if (before) query = query.lt("window_start", before);
+  // The newest digest is "this week", shown as its own card on the first page whatever the filter,
+  // because it is the one the operator most often came here to act on.
+  if (!before) {
+    const { data, error } = await client
+      .from("digest")
+      .select(WEEK_ROW_COLUMNS)
+      .order("window_start", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) {
+      console.error(`failed to load current digest: ${error.code}: ${error.message}`);
+      loadError = true;
+    } else {
+      current = data;
+    }
 
-  const { data, error } = await query;
-  if (error) {
-    console.error(`failed to load digests: ${error.code}: ${error.message}`);
-    loadError = true;
-    Astro.response.status = 500;
-  } else {
-    digests = data;
-    hasMore = data.length === PAGE_SIZE;
+    if (current?.status === "ready_for_selection") {
+      const { count, error: countError } = await client
+        .from("cluster")
+        .select("id", { count: "exact", head: true })
+        .eq("digest_id", current.id)
+        .not("rank", "is", null);
+      // Only the headline's number depends on this; a failure drops the number, not the card.
+      if (countError) console.error(`failed to count shortlist for digest ${current.id}: ${countError.message}`);
+      else shortlistSize = count;
+    }
   }
+
+  // The current week already has its own card above the list.
+  const page = await loadWeekPage(client, { view, before, exclude: current?.id ?? null });
+  if (!page.ok) {
+    console.error(`failed to load digests: ${page.message}`);
+    loadError = true;
+  } else {
+    digests = page.data.weeks;
+    nextBefore = page.data.nextBefore;
+  }
+  if (loadError) Astro.response.status = 500;
 } else {
   Astro.response.status = 503;
 }
 
-const nextBefore = digests.at(-1)?.window_start;
-const olderHref = nextBefore ? `/dashboard?before=${nextBefore}${view === "active" ? "&view=active" : ""}` : null;
+/** What the "this week" card says and where its one button goes, per status. */
+function focusFor(digest: WeekRow): { headline: string; body: string; cta?: { href: string; label: string } } {
+  const detail = `/dashboard/${digest.id}`;
+  const approve = `/dashboard/${digest.id}/approve`;
+  switch (digest.status) {
+    case "collecting":
+    case "ranking":
+      return {
+        headline: "This week's news is being gathered and ranked.",
+        body: "You'll get an email as soon as the shortlist is ready for you.",
+      };
+    case "ready_for_selection":
+      return {
+        headline: `${shortlistSize !== null ? `${String(shortlistSize)} stories` : "Stories"} made the shortlist. Choose the 2 to 4 worth posting.`,
+        body: "Once you confirm, the copy and slides are written for you. You get one more look before anything is published.",
+        cta: { href: detail, label: "Choose stories" },
+      };
+    case "generating":
+    case "rendering":
+      return {
+        headline: "Your picks are being written up and designed.",
+        body: "You'll get an email when the finished post is ready to approve.",
+        cta: { href: detail, label: "See your picks" },
+      };
+    case "ready_for_approval":
+      return {
+        headline: "The finished post is ready for your review.",
+        body: "Check the slides and copy, then approve it or send it back for a rewrite. Nothing is published without your approval.",
+        cta: { href: approve, label: "Review the post" },
+      };
+    case "approved":
+      return {
+        headline: "Approved and scheduled for Tuesday at 17:00.",
+        body: "You can still publish it right away from the post page.",
+        cta: { href: approve, label: "View the post" },
+      };
+    case "published":
+      return {
+        headline: "This week's post is out.",
+        body: "See how each platform's publish went.",
+        cta: { href: approve, label: "View publish results" },
+      };
+    case "rejected":
+      return {
+        headline: "You sent this week's post back for a rewrite.",
+        body: "Nothing was published. Fresh copy can be generated on the same picks, then it comes back for approval.",
+        cta: { href: approve, label: "View your decision" },
+      };
+    case "skipped":
+      return {
+        headline: "This week's post missed its approval deadline.",
+        body: "Nothing was published. You can still review it and publish it by hand.",
+        cta: { href: approve, label: "Review and publish" },
+      };
+    case "closed":
+      return {
+        headline: "You closed this week.",
+        body: "Nothing from it was or will be published. Next week's news is collected on Sunday at 17:00.",
+        cta: { href: detail, label: "See details" },
+      };
+    case "failed":
+      return {
+        headline: "This week's run stopped before it finished.",
+        body: digest.last_error ?? "No diagnostic was recorded.",
+        cta: { href: detail, label: "See details" },
+      };
+  }
+}
+
+const focus = current ? focusFor(current) : null;
+const stepIndex = current ? currentStepIndex(current.status) : null;
+
+const TODAY = new Intl.DateTimeFormat("en-GB", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  timeZone: "Europe/Warsaw",
+}).format(new Date());
 ---
 
-<Layout title="Dashboard">
-  <div class="bg-cosmic min-h-screen p-4 text-white">
-    <OperatorHeader title="Operator Dashboard" />
-    <main class="mx-auto mt-6 max-w-3xl">
-      <div class="mb-4 flex gap-2 text-xs tracking-wide uppercase">
-        <a
-          href="/dashboard"
-          class:list={cn(
-            "rounded-full border px-3 py-1 transition-colors",
-            view === "all" ? "border-purple-400/50 bg-purple-500/15" : "border-white/10 bg-white/10 hover:bg-white/20",
-          )}
-        >
-          All
-        </a>
-        <a
-          href="/dashboard?view=active"
-          class:list={cn(
-            "rounded-full border px-3 py-1 transition-colors",
-            view === "active"
-              ? "border-purple-400/50 bg-purple-500/15"
-              : "border-white/10 bg-white/10 hover:bg-white/20",
-          )}
-        >
-          Active only
-        </a>
-      </div>
-      {
-        !client ? (
-          <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">
-            Supabase is not configured — digests cannot be loaded.
-          </p>
-        ) : loadError ? (
-          <p class="rounded-xl border border-red-400/30 bg-red-500/10 p-6 text-sm text-red-200">
-            Couldn't load digests — please try again.
-          </p>
-        ) : digests.length === 0 ? (
-          <p class="rounded-xl border border-white/10 bg-white/10 p-6 text-sm text-blue-100/70">No digests yet.</p>
-        ) : (
-          <Fragment>
-            <ul class="space-y-3">
-              {digests.map((digest) => (
-                <li>
-                  <a
-                    href={`/dashboard/${digest.id}`}
-                    class="flex items-center justify-between rounded-xl border border-white/10 bg-white/10 p-4 transition-colors hover:bg-white/20"
+<Layout title="This week">
+  <AppHeader />
+  <main class="mx-auto flex max-w-6xl flex-col gap-8 px-4 pt-10 pb-16 sm:px-6">
+    <div class="space-y-1.5">
+      <p class="text-muted-foreground text-[15px]">{TODAY}</p>
+      <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">
+        {
+          current && (current.status === "ready_for_selection" || current.status === "ready_for_approval")
+            ? "One decision is waiting for you."
+            : "Your weekly digest desk."
+        }
+      </h1>
+    </div>
+
+    {
+      !client ? (
+        <Notice>Supabase is not configured — digests cannot be loaded.</Notice>
+      ) : loadError ? (
+        <Notice tone="problem">Couldn't load your digests — please try again.</Notice>
+      ) : (
+        current &&
+        focus && (
+          <section aria-labelledby="week-title" class="bg-card flex flex-wrap overflow-hidden rounded-[20px] border">
+            <div class="flex min-w-0 flex-[999_1_520px] flex-col gap-5 p-6 sm:p-9">
+              <div class="flex flex-wrap items-center gap-2.5">
+                <StatusChip status={current.status} />
+                <span class="text-muted-foreground text-sm">
+                  Week of {formatWeek(current.window_start, current.window_end)}
+                </span>
+                <span class="ml-auto">
+                  <WeekActions client:load week={current} />
+                </span>
+              </div>
+              <h2 id="week-title" class="max-w-xl text-2xl leading-tight font-bold tracking-tight sm:text-[30px]">
+                {focus.headline}
+              </h2>
+              <p
+                class:list={cn(
+                  "max-w-xl text-base leading-relaxed",
+                  current.status === "failed" ? "text-destructive" : "text-muted-foreground",
+                )}
+              >
+                {focus.body}
+              </p>
+              {focus.cta && (
+                <a
+                  href={focus.cta.href}
+                  class="bg-primary text-primary-foreground inline-flex min-h-12 items-center gap-2.5 self-start rounded-xl px-5.5 text-base font-semibold no-underline transition-opacity hover:opacity-90"
+                >
+                  {focus.cta.label}
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
                   >
-                    <span>
-                      {digest.window_start} – {digest.window_end}
-                    </span>
-                    <span class="rounded-full bg-white/10 px-3 py-1 text-xs tracking-wide text-blue-100/80 uppercase">
-                      {digest.status}
-                    </span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-            {olderHref && hasMore && (
-              <div class="mt-4 text-center">
-                <a href={olderHref} class="text-sm text-blue-300 hover:underline">
-                  Older →
+                    <path d="M5 12h14" />
+                    <path d="m13 6 6 6-6 6" />
+                  </svg>
                 </a>
+              )}
+            </div>
+
+            {stepIndex !== null && (
+              <div class="bg-muted min-w-0 flex-[1_1_300px] border-t p-6 sm:p-9 lg:border-t-0 lg:border-l">
+                <h3 class="text-muted-foreground mb-4 text-[13px] font-semibold tracking-[0.08em] uppercase">
+                  This week's run
+                </h3>
+                <ol>
+                  {PIPELINE_STEPS.map((step, i) => {
+                    const state = i < stepIndex ? "done" : i === stepIndex ? "current" : "upcoming";
+                    const last = i === PIPELINE_STEPS.length - 1;
+                    return (
+                      <li class="flex gap-3.5" aria-current={state === "current" ? "step" : undefined}>
+                        <div class="flex flex-col items-center">
+                          {state === "done" ? (
+                            <span class="bg-primary inline-flex size-5.5 items-center justify-center rounded-full">
+                              <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="3"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                class="text-primary-foreground"
+                                aria-hidden="true"
+                              >
+                                <path d="M20 6 9 17l-5-5" />
+                              </svg>
+                            </span>
+                          ) : state === "current" ? (
+                            <span class="border-signal-tint bg-signal size-5.5 rounded-full border-4" />
+                          ) : (
+                            <span class="bg-card size-5.5 rounded-full border-2" />
+                          )}
+                          {!last && (
+                            <span
+                              class:list={cn(
+                                "min-h-4 w-0.5 flex-1",
+                                i < stepIndex - 1 ? "bg-primary" : i === stepIndex - 1 ? "bg-signal" : "bg-border",
+                              )}
+                            />
+                          )}
+                        </div>
+                        <div class:list={cn(!last && "pb-3.5")}>
+                          <p
+                            class:list={cn(
+                              "text-[15px]",
+                              state === "current" && "font-bold",
+                              state === "done" && "font-semibold",
+                              state === "upcoming" && "text-muted-foreground font-medium",
+                            )}
+                          >
+                            {step.label}
+                          </p>
+                          {state === "current" && (
+                            <p class="text-signal-strong text-[13px] font-semibold">
+                              {step.operator ? "Waiting for you" : "In progress"}
+                            </p>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
               </div>
             )}
-          </Fragment>
+          </section>
         )
-      }
-    </main>
-  </div>
+      )
+    }
+
+    {
+      client && !loadError && (
+        <WeekList
+          client:load
+          title={current ? "Previous weeks" : "All weeks"}
+          view={view}
+          weeks={digests}
+          nextBefore={nextBefore}
+          excludeId={current?.id ?? null}
+        />
+      )
+    }
+  </main>
 </Layout>

@@ -183,6 +183,9 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
   const rows = await fetchGeneratedCopy(client, digest.id);
   console.log(`generated ${String(rows.length)} ${rows.length === 1 ? "story" : "stories"}:`);
   console.log(summarize(rows));
+  for (const story of outcome.data.dropped) {
+    console.log(`not included: "${story.title}" — ${story.reason}`);
+  }
   return 0;
 }
 

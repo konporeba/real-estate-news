@@ -1,4 +1,6 @@
 ---
+import { cn } from "@/lib/utils";
+
 type Variant = "info" | "warning" | "error";
 
 interface Props {
@@ -8,35 +10,14 @@ interface Props {
 const { variant = "info" } = Astro.props;
 ---
 
-<div class:list={["banner", `banner--${variant}`]} role={variant === "error" ? "alert" : "status"}>
+<div
+  class:list={cn(
+    "border-b px-4 py-3 text-center text-sm [&_a]:font-semibold [&_a]:text-inherit [&_a]:underline",
+    variant === "error" && "border-destructive bg-destructive-tint text-destructive",
+    variant === "warning" && "border-foreground bg-card text-foreground",
+    variant === "info" && "border-signal bg-signal-tint text-foreground",
+  )}
+  role={variant === "error" ? "alert" : "status"}
+>
   <slot />
 </div>
-
-<style>
-  .banner {
-    padding: 0.75rem 1rem;
-    font-size: 0.875rem;
-    text-align: center;
-    border-bottom: 1px solid;
-  }
-  .banner :global(a) {
-    color: inherit;
-    text-decoration: underline;
-    font-weight: 600;
-  }
-  .banner--info {
-    background: #dbeafe;
-    color: #1e3a8a;
-    border-color: #3b82f6;
-  }
-  .banner--warning {
-    background: #fef3c7;
-    color: #78350f;
-    border-color: #f59e0b;
-  }
-  .banner--error {
-    background: #fee2e2;
-    color: #7f1d1d;
-    border-color: #dc2626;
-  }
-</style>

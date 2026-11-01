@@ -1,9 +1,4 @@
 ---
-// APP-SIDE, static: no island, no interactivity. Shows publish outcomes already on record for a
-// digest — from a prior scheduled or manual run — so reloading the approve page shows them
-// without needing to click "Publish now" again (Phase 5's own manual-verification step). The live
-// PublishPanel island shows this same shape for a run just triggered on THIS page load; this
-// component covers what happened before the page was opened.
 import { PLATFORM_LABELS } from "@/lib/selection/rules";
 import { cn } from "@/lib/utils";
 import type { SelectionPlatform } from "@/types";
@@ -24,20 +19,32 @@ const { results } = Astro.props;
 
 {
   results.length > 0 && (
-    <section class="mb-6">
-      <h2 class="mb-3 text-sm font-semibold tracking-wide text-blue-100/80 uppercase">Publish results</h2>
-      <ul class="space-y-2">
+    <section aria-labelledby="results-title" class="flex flex-col gap-3">
+      <h2 id="results-title" class="text-[22px] font-bold tracking-tight">
+        Publish results
+      </h2>
+      <ul class="bg-card overflow-hidden rounded-2xl border">
         {results.map((result) => (
-          <li
-            class:list={cn(
-              "rounded-lg border p-3 text-sm",
-              result.status === "success"
-                ? "border-green-400/30 bg-green-500/10 text-green-200"
-                : "border-red-400/30 bg-red-500/10 text-red-200",
-            )}
-          >
-            <span class="font-semibold">{PLATFORM_LABELS[result.platform]}</span>{" "}
-            {result.status === "success" ? `succeeded — post id ${result.postId}` : `failed: ${result.error}`}
+          <li class="flex flex-wrap items-center gap-x-4 gap-y-1 border-b px-5 py-4 last:border-b-0">
+            <span class="min-w-28 font-semibold">{PLATFORM_LABELS[result.platform]}</span>
+            <span
+              class:list={cn(
+                "inline-flex h-7 items-center rounded-full px-3 text-[13px]",
+                result.status === "success"
+                  ? "bg-primary text-primary-foreground font-medium"
+                  : "border-destructive bg-destructive-tint text-destructive border font-semibold",
+              )}
+            >
+              {result.status === "success" ? "Posted" : "Failed"}
+            </span>
+            <span
+              class:list={cn(
+                "min-w-0 flex-1 text-sm",
+                result.status === "success" ? "text-muted-foreground font-mono" : "text-destructive",
+              )}
+            >
+              {result.status === "success" ? `Post id ${result.postId ?? "not recorded"}` : result.error}
+            </span>
           </li>
         ))}
       </ul>

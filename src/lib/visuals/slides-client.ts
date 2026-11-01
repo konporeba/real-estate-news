@@ -59,6 +59,13 @@ export interface Dimension {
 export interface Slide {
   objectId: string;
   pageElements?: PageElement[];
+  /** The carousel deck tags each slide in its speaker notes (`role=story section=spain`). */
+  slideProperties?: {
+    notesPage?: {
+      notesProperties?: { speakerNotesObjectId?: string };
+      pageElements?: PageElement[];
+    };
+  };
 }
 
 export interface PageElement {

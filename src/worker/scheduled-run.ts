@@ -4,7 +4,8 @@
 // (src/lib/scheduler/) together with the real pipeline actions: today, the "collection"
 // job runs collect.ts's main() and, only on success, rank.ts's main() next; the
 // "approval-reminder" job (S-07/FR-021) emails the operator when a digest is stuck at
-// either human gate.
+// either human gate; the "publish" job posts on Tuesday; and the every-tick "advance" job
+// (advance.ts) carries weeks the operator set moving through the stages that follow.
 //
 // Runs in plain Node, never in the Astro/workerd runtime. Nothing here may import
 // astro:env/server or src/lib/supabase-admin; eslint.config.js enforces both directions
@@ -16,6 +17,7 @@ import { SCHEDULED_JOBS, type ScheduledJobDefinition } from "@/lib/scheduler/reg
 import { isJobDue } from "@/lib/scheduler/schedule";
 import { DEFAULT_STALE_AFTER_MS, getJobState, releaseJob, tryAcquireJob } from "@/lib/scheduler/store";
 import { createServiceClient, type ServiceClient } from "@/lib/supabase-service";
+import { runAdvance } from "@/worker/advance";
 import { main as runCollect } from "@/worker/collect";
 import { loadWorkerEnv } from "@/worker/env";
 import { main as runPublish, PublishRefused } from "@/worker/publish";
@@ -74,6 +76,16 @@ async function runPublishScheduledJob(): Promise<JobOutcome> {
 }
 
 /**
+ * Every tick: carry weeks the operator set moving through the stages that follow (advance.ts).
+ * Unlike the weekly jobs, the stages here are targeted at one digest each, so a failure is
+ * recorded on that week (`failed`, with Retry on the dashboard) as well as on the job.
+ */
+async function runAdvanceJob(): Promise<JobOutcome> {
+  const env = loadWorkerEnv();
+  return runAdvance(createServiceClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY));
+}
+
+/**
  * Maps a job's registry name to the action that runs it for real. Exported so a drift guard can
  * assert every SCHEDULED_JOBS entry has a matching action, the same "make the SQL and TS agree"
  * precedent F-01's transition-guard test sets for the digest state machine.
@@ -82,6 +94,7 @@ export const JOB_ACTIONS: Record<string, JobAction> = {
   collection: runCollectionJob,
   "approval-reminder": runApprovalReminderJob,
   publish: runPublishScheduledJob,
+  advance: runAdvanceJob,
 };
 
 /** A freshly-claimed row always carries a `started_at`; narrows it without a non-null assertion. */
