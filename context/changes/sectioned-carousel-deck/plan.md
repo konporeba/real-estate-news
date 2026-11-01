@@ -495,7 +495,7 @@ dashboard; on the Raspberry Pi, `git pull` + `npm ci` so the scheduled worker pi
 
 #### Automated
 
-- [ ] 7.1 CI green on the PR
+- [x] 7.1 CI green on the PR — 7ed2687
 
 #### Manual
 

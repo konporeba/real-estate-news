@@ -347,7 +347,7 @@ page shows a "Updating the slides" notice while the week is in `rendering`.
 
 #### Automated
 
-- [ ] 6.1 CI green on the PR
+- [x] 6.1 CI green on the PR — 7ed2687
 
 #### Manual
 
