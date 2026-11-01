@@ -9,6 +9,18 @@ import type { DigestStatus } from "@/types";
  */
 export type StatusTone = "turn" | "progress" | "done" | "quiet" | "problem";
 
+/** How each tone is drawn — shared by the Astro chip and the React one so the two never drift. */
+export const STATUS_TONE_CLASSES: Record<StatusTone, string> = {
+  turn: "bg-signal font-semibold text-signal-foreground",
+  progress: "border bg-muted font-medium text-foreground",
+  done: "bg-primary font-medium text-primary-foreground",
+  quiet: "border border-dashed border-input bg-card font-medium text-foreground",
+  problem: "border border-destructive bg-destructive-tint font-semibold text-destructive",
+};
+
+/** The chip's own shape, around the tone. */
+export const STATUS_CHIP_CLASSES = "inline-flex h-7 shrink-0 items-center rounded-full px-3 text-[13px]";
+
 export const STATUS_PRESENTATION: Record<DigestStatus, { label: string; tone: StatusTone }> = {
   collecting: { label: "Collecting", tone: "progress" },
   ranking: { label: "Ranking", tone: "progress" },

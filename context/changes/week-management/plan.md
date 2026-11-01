@@ -303,22 +303,22 @@ page shows a "Updating the slides" notice while the week is in `rendering`.
 
 #### Automated
 
-- [x] 2.1 State-machine drift test passes against the new migration
-- [x] 2.2 Presentation tests, full suite, lint, build pass
+- [x] 2.1 State-machine drift test passes against the new migration — 5d1526c
+- [x] 2.2 Presentation tests, full suite, lint, build pass — 5d1526c
 
 #### Manual
 
-- [x] 2.3 Migrations applied in the Supabase SQL Editor; integration suite green
+- [x] 2.3 Migrations applied in the Supabase SQL Editor; integration suite green — 5d1526c
 
 ### Phase 3: Instant filters
 
 #### Automated
 
-- [ ] 3.1 API route tests, lint, build pass
+- [x] 3.1 API route tests, lint, build pass
 
 #### Manual
 
-- [ ] 3.2 Filters switch without a reload; back button works
+- [x] 3.2 Filters switch without a reload; back button works
 
 ### Phase 4: Delete, close, retry
 

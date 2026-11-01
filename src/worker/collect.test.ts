@@ -153,9 +153,9 @@ describe.skipIf(!configured)("resolveTargetDigest (integration)", () => {
     expect(digest.id).toBe(newer.id);
   });
 
-  // Monday-aligned synthetic weeks (nextWeek()'s start on a Friday), well past nextWeek()'s range,
+  // Monday-aligned synthetic weeks (nextWeek()'s start on a Friday), after nextWeek()'s range,
   // so the calendar default lands on them and a digest it creates stays in the purged range.
-  let mondayIndex = 100;
+  let mondayIndex = 30; // 2999-08 onward: past nextWeek()'s range, still inside the purged year
   function mondayWeek(): { start: string; end: string } {
     const monday = Date.UTC(2999, 0, 7) + mondayIndex * 7 * 86_400_000; // 2999-01-07 is a Monday
     mondayIndex += 1;

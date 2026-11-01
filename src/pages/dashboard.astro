@@ -3,42 +3,22 @@ import Layout from "@/layouts/Layout.astro";
 import AppHeader from "@/components/AppHeader.astro";
 import Notice from "@/components/Notice.astro";
 import StatusChip from "@/components/StatusChip.astro";
-import { currentStepIndex, formatWeek, NEEDS_OPERATOR_STATUSES, PIPELINE_STEPS } from "@/lib/digest/presentation";
+import { WeekList } from "@/components/WeekList";
+import { currentStepIndex, formatWeek, PIPELINE_STEPS } from "@/lib/digest/presentation";
+import { loadWeekPage, parseWeekPageQuery, WEEK_ROW_COLUMNS, type WeekRow } from "@/lib/digest/week-list";
 import { createServiceClient } from "@/lib/supabase-admin";
 import { cn } from "@/lib/utils";
-import type { DigestStatus } from "@/types";
-
-const PAGE_SIZE = 25;
-
-type View = "all" | "needs" | "published";
-const VIEWS: { id: View; label: string; statuses: DigestStatus[] | null }[] = [
-  { id: "all", label: "All", statuses: null },
-  { id: "needs", label: "Needs me", statuses: NEEDS_OPERATOR_STATUSES },
-  { id: "published", label: "Published", statuses: ["approved", "published"] },
-];
-
-interface DigestRow {
-  id: string;
-  window_start: string;
-  window_end: string;
-  status: DigestStatus;
-  last_error: string | null;
-}
 
 const client = createServiceClient();
 
-const viewParam = Astro.url.searchParams.get("view");
-const view = VIEWS.find((v) => v.id === viewParam) ?? VIEWS[0];
-const beforeParam = Astro.url.searchParams.get("before");
-// window_start is a plain date (YYYY-MM-DD); a malformed cursor falls back to the unfiltered
-// first page rather than surfacing as a generic query error.
-const before = beforeParam && /^\d{4}-\d{2}-\d{2}$/.test(beforeParam) ? beforeParam : null;
+// A malformed view or cursor falls back to "all" / the first page (week-list.ts).
+const { view, before } = parseWeekPageQuery(Astro.url.searchParams);
 
-let current: DigestRow | null = null;
+let current: WeekRow | null = null;
 let shortlistSize: number | null = null;
-let digests: DigestRow[] = [];
+let digests: WeekRow[] = [];
+let nextBefore: string | null = null;
 let loadError = false;
-let hasMore = false;
 
 if (client) {
   // The newest digest is "this week", shown as its own card on the first page whatever the filter,
@@ -46,7 +26,7 @@ if (client) {
   if (!before) {
     const { data, error } = await client
       .from("digest")
-      .select("id, window_start, window_end, status, last_error")
+      .select(WEEK_ROW_COLUMNS)
       .order("window_start", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -69,36 +49,22 @@ if (client) {
     }
   }
 
-  let query = client
-    .from("digest")
-    .select("id, window_start, window_end, status, last_error")
-    .order("window_start", { ascending: false })
-    .limit(PAGE_SIZE);
-  if (view.statuses) query = query.in("status", view.statuses);
-  // Keyset pagination on window_start rather than offset: the list is append-only by week, so a
-  // cursor on the last row's own window_start never skips or repeats a digest as new ones arrive.
-  if (before) query = query.lt("window_start", before);
-
-  const { data, error } = await query;
-  if (error) {
-    console.error(`failed to load digests: ${error.code}: ${error.message}`);
+  // The current week already has its own card above the list.
+  const page = await loadWeekPage(client, { view, before, exclude: current?.id ?? null });
+  if (!page.ok) {
+    console.error(`failed to load digests: ${page.message}`);
     loadError = true;
   } else {
-    hasMore = data.length === PAGE_SIZE;
-    // The current week already has its own card above the list.
-    digests = data.filter((digest) => digest.id !== current?.id);
+    digests = page.data.weeks;
+    nextBefore = page.data.nextBefore;
   }
   if (loadError) Astro.response.status = 500;
 } else {
   Astro.response.status = 503;
 }
 
-const nextBefore = hasMore ? (digests.at(-1)?.window_start ?? null) : null;
-const viewQuery = view.id === "all" ? "" : `&view=${view.id}`;
-const olderHref = nextBefore ? `/dashboard?before=${nextBefore}${viewQuery}` : null;
-
 /** What the "this week" card says and where its one button goes, per status. */
-function focusFor(digest: DigestRow): { headline: string; body: string; cta?: { href: string; label: string } } {
+function focusFor(digest: WeekRow): { headline: string; body: string; cta?: { href: string; label: string } } {
   const detail = `/dashboard/${digest.id}`;
   const approve = `/dashboard/${digest.id}/approve`;
   switch (digest.status) {
@@ -168,21 +134,6 @@ function focusFor(digest: DigestRow): { headline: string; body: string; cta?: { 
 
 const focus = current ? focusFor(current) : null;
 const stepIndex = current ? currentStepIndex(current.status) : null;
-
-/** One-line context for a past week's row. */
-function rowNote(digest: DigestRow): string {
-  switch (digest.status) {
-    case "skipped":
-    case "closed":
-      return "Nothing was published";
-    case "failed":
-      return digest.last_error ?? "Stopped without a diagnostic";
-    case "rejected":
-      return "Waiting for a rewrite";
-    default:
-      return "";
-  }
-}
 
 const TODAY = new Intl.DateTimeFormat("en-GB", {
   weekday: "long",
@@ -330,80 +281,14 @@ const TODAY = new Intl.DateTimeFormat("en-GB", {
 
     {
       client && !loadError && (
-        <section aria-labelledby="archive-title" class="flex flex-col gap-4">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 id="archive-title" class="text-[22px] font-bold tracking-tight">
-              {current ? "Previous weeks" : "All weeks"}
-            </h2>
-            <nav aria-label="Filter weeks" class="bg-card inline-flex flex-wrap gap-1 rounded-xl border p-1">
-              {VIEWS.map((v) => (
-                <a
-                  href={v.id === "all" ? "/dashboard" : `/dashboard?view=${v.id}`}
-                  aria-current={v.id === view.id ? "page" : undefined}
-                  class:list={cn(
-                    "inline-flex min-h-9 items-center rounded-lg px-3.5 text-sm no-underline transition-colors",
-                    v.id === view.id
-                      ? "bg-primary text-primary-foreground font-semibold"
-                      : "text-foreground hover:bg-muted font-medium",
-                  )}
-                >
-                  {v.label}
-                </a>
-              ))}
-            </nav>
-          </div>
-
-          {digests.length === 0 ? (
-            <Notice>
-              {view.id === "needs"
-                ? "Nothing needs you right now."
-                : view.id === "published"
-                  ? "Nothing has been published yet."
-                  : current
-                    ? "No earlier weeks yet."
-                    : "No digests yet. The first one is collected on Sunday at 17:00."}
-            </Notice>
-          ) : (
-            <ul class="bg-card overflow-hidden rounded-2xl border">
-              {digests.map((digest) => (
-                <li class="border-b last:border-b-0">
-                  <a
-                    href={`/dashboard/${digest.id}`}
-                    class="text-foreground hover:bg-muted flex flex-wrap items-center gap-x-6 gap-y-2 px-5 py-4 no-underline transition-colors sm:px-6"
-                  >
-                    <span class="min-w-0 flex-[1_1_220px]">
-                      <span class="block text-base font-semibold">
-                        {formatWeek(digest.window_start, digest.window_end)}
-                      </span>
-                      {rowNote(digest) && (
-                        <span
-                          class:list={cn(
-                            "line-clamp-1 text-[13px]",
-                            digest.status === "failed" ? "text-destructive" : "text-muted-foreground",
-                          )}
-                        >
-                          {rowNote(digest)}
-                        </span>
-                      )}
-                    </span>
-                    <StatusChip status={digest.status} />
-                    <span class="text-signal-strong text-sm font-semibold" aria-hidden="true">
-                      Open →
-                    </span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {olderHref && (
-            <div class="text-center">
-              <a href={olderHref} class="inline-flex min-h-11 items-center px-4 text-sm font-semibold no-underline">
-                Show older weeks
-              </a>
-            </div>
-          )}
-        </section>
+        <WeekList
+          client:load
+          title={current ? "Previous weeks" : "All weeks"}
+          view={view}
+          weeks={digests}
+          nextBefore={nextBefore}
+          excludeId={current?.id ?? null}
+        />
       )
     }
   </main>
