@@ -66,10 +66,12 @@ export async function resolveTargetDigest(
     return { digest: created.data, origin: "flag" };
   }
 
-  const recoverable = unwrap(await getLatestRecoverableDigest(client));
+  // Recovery reaches back one week: Sunday's run is for the week ending that Sunday, so by
+  // Monday it is already "last week".
+  const window = currentWeekWindow(now);
+  const recoverable = unwrap(await getLatestRecoverableDigest(client, addDays(window.start, -7)));
   if (recoverable) return { digest: recoverable, origin: "recovered" };
 
-  const window = currentWeekWindow(now);
   return { digest: unwrap(await createDigest(client, window)), origin: "created" };
 }
 

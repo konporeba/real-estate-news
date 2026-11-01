@@ -1,14 +1,17 @@
 [Unit]
-Description=Real Estate News: run the scheduler backbone check every 15 minutes (F-05)
+Description=Real Estate News: run the scheduler backbone check every 5 minutes (F-05)
 
 [Timer]
 # Deliberately frequent and deliberately dumb: correctness (DST, catch-up, concurrency)
 # lives in the in-repo due-check (src/lib/scheduler/), not in this timer's precision — it
 # only needs to fire often enough for the due-check to notice a scheduled moment has
-# passed, not fire at exactly the right instant.
-OnCalendar=*:0/15
+# passed, not fire at exactly the right instant. Every 5 minutes rather than 15 because the
+# "advance" job runs on every tick: a confirmed pick, a retry or an edited post starts within
+# 5 minutes of the operator's click. A tick that finds nothing to do is a few database reads,
+# and systemd never starts the service while the previous tick is still running.
+OnCalendar=*:0/5
 # Fires once immediately on boot if a tick was missed entirely (e.g. the Pi was off long
-# enough to skip the 15-minute cadence itself) — the in-repo due-check then decides
+# enough to skip the 5-minute cadence itself) — the in-repo due-check then decides
 # whether that catch-up fire actually needs to do anything.
 Persistent=true
 

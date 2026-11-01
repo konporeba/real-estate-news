@@ -114,12 +114,24 @@ export function mostRecentScheduledInstant(schedule: WeeklySchedule, now: Date):
 }
 
 /**
+ * A job due on every invocation — for work that waits on the operator rather than the calendar
+ * (a confirmed pick, a retry, an edit), so it starts at the next tick rather than next week.
+ * Still claimed like any job, so two overlapping invocations never both run it.
+ */
+export interface EveryRunSchedule {
+  every: "run";
+}
+
+export type JobSchedule = WeeklySchedule | EveryRunSchedule;
+
+/**
  * Whether `schedule` is due: `lastFiredAt` is unset, or older than the most recent
  * scheduled instant. Comparing only against the single most-recent instant — never
  * enumerating every individually-missed week — is what collapses any length of outage
- * into exactly one catch-up fire.
+ * into exactly one catch-up fire. An every-run schedule is always due.
  */
-export function isJobDue(schedule: WeeklySchedule, lastFiredAt: Date | null, now: Date): boolean {
+export function isJobDue(schedule: JobSchedule, lastFiredAt: Date | null, now: Date): boolean {
+  if ("every" in schedule) return true;
   const due = mostRecentScheduledInstant(schedule, now);
   return lastFiredAt === null || lastFiredAt.getTime() < due.getTime();
 }

@@ -160,20 +160,26 @@ export async function getActiveDigestForWeek(
 }
 
 /**
- * The newest digest still worth working on — the greatest `window_start` whose status is
- * neither `published` nor `skipped`. That is every non-terminal digest plus `failed` ones,
- * which FR-018 makes re-triggerable.
+ * The newest digest collection can still finish — still `collecting`, or `failed` before its
+ * ranking completed — whose week starts on or after `notBefore`.
  *
- * Deliberately not keyed on a week, unlike `getActiveDigestForWeek`. The worker's default
- * target must be "the run that still needs finishing", not "this calendar week": an
- * operator who notices Sunday's failure on Tuesday would otherwise create a fresh digest
- * for the current week and leave the failed one stranded.
+ * Deliberately not just "this calendar week", unlike `getActiveDigestForWeek`: an operator who
+ * notices Sunday's failure on Tuesday must get the failed run back (FR-018), not a fresh digest
+ * for the new week. But only collection-stage runs count. A digest waiting at a human gate, or one
+ * that failed after ranking, is not collection's to touch — counting it made the default refuse
+ * ("past collection") and the Sunday job collect nothing whenever the previous week was not yet
+ * published. And `notBefore` keeps a months-old failure from being re-collected in place of the
+ * current week; older weeks are retried explicitly (`--week`, or the dashboard's Retry).
  */
-export async function getLatestRecoverableDigest(client: ServiceClient): Promise<RunStateResult<DigestRun | null>> {
+export async function getLatestRecoverableDigest(
+  client: ServiceClient,
+  notBefore: string,
+): Promise<RunStateResult<DigestRun | null>> {
   const { data, error } = await client
     .from("digest")
     .select("*")
-    .not("status", "in", "(published,skipped)")
+    .or("status.eq.collecting,and(status.eq.failed,ranking_completed_at.is.null)")
+    .gte("window_start", notBefore)
     .order("window_start", { ascending: false })
     .limit(1)
     .maybeSingle();

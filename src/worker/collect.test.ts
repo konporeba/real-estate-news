@@ -91,7 +91,7 @@ async function countForeignRecoverable(): Promise<number> {
     .from("digest")
     .select("id", { count: "exact", head: true })
     .lt("window_start", SYNTHETIC_FIRST)
-    .not("status", "in", "(published,skipped)");
+    .or("status.eq.collecting,and(status.eq.failed,ranking_completed_at.is.null)");
   if (error) throw new Error(error.message);
   return count ?? 0;
 }
@@ -151,6 +151,63 @@ describe.skipIf(!configured)("resolveTargetDigest (integration)", () => {
     const { digest } = await resolveTargetDigest(db, null, new Date("2026-06-18T12:00:00Z"));
 
     expect(digest.id).toBe(newer.id);
+  });
+
+  // Monday-aligned synthetic weeks (nextWeek()'s start on a Friday), well past nextWeek()'s range,
+  // so the calendar default lands on them and a digest it creates stays in the purged range.
+  let mondayIndex = 100;
+  function mondayWeek(): { start: string; end: string } {
+    const monday = Date.UTC(2999, 0, 7) + mondayIndex * 7 * 86_400_000; // 2999-01-07 is a Monday
+    mondayIndex += 1;
+    const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+    return { start: iso(monday), end: iso(monday + 6 * 86_400_000) };
+  }
+
+  function thursdayOf(week: { start: string }): Date {
+    return new Date(Date.parse(`${week.start}T12:00:00Z`) + 3 * 86_400_000);
+  }
+
+  // The 2026-11-01 finding: the previous week waiting at a human gate made the no-flag default
+  // refuse ("past collection"), so the Sunday job would have collected nothing.
+  it("creates the current week rather than targeting a digest past collection", async () => {
+    await purgeSynthetic();
+    const lastWeek = mondayWeek();
+    const thisWeek = mondayWeek();
+    const waiting = unwrap(await createDigest(db, lastWeek));
+    unwrap(await transitionDigest(db, waiting.id, "ranking"));
+    unwrap(await transitionDigest(db, waiting.id, "ready_for_selection"));
+
+    const { digest, origin } = await resolveTargetDigest(db, null, thursdayOf(thisWeek));
+
+    expect(origin).toBe("created");
+    expect(digest.window_start).toBe(thisWeek.start);
+  });
+
+  it("does not recover a failed collection older than last week", async () => {
+    await purgeSynthetic();
+    const old = mondayWeek();
+    mondayWeek();
+    const thisWeek = mondayWeek();
+    const failed = unwrap(await createDigest(db, old));
+    unwrap(await transitionDigest(db, failed.id, "failed", { lastError: "boom" }));
+
+    const { digest, origin } = await resolveTargetDigest(db, null, thursdayOf(thisWeek));
+
+    expect(origin).toBe("created");
+    expect(digest.window_start).toBe(thisWeek.start);
+  });
+
+  it("still recovers last week's failed collection (FR-018)", async () => {
+    await purgeSynthetic();
+    const lastWeek = mondayWeek();
+    const thisWeek = mondayWeek();
+    const failed = unwrap(await createDigest(db, lastWeek));
+    unwrap(await transitionDigest(db, failed.id, "failed", { lastError: "boom" }));
+
+    const { digest, origin } = await resolveTargetDigest(db, null, thursdayOf(thisWeek));
+
+    expect(origin).toBe("recovered");
+    expect(digest.id).toBe(failed.id);
   });
 
   it("honours an explicit --week over a recoverable digest from another week", async () => {
