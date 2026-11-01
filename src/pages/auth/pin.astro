@@ -4,6 +4,10 @@ import Layout from "@/layouts/Layout.astro";
 const errorParam = Astro.url.searchParams.get("error");
 const until = Astro.url.searchParams.get("until");
 
+// The PIN input's pattern is `[0-9]{6}`, never `\d{6}`: Astro drops the backslash when it renders
+// the attribute, and the browser then receives `d{6}`, which rejects every real PIN with "Please
+// match the requested format" (f53b20c removed the pattern for this; the redesign brought it back).
+
 // Rendered on the server, which runs in UTC on Cloudflare — so the zone is pinned to the operator's
 // own (the scheduler's Europe/Warsaw, the same offset as Barcelona) rather than left to the runtime.
 const TIME = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Warsaw" });
@@ -58,7 +62,8 @@ if (errorParam === "locked") {
             id="pin"
             type="password"
             inputmode="numeric"
-            pattern="\d{6}"
+            pattern="[0-9]{6}"
+            title="Your PIN is 6 digits."
             maxlength="6"
             name="pin"
             autocomplete="current-password"
