@@ -23,8 +23,8 @@ on its own, which both retry and editing depend on — and which production neve
   `npm run visuals` are run by hand.
 - State machine (`src/lib/digest/state-machine.ts`, mirrored by the `enforce_digest_transition`
   trigger, latest in `20260912093000_approval_gate.sql`): `failed → collecting | generating |
-  rendering` and `rejected → generating` already exist (retry paths). There is no way to end a week
-  without publishing: `skipped` stays publishable and the Tuesday job publishes `approved` *and*
+rendering` and `rejected → generating` already exist (retry paths). There is no way to end a week
+  without publishing: `skipped` stays publishable and the Tuesday job publishes `approved` _and_
   `skipped` weeks (`src/worker/publish.ts:55`). There is no `ready_for_approval → rendering`.
 - Checkpoints on `digest`: `collection_completed_at`, `ranking_completed_at`,
   `generation_completed_at`, `rendering_completed_at` — enough to tell which stage a failed week
@@ -336,12 +336,12 @@ page shows a "Updating the slides" notice while the week is in `rendering`.
 
 #### Automated
 
-- [x] 5.1 Fit and copy API tests pass — 803fbe0
-- [x] 5.2 Full suite, lint, build pass — 803fbe0
+- [x] 5.1 Fit and copy API tests pass — 5fbbd77
+- [x] 5.2 Full suite, lint, build pass — 5fbbd77
 
 #### Manual
 
-- [x] 5.3 An edited story shows the new text after the re-render — 803fbe0
+- [x] 5.3 An edited story shows the new text after the re-render — 5fbbd77
 
 ### Phase 6: Docs, deploy
 

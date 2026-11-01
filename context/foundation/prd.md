@@ -235,7 +235,7 @@ All stories are from the perspective of the single operator unless marked _(syst
 - FR-001: The system can collect articles published within the Monday–Sunday window from a configured source list. Priority: must-have
 - FR-002: The system collects per-source using a tiered method rather than one global approach — a structured feed where the source offers one (preferred), a news API/aggregator second, and a rendered fetch only for sources that offer neither (some portals, e.g. Idealista, actively block automated fetching). Each source is configured with its own method. Priority: must-have
 - FR-003: If the candidate pool is below a configured threshold, the system can add fallback sources; AI web search remains the last resort. Priority: must-have
-- FR-018: The operator can manually re-trigger the collection run, so a failed Sunday run is recoverable without waiting seven days. Priority: must-have
+- FR-018: The operator can manually re-trigger the collection run, so a failed Sunday run is recoverable without waiting seven days. Priority: must-have. (Extended 2026-11-01: the dashboard's Retry re-runs any failed week from the stage that failed, and the scheduled worker carries it forward within minutes; the automatic Sunday run recovers only this week's or last week's failed collection, never a week waiting at a human gate.)
 
 ### Ranking (the editorial brain)
 
@@ -264,13 +264,15 @@ All stories are from the perspective of the single operator unless marked _(syst
 ### Human gate 2 — approval
 
 - FR-019: The system emails the operator when generated content is ready for approval. Priority: must-have
-- FR-020: The operator reviews the generated post and approves or rejects it before anything publishes. Priority: must-have
+- FR-020: The operator reviews the generated post and approves or rejects it before anything publishes. Priority: must-have. (Extended 2026-11-01: before deciding, the operator may edit each story's title and caption; the edit must still fit its slide, the slides are redrawn from it, and the post comes back for approval. The operator's own edits are not held to FR-014's figure check.)
 - FR-021: The system emails a Monday reminder if any step remains unvalidated. Priority: must-have
 
 ### Publishing
 
 - FR-022: The system publishes approved content Tuesday 17:00 `Europe/Warsaw` to the selected platforms, tracking per-platform success/failure independently and recording post IDs or error messages. Priority: must-have
 - FR-023: On a missed approval deadline, the system skips the scheduled publish, keeps the digest in an approved-and-pending state that the operator can publish manually later, and never publishes unapproved content. Priority: must-have
+
+- FR-029: The operator can manage any week from the dashboard: close it (it is never published, stops asking for attention, and frees its week) or delete it permanently with everything under it, including its slide images. A week the pipeline is working on right now cannot be changed until that step finishes. Priority: must-have (added 2026-11-01)
 
 ### Archive & learning
 

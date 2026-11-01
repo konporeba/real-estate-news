@@ -103,7 +103,7 @@ Full server-side rendering (`output: "server"` in astro.config.mjs). All pages a
 - **Astro components** for static content/layout; **React components** only when interactivity is needed.
 - **Tailwind class merging**: use the `cn()` helper from `@/lib/utils` (clsx + tailwind-merge) for conditional/merged class names. Do not concatenate class strings manually.
 - **shadcn/ui**: components live in `src/components/ui/`, "new-york" style variant. Install new ones with `npx shadcn@latest add [name]`.
-- **API routes**: use uppercase `GET`, `POST` exports; validate input with zod.
+- **API routes**: use uppercase `GET`, `POST` exports; validate input with zod. Dashboard API routes (`/api/digests`, `/api/digest/action`, `/api/digest/copy`, `/api/selection/confirm`, …) are outside the middleware's `PROTECTED_ROUTES` — its redirect would break a `fetch()` caller — so each checks `context.locals.operatorAuthenticated` itself before reading the body and answers `401` JSON. Keep their rules in a client-safe `src/lib/**/…rules.ts` (or `week-actions.ts`/`copy-rules.ts`) so islands check the same thing the route enforces.
 - **Supabase migrations**: `supabase/migrations/` using naming format `YYYYMMDDHHmmss_short_description.sql`. Always enable RLS on new tables with granular per-operation, per-role policies.
 - **React**: no Next.js directives ("use client" etc.). Extract hooks to `src/components/hooks/`.
 - **Services/helpers** go in `src/lib/` (or `src/lib/services/` for extracted business logic).
