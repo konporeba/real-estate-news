@@ -7,6 +7,7 @@ import { transitionDigest } from "@/lib/digest/run-state";
 import { availableActions, isRunningNow, retryTarget, type WeekAction } from "@/lib/digest/week-actions";
 import { WEEK_ROW_COLUMNS, type WeekRow } from "@/lib/digest/week-list";
 import type { ServiceClient } from "@/lib/supabase-service";
+import type { DigestStatus } from "@/types";
 
 export type ManageWeekErrorReason = "not_found" | "not_allowed" | "database_error";
 
@@ -63,7 +64,7 @@ export async function applyWeekAction(
 async function transitionTo(
   client: ServiceClient,
   id: string,
-  to: "closed" | "collecting" | "generating" | "rendering",
+  to: DigestStatus,
   lastError?: string | null,
 ): Promise<ManageWeekResult> {
   const moved = await transitionDigest(client, id, to, lastError === undefined ? {} : { lastError });

@@ -17,7 +17,7 @@
 // one thing a fake transport can never rule out.
 import { afterAll, describe, expect, it } from "vitest";
 
-import { fitTitle } from "@/lib/visuals/fit";
+import { fitTitle } from "@/lib/digest/fit";
 import { buildPageRequests, RENDER_PAGE_PREFIX } from "@/lib/visuals/render";
 import { createSlidesClient, type SlidesTransport } from "@/lib/visuals/slides-client";
 import { buildSlotMap } from "@/lib/visuals/slots";

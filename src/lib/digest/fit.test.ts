@@ -13,7 +13,7 @@ import {
   TITLE_MAX_CHARS,
   TITLE_SIZE_TIERS,
   titleLength,
-} from "@/lib/visuals/fit";
+} from "@/lib/digest/fit";
 
 /** A title of exactly `length` characters, with no whitespace to collapse. */
 const titleOf = (length: number) => "a".repeat(length);

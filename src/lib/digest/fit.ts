@@ -1,4 +1,7 @@
-// WORKER-SIDE, but pure: no network, no credentials, no clock.
+// SHARED, and pure: no network, no credentials, no clock. The renderer sizes slide text with it,
+// and the approval page's text editor checks an edit against it before saving — one set of limits,
+// so an edit the editor accepts is one the renderer can fit. (Moved from src/lib/visuals/, which the
+// app may not import.)
 //
 // WHY THIS EXISTS AT ALL. Google Slides has a perfectly good "shrink text on overflow" autofit,
 // and the operator can switch it on in the deck — but it does not survive us. The API resets

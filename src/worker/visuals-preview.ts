@@ -10,7 +10,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { fitCarouselText } from "@/lib/visuals/fit";
+import { fitCarouselText } from "@/lib/digest/fit";
 import { type CarouselStoryPagePlan, exportPage, type PagePlan, RENDER_PAGE_PREFIX } from "@/lib/visuals/render";
 import { createSlidesClient, type SlidesTransport } from "@/lib/visuals/slides-client";
 import { pngDimensions } from "@/lib/visuals/store";

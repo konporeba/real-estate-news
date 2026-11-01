@@ -389,11 +389,7 @@ const selectionOpen = digest?.status === "ready_for_selection" && !selection && 
           ) : assets.length > 0 ? (
             <AssetStrip assets={assets} partialFailure={assetsPartial} />
           ) : (
-            RENDERED_STATUSES.includes(digest.status) && (
-              <Notice>
-                The slides haven't been designed yet. Run <code>npm run visuals</code> for this digest.
-              </Notice>
-            )
+            RENDERED_STATUSES.includes(digest.status) && <Notice>The slides haven't been designed yet.</Notice>
           )}
           <ul class="flex flex-col gap-3">
             {shortlist.map((item) => (

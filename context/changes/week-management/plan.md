@@ -324,24 +324,24 @@ page shows a "Updating the slides" notice while the week is in `rendering`.
 
 #### Automated
 
-- [x] 4.1 week-actions unit tests pass
-- [x] 4.2 Action API integration tests pass
-- [x] 4.3 Full suite, lint, build pass
+- [x] 4.1 week-actions unit tests pass — 79b71f7
+- [x] 4.2 Action API integration tests pass — 79b71f7
+- [x] 4.3 Full suite, lint, build pass — 79b71f7
 
 #### Manual
 
-- [x] 4.4 Operator closes the 31 Aug week and clears the other outdated weeks
+- [x] 4.4 Operator closes the 31 Aug week and clears the other outdated weeks — 79b71f7
 
 ### Phase 5: Edit the post text
 
 #### Automated
 
-- [ ] 5.1 Fit and copy API tests pass
-- [ ] 5.2 Full suite, lint, build pass
+- [x] 5.1 Fit and copy API tests pass — 803fbe0
+- [x] 5.2 Full suite, lint, build pass — 803fbe0
 
 #### Manual
 
-- [ ] 5.3 An edited story shows the new text after the re-render
+- [x] 5.3 An edited story shows the new text after the re-render — 803fbe0
 
 ### Phase 6: Docs, deploy
 

@@ -7,6 +7,7 @@
 import GeneratedStoryCard from "@/components/GeneratedStoryCard.astro";
 import AssetStrip, { type RenderedAsset } from "@/components/AssetStrip.astro";
 import { ApprovalPanel } from "@/components/ApprovalPanel";
+import { StoryEditor } from "@/components/StoryEditor";
 import AppHeader from "@/components/AppHeader.astro";
 import Notice from "@/components/Notice.astro";
 import StatusChip from "@/components/StatusChip.astro";
@@ -328,6 +329,14 @@ if (client && digest && !loadError && CONTENT_STATUSES.includes(digest.status)) 
           <p class="font-semibold">This week's run stopped before it finished.</p>
           <p class="mt-1">{digest.last_error ?? "No diagnostic was recorded."}</p>
         </Notice>
+      ) : digest.status === "rendering" ? (
+        <Notice>
+          <p class="font-semibold">The slides are being drawn.</p>
+          <p class="text-muted-foreground mt-1">
+            If you just edited the text, it's saved and the slides are being redrawn with it. This starts within 5
+            minutes and takes a few more; you'll get the approval email when it's ready.
+          </p>
+        </Notice>
       ) : !CONTENT_STATUSES.includes(digest.status) ? (
         <Notice>
           There's nothing to review yet — this week is at <span class="font-semibold">{digest.status}</span>. You'll get
@@ -351,7 +360,7 @@ if (client && digest && !loadError && CONTENT_STATUSES.includes(digest.status)) 
               {decided.note && <p class="text-muted-foreground mt-1">Your note: {decided.note}</p>}
               {decided.decision === "rejected" && (
                 <p class="text-muted-foreground mt-2">
-                  To get fresh copy on the same picks, run <code>npm run generate -- --digest={digest.id}</code>.
+                  To get fresh copy on the same picks, open the week and choose Manage week → Retry.
                 </p>
               )}
             </Notice>
@@ -363,7 +372,7 @@ if (client && digest && !loadError && CONTENT_STATUSES.includes(digest.status)) 
               <p class="text-muted-foreground mt-1">
                 {notIncluded.length === 1 ? "This story was" : "These stories were"} left out because its copy couldn't
                 be produced safely — either the figure check failed or the AI service failed on it. The rest of the week
-                went ahead. To try again, send the post back and regenerate.
+                went ahead. To try again, send the post back, then choose Manage week → Retry on the week page.
               </p>
               <ul class="mt-2 list-disc pl-5">
                 {notIncluded.map((title) => (
@@ -386,15 +395,27 @@ if (client && digest && !loadError && CONTENT_STATUSES.includes(digest.status)) 
           ) : assets.length > 0 ? (
             <AssetStrip assets={assets} partialFailure={assetsPartial} />
           ) : (
-            <Notice>
-              The slides haven't been designed yet. Run <code>npm run visuals</code> for this digest.
-            </Notice>
+            <Notice>The slides haven't been designed yet.</Notice>
           )}
 
           <section aria-labelledby="stories-title" class="flex flex-col gap-4">
-            <h2 id="stories-title" class="text-[22px] font-bold tracking-tight">
-              The copy
-            </h2>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <h2 id="stories-title" class="text-[22px] font-bold tracking-tight">
+                The copy
+              </h2>
+              {digest.status === "ready_for_approval" && selection && (
+                <StoryEditor
+                  client:load
+                  digestId={digest.id}
+                  format={selection.format}
+                  stories={stories.map((story) => ({
+                    clusterId: story.clusterId,
+                    polishTitle: story.polishTitle,
+                    captionSummary: story.captionSummary,
+                  }))}
+                />
+              )}
+            </div>
             <ol class="flex flex-col gap-4">
               {stories.map((story, i) => (
                 <GeneratedStoryCard story={story} index={i + 1} total={stories.length} />

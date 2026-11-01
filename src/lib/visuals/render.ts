@@ -22,7 +22,7 @@ import { markStageComplete, transitionDigest } from "@/lib/digest/run-state";
 // stage renders are downstream of exactly that rule.
 import { MIN_PICKS } from "@/lib/selection/rules";
 import type { ServiceClient } from "@/lib/supabase-service";
-import { fitCarouselText, fitTitle } from "@/lib/visuals/fit";
+import { fitCarouselText, fitTitle } from "@/lib/digest/fit";
 import { assignSections, assignSlides, isoWeekNumber, type SectionDetail } from "@/lib/visuals/sections";
 import type { Presentation, Slide, SlidesRequest, SlidesTransport } from "@/lib/visuals/slides-client";
 import { buildCarouselSlots, buildSlotMap } from "@/lib/visuals/slots";
