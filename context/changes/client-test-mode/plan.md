@@ -91,7 +91,7 @@ Make the system safe and complete for a client test on a hosted link: real posti
 
 #### Automated
 
-- [x] 3.1 Watcher tests, full suite, lint, build pass
+- [x] 3.1 Watcher tests, full suite, lint, build pass — 6a00b90
 
 #### Manual
 
