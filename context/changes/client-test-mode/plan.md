@@ -84,8 +84,8 @@ Make the system safe and complete for a client test on a hosted link: real posti
 
 #### Automated
 
-- [x] 2.1 Week calculation and start-run tests pass
-- [x] 2.2 Full suite, lint, build pass
+- [x] 2.1 Week calculation and start-run tests pass — e94a825
+- [x] 2.2 Full suite, lint, build pass — e94a825
 
 ### Phase 3: Session worker and hosting
 

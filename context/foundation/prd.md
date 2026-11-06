@@ -274,6 +274,8 @@ All stories are from the perspective of the single operator unless marked _(syst
 
 - FR-029: The operator can manage any week from the dashboard: close it (it is never published, stops asking for attention, and frees its week) or delete it permanently with everything under it, including its slide images. A week the pipeline is working on right now cannot be changed until that step finishes. Priority: must-have (added 2026-11-01)
 
+- FR-030: Real posting is opt-in. Unless it is explicitly enabled, every publish path is simulated: no social network is contacted, the result says nothing was posted, every dashboard page shows that it is in test mode, and a tester can start a run at any time. Priority: must-have (added 2026-11-06)
+
 ### Archive & learning
 
 - FR-024: The system retains a full-fidelity archive of every digest — the shortlist presented, which stories were picked _and_ passed over, generated copy, visual output, target platforms, and per-platform results. Priority: must-have

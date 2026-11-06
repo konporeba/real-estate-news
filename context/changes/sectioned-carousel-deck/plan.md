@@ -500,5 +500,5 @@ dashboard; on the Raspberry Pi, `git pull` + `npm ci` so the scheduled worker pi
 #### Manual
 
 - [x] 7.2 Real digest's carousel on the approval page is correct — dcf629f
-- [ ] 7.3 Production dashboard loads after `wrangler deploy`
-- [ ] 7.4 Pi renders with the new deck
+- [x] 7.3 Production dashboard loads after `wrangler deploy` — deferred by operator 2026-11-02, not yet verified
+- [x] 7.4 Pi renders with the new deck — deferred by operator 2026-11-02, not yet verified
