@@ -3,10 +3,12 @@ import Layout from "@/layouts/Layout.astro";
 import AppHeader from "@/components/AppHeader.astro";
 import Notice from "@/components/Notice.astro";
 import StatusChip from "@/components/StatusChip.astro";
+import { StartRunButton } from "@/components/StartRunButton";
 import { WeekActions } from "@/components/WeekActions";
 import { WeekList } from "@/components/WeekList";
 import { currentStepIndex, formatWeek, PIPELINE_STEPS } from "@/lib/digest/presentation";
 import { loadWeekPage, parseWeekPageQuery, WEEK_ROW_COLUMNS, type WeekRow } from "@/lib/digest/week-list";
+import { isPublishingEnabled } from "@/lib/publishing-admin";
 import { createServiceClient } from "@/lib/supabase-admin";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +31,7 @@ if (client) {
       .from("digest")
       .select(WEEK_ROW_COLUMNS)
       .order("window_start", { ascending: false })
+      .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
     if (error) {
@@ -147,15 +150,18 @@ const TODAY = new Intl.DateTimeFormat("en-GB", {
 <Layout title="This week">
   <AppHeader />
   <main class="mx-auto flex max-w-6xl flex-col gap-8 px-4 pt-10 pb-16 sm:px-6">
-    <div class="space-y-1.5">
-      <p class="text-muted-foreground text-[15px]">{TODAY}</p>
-      <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">
-        {
-          current && (current.status === "ready_for_selection" || current.status === "ready_for_approval")
-            ? "One decision is waiting for you."
-            : "Your weekly digest desk."
-        }
-      </h1>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div class="space-y-1.5">
+        <p class="text-muted-foreground text-[15px]">{TODAY}</p>
+        <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">
+          {
+            current && (current.status === "ready_for_selection" || current.status === "ready_for_approval")
+              ? "One decision is waiting for you."
+              : "Your weekly digest desk."
+          }
+        </h1>
+      </div>
+      {client && !isPublishingEnabled() && <StartRunButton client:load />}
     </div>
 
     {

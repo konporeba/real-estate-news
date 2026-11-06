@@ -77,8 +77,8 @@ Make the system safe and complete for a client test on a hosted link: real posti
 
 #### Automated
 
-- [x] 1.1 Test publisher, flag and buildPublishers tests pass
-- [x] 1.2 Full suite, lint, build pass
+- [x] 1.1 Test publisher, flag and buildPublishers tests pass — 6e4c994
+- [x] 1.2 Full suite, lint, build pass — 6e4c994
 
 ### Phase 2: Start a new run
 
