@@ -4,9 +4,10 @@
 // parseDigestFlag, summarize and buildPublishers need no database and always run.
 // resolveTargetDigest hits the real digest/selection/publication tables, behind the same
 // SUPABASE_TEST_PROJECT opt-in as the others.
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { createDigest, transitionDigest } from "@/lib/digest/run-state";
+import { isTestPostId } from "@/lib/publishing/test-publisher";
 import { createServiceClient, type ServiceClient } from "@/lib/supabase-service";
 import type { WorkerEnv } from "@/worker/env";
 import { buildPublishers, parseDigestFlag, PublishRefused, resolveTargetDigest, summarize } from "@/worker/publish";
@@ -49,7 +50,30 @@ describe("summarize", () => {
 });
 
 describe("buildPublishers", () => {
-  const env = (over: Partial<WorkerEnv>): WorkerEnv => ({ ...over }) as WorkerEnv;
+  const env = (over: Partial<WorkerEnv>): WorkerEnv => ({ PUBLISHING_ENABLED: "true", ...over }) as WorkerEnv;
+
+  // The client-test guarantee: credentials alone must never reach a social network.
+  it.each([undefined, "", "false", "1"])("uses test publishers when PUBLISHING_ENABLED is %j", async (value) => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const publishers = buildPublishers(
+      env({
+        PUBLISHING_ENABLED: value,
+        META_ACCESS_TOKEN: "token",
+        META_IG_USER_ID: "ig-1",
+        META_PAGE_ID: "page-1",
+        LINKEDIN_ACCESS_TOKEN: "token",
+        LINKEDIN_ORGANIZATION_URN: "urn:li:organization:1",
+      }),
+    );
+
+    for (const publisher of Object.values(publishers)) {
+      const attempt = await publisher.publish(["https://example.com/0.png"], "caption");
+      expect(attempt.ok && isTestPostId(attempt.postId)).toBe(true);
+    }
+    expect(Object.keys(publishers).sort()).toEqual(["facebook", "instagram", "linkedin"]);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
+  });
 
   it("builds nothing when no credentials are configured", () => {
     expect(buildPublishers(env({}))).toEqual({});

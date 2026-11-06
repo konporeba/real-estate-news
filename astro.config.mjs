@@ -30,6 +30,8 @@ export default defineConfig({
       SESSION_SECRET: envField.string({ context: "server", access: "secret", optional: true }),
       // S-08: manual "Publish now" from the dashboard needs the same platform credentials the
       // worker's scheduled publish uses — see src/lib/publishing-admin.ts and .env.example.
+      // Real posting is opt-in: only the exact value "true" uses the credentials below.
+      PUBLISHING_ENABLED: envField.string({ context: "server", access: "secret", optional: true }),
       META_ACCESS_TOKEN: envField.string({ context: "server", access: "secret", optional: true }),
       META_PAGE_ID: envField.string({ context: "server", access: "secret", optional: true }),
       META_IG_USER_ID: envField.string({ context: "server", access: "secret", optional: true }),

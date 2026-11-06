@@ -8,6 +8,7 @@
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { usePublish } from "@/components/hooks/usePublish";
 import { PRIMARY_BUTTON } from "@/components/ui/button-styles";
+import { isTestPostId } from "@/lib/publishing/test-publisher";
 import { PLATFORM_LABELS } from "@/lib/selection/rules";
 import { cn } from "@/lib/utils";
 import type { SelectionPlatform } from "@/types";
@@ -15,9 +16,11 @@ import type { SelectionPlatform } from "@/types";
 export interface PublishPanelProps {
   digestId: string;
   platforms: SelectionPlatform[];
+  /** Publishing is simulated: nothing reaches the platforms. */
+  testMode: boolean;
 }
 
-export function PublishPanel({ digestId, platforms }: PublishPanelProps) {
+export function PublishPanel({ digestId, platforms, testMode }: PublishPanelProps) {
   const publish = usePublish(digestId);
   const busy = publish.submit.status === "submitting";
   const platformNames = platforms.map((platform) => PLATFORM_LABELS[platform]).join(", ");
@@ -28,7 +31,9 @@ export function PublishPanel({ digestId, platforms }: PublishPanelProps) {
         <div>
           <p className="text-base font-semibold">Don’t want to wait? Publish now.</p>
           <p className="text-muted-foreground text-sm">
-            Posts to {platformNames}. Each platform posts on its own, so one failing doesn’t stop the others.
+            {testMode
+              ? `Test mode: simulates posting to ${platformNames}. Nothing is really posted.`
+              : `Posts to ${platformNames}. Each platform posts on its own, so one failing doesn’t stop the others.`}
           </p>
         </div>
         <button type="button" className={PRIMARY_BUTTON} disabled={busy} onClick={publish.startReview}>
@@ -56,7 +61,11 @@ export function PublishPanel({ digestId, platforms }: PublishPanelProps) {
               )}
             >
               <span className="font-semibold">{PLATFORM_LABELS[outcome.platform]}</span>{" "}
-              {outcome.ok ? `posted — post id ${outcome.postId}` : `failed: ${outcome.error}`}
+              {outcome.ok
+                ? isTestPostId(outcome.postId)
+                  ? "test: nothing was posted"
+                  : `posted — post id ${outcome.postId}`
+                : `failed: ${outcome.error}`}
             </li>
           ))}
         </ul>
@@ -75,8 +84,9 @@ export function PublishPanel({ digestId, platforms }: PublishPanelProps) {
         }}
       >
         <p className="text-muted-foreground text-[15px] leading-relaxed">
-          Posts to {platformNames}. Each platform’s result is recorded on its own — a platform that already succeeded is
-          never posted to twice on a retry.
+          {testMode
+            ? `Test mode: this simulates posting to ${platformNames} and marks the week as published. Nothing is really posted.`
+            : `Posts to ${platformNames}. Each platform’s result is recorded on its own — a platform that already succeeded is never posted to twice on a retry.`}
         </p>
       </ConfirmDialog>
     </section>

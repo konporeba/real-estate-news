@@ -55,6 +55,9 @@ const workerEnvSchema = z.object({
   // META_ACCESS_TOKEN is shared by Instagram and Facebook: both are Meta Graph API surfaces on the
   // same long-lived Page access token, just different target ids (an IG Business account id vs a
   // Page id).
+  //
+  // PUBLISHING_ENABLED must be exactly "true" for any of them to be used; see test-publisher.ts.
+  PUBLISHING_ENABLED: z.string().optional(),
   META_ACCESS_TOKEN: z.string().min(1, "META_ACCESS_TOKEN must not be empty").optional(),
   META_PAGE_ID: z.string().min(1, "META_PAGE_ID must not be empty").optional(),
   META_IG_USER_ID: z.string().min(1, "META_IG_USER_ID must not be empty").optional(),

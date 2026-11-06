@@ -16,6 +16,7 @@ import { createFacebookPublisher } from "@/lib/publishing/facebook";
 import { createInstagramPublisher } from "@/lib/publishing/instagram";
 import { createLinkedinPublisher } from "@/lib/publishing/linkedin";
 import { runPublish } from "@/lib/publishing/run";
+import { publishingEnabled, testPublishers } from "@/lib/publishing/test-publisher";
 import type { Publisher } from "@/lib/publishing/types";
 import { createServiceClient, type ServiceClient } from "@/lib/supabase-service";
 import { loadWorkerEnv, type WorkerEnv } from "@/worker/env";
@@ -118,6 +119,8 @@ export async function resolveTargetDigest(client: ServiceClient, digestId: strin
  * main() so it stays testable with fake env values, mirroring visuals.ts's decksFrom().
  */
 export function buildPublishers(env: WorkerEnv): Partial<Record<SelectionPlatform, Publisher>> {
+  if (!publishingEnabled(env.PUBLISHING_ENABLED)) return testPublishers();
+
   const publishers: Partial<Record<SelectionPlatform, Publisher>> = {};
 
   const instagram = createInstagramPublisher(
