@@ -1,4 +1,5 @@
 ---
+import { isTestPostId } from "@/lib/publishing/test-publisher";
 import { PLATFORM_LABELS } from "@/lib/selection/rules";
 import { cn } from "@/lib/utils";
 import type { SelectionPlatform } from "@/types";
@@ -35,7 +36,7 @@ const { results } = Astro.props;
                   : "border-destructive bg-destructive-tint text-destructive border font-semibold",
               )}
             >
-              {result.status === "success" ? "Posted" : "Failed"}
+              {result.status === "failure" ? "Failed" : isTestPostId(result.postId) ? "Test" : "Posted"}
             </span>
             <span
               class:list={cn(
@@ -43,7 +44,11 @@ const { results } = Astro.props;
                 result.status === "success" ? "text-muted-foreground font-mono" : "text-destructive",
               )}
             >
-              {result.status === "success" ? `Post id ${result.postId ?? "not recorded"}` : result.error}
+              {result.status === "failure"
+                ? result.error
+                : isTestPostId(result.postId)
+                  ? "Nothing was posted"
+                  : `Post id ${result.postId ?? "not recorded"}`}
             </span>
           </li>
         ))}

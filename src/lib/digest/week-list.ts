@@ -84,6 +84,8 @@ export async function loadWeekPage(
     .from("digest")
     .select(WEEK_ROW_COLUMNS)
     .order("window_start", { ascending: false })
+    // A week can hold several digests once earlier runs have ended; the newest leads.
+    .order("created_at", { ascending: false })
     .limit(WEEK_PAGE_SIZE);
   if (view.statuses) request = request.in("status", view.statuses);
   if (query.before) request = request.lt("window_start", query.before);

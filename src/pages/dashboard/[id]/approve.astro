@@ -17,6 +17,7 @@ import Layout from "@/layouts/Layout.astro";
 import { formatWeek } from "@/lib/digest/presentation";
 import { FORMAT_LABELS, PLATFORM_LABELS } from "@/lib/selection/rules";
 import { ASSET_BUCKET, SIGNED_URL_TTL_SECONDS } from "@/lib/digest/assets";
+import { isPublishingEnabled } from "@/lib/publishing-admin";
 import { createServiceClient } from "@/lib/supabase-admin";
 import { cn } from "@/lib/utils";
 import type {
@@ -383,7 +384,12 @@ if (client && digest && !loadError && CONTENT_STATUSES.includes(digest.status)) 
           )}
 
           {PUBLISHABLE_STATUSES.includes(digest.status) && selection && (
-            <PublishPanel client:load digestId={digest.id} platforms={selection.platforms} />
+            <PublishPanel
+              client:load
+              digestId={digest.id}
+              platforms={selection.platforms}
+              testMode={!isPublishingEnabled()}
+            />
           )}
 
           <PublicationResults results={publications} />

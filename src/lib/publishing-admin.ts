@@ -9,13 +9,20 @@ import {
   META_ACCESS_TOKEN,
   META_IG_USER_ID,
   META_PAGE_ID,
+  PUBLISHING_ENABLED,
 } from "astro:env/server";
 
 import { createFacebookPublisher } from "@/lib/publishing/facebook";
 import { createInstagramPublisher } from "@/lib/publishing/instagram";
 import { createLinkedinPublisher } from "@/lib/publishing/linkedin";
+import { publishingEnabled, testPublishers } from "@/lib/publishing/test-publisher";
 import type { Publisher } from "@/lib/publishing/types";
 import type { SelectionPlatform } from "@/types";
+
+/** False in test mode: pages use it to say that nothing is really posted. */
+export function isPublishingEnabled(): boolean {
+  return publishingEnabled(PUBLISHING_ENABLED);
+}
 
 /**
  * Which platform clients are usable, built from the app's own environment. Mirrors
@@ -23,6 +30,8 @@ import type { SelectionPlatform } from "@/types";
  * "Publish now" route and the scheduled worker build identical Publisher instances.
  */
 export function buildPublishers(): Partial<Record<SelectionPlatform, Publisher>> {
+  if (!isPublishingEnabled()) return testPublishers();
+
   const publishers: Partial<Record<SelectionPlatform, Publisher>> = {};
 
   const instagram = createInstagramPublisher(

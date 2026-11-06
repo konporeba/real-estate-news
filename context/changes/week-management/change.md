@@ -1,9 +1,9 @@
 ---
 change_id: week-management
 title: Manage weeks from the dashboard — delete, close, retry, edit the post text, instant filters
-status: implementing
+status: implemented
 created: 2026-11-01
-updated: 2026-11-01
+updated: 2026-11-02
 archived_at: null
 ---
 

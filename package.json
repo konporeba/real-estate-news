@@ -20,7 +20,8 @@
     "scheduled-run": "tsx --env-file=.env src/worker/scheduled-run.ts",
     "remind": "tsx --env-file=.env src/worker/remind.ts",
     "publish": "tsx --env-file=.env src/worker/publish.ts",
-    "hash-pin": "tsx scripts/hash-pin.ts"
+    "hash-pin": "tsx scripts/hash-pin.ts",
+    "worker:watch": "tsx --env-file=.env --env-file-if-exists=.env.client-test src/worker/watch.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",

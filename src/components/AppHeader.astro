@@ -2,6 +2,8 @@
 // The one header every operator page shares. The dashboard shows the main nav; a digest page shows
 // a way back plus where the operator is in the week's two decisions — the old header had neither,
 // so a digest page was a dead end without the browser's back button.
+import { isPublishingEnabled } from "@/lib/publishing-admin";
+
 interface Props {
   /** Set on digest pages: replaces the nav with a back link. */
   back?: { href: string; label: string };
@@ -10,7 +12,16 @@ interface Props {
 }
 
 const { back, context } = Astro.props;
+const testMode = !isPublishingEnabled();
 ---
+
+{
+  testMode && (
+    <p class="bg-signal text-signal-foreground px-4 py-2 text-center text-sm font-semibold">
+      Test mode: nothing is posted to social media. Use “Publish now” to see the final step.
+    </p>
+  )
+}
 
 <header class="bg-card border-b">
   <div class="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center justify-between gap-3 px-4 sm:px-6">

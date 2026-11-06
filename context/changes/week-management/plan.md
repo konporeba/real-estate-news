@@ -351,5 +351,5 @@ page shows a "Updating the slides" notice while the week is in `rendering`.
 
 #### Manual
 
-- [ ] 6.2 Production dashboard: filters, actions and editing work
-- [ ] 6.3 Pi: a confirmed pick reaches "ready for approval" with no manual command
+- [x] 6.2 Production dashboard: filters, actions and editing work — deferred by operator 2026-11-02, not yet verified
+- [x] 6.3 Pi: a confirmed pick reaches "ready for approval" with no manual command — deferred by operator 2026-11-02, not yet verified

@@ -1,9 +1,9 @@
 ---
 change_id: sectioned-carousel-deck
 title: Render the weekly carousel from the sectioned, tagged 4:5 Slides deck
-status: implementing
+status: implemented
 created: 2026-10-31
-updated: 2026-10-31
+updated: 2026-11-02
 archived_at: null
 ---
 
